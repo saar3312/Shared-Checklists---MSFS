@@ -229,8 +229,13 @@ button{font-family:inherit;color:inherit}
   margin-top:14px;font-size:11px;color:var(--text-dim);
   text-transform:uppercase;letter-spacing:0.1em;
 }
+/* Triple / Quad tiles only show up when the host has picked a widebody. */
+.mode-tile.widebody-only{display:none}
+body.aircraft-widebody .mode-tile.widebody-only{display:flex}
+body.aircraft-widebody .mode-grid{grid-template-columns:1fr 1fr}
 @media (max-width:680px){
   .mode-grid{grid-template-columns:1fr}
+  body.aircraft-widebody .mode-grid{grid-template-columns:1fr}
   .mode-tile{padding:32px 24px}
   .mode-tile-name{font-size:36px}
 }
@@ -629,15 +634,25 @@ button{font-family:inherit;color:inherit}
     <span></span>
   </div>
   <div class="mode-grid">
-    <button class="mode-tile" data-mode="1">
+    <button class="mode-tile" data-mode="single">
       <span class="mode-tile-name">Single</span>
       <span class="mode-tile-sub">One pilot runs every item. Useful for solo practice or briefing a cold-and-dark flow.</span>
       <span class="mode-tile-roles">Role: PILOT</span>
     </button>
-    <button class="mode-tile" data-mode="2">
+    <button class="mode-tile" data-mode="dual">
       <span class="mode-tile-name">Dual</span>
       <span class="mode-tile-sub">Two pilots, side-by-side. Items are split between Pilot Flying and Pilot Monitoring; either can do CM items.</span>
       <span class="mode-tile-roles">Roles: PF · PM</span>
+    </button>
+    <button class="mode-tile widebody-only" data-mode="triple">
+      <span class="mode-tile-name">Triple</span>
+      <span class="mode-tile-sub">Augmented crew. PF + PM + one relief pilot who can step in as either role during overnight shifts.</span>
+      <span class="mode-tile-roles">Up to 3 pilots</span>
+    </button>
+    <button class="mode-tile widebody-only" data-mode="quad">
+      <span class="mode-tile-name">Quad</span>
+      <span class="mode-tile-sub">Heavy crew for ultra-long-haul. Two PFs and two PMs swap shifts so primary crew can rest mid-flight.</span>
+      <span class="mode-tile-roles">2 PF · 2 PM</span>
     </button>
   </div>
 </div>
@@ -752,7 +767,7 @@ button{font-family:inherit;color:inherit}
 
   // Bump this on every change so you can confirm both browsers loaded the
   // latest version after a deploy + cache clear. Visible top-right.
-  const APP_VERSION = "v2.3 · walkaround";
+  const APP_VERSION = "v2.4 · triple/quad";
 
   const CHECKLISTS = JSON.parse(document.getElementById("checklists-data").textContent);
   const CODE_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -964,9 +979,11 @@ button{font-family:inherit;color:inherit}
     myKey: null,              // '__me__' for host, peer.id for guest
     myRole: null,             // derived
     members: {},              // peerKey -> {name, role}
-    roles: {},                // role -> peerKey | null
+    roles: {},                // role -> peerKey[] (array, may have multiple
+                              // holders in triple/quad modes)
     ticked: new Set(),
     flightNumber: '',
+    crewMode: 'dual',         // 'single' | 'dual' | 'triple' | 'quad'
   };
 
   function recomputeMyRole() {
@@ -978,13 +995,31 @@ button{font-family:inherit;color:inherit}
     }
   }
 
-  // Widebodies (A330/A380/B777) allow up to 2 PFs and 2 PMs at the same
-  // time — augmented / heavy crew for long-haul ops. Narrowbodies and
-  // single-pilot mode are strict 1-per-role.
+  // Per-role and total caps based on the chosen crew mode.
+  //   single → 1 PILOT total
+  //   dual   → 1 PF + 1 PM (max 2 total)
+  //   triple → 2 in either role allowed but total crew ≤ 3
+  //   quad   → 2 PF + 2 PM (max 4 total)
   function maxHolders() {
-    if (!state.checklist) return 1;
-    if (state.checklist.pilots === 1) return 1;
-    return state.checklist.widebody ? 2 : 1;
+    const m = state.crewMode || 'dual';
+    if (m === 'single') return 1;
+    if (m === 'dual') return 1;
+    return 2; // triple, quad
+  }
+  function maxTotalPilots() {
+    const m = state.crewMode || 'dual';
+    if (m === 'single') return 1;
+    if (m === 'dual') return 2;
+    if (m === 'triple') return 3;
+    return 4; // quad
+  }
+  function totalPilotsSeated() {
+    let n = 0;
+    for (const r of Object.keys(state.roles || {})) {
+      const arr = state.roles[r];
+      n += Array.isArray(arr) ? arr.length : (arr ? 1 : 0);
+    }
+    return n;
   }
 
   // ---- DOM ----
@@ -1007,6 +1042,9 @@ button{font-family:inherit;color:inherit}
       const labels = { a320: 'A320', a330: 'A330', a380: 'A380', b737: 'B737', b777: 'B777' };
       $('mode-aircraft').textContent = labels[t.dataset.aircraft] || t.dataset.aircraft.toUpperCase();
       setAircraftTheme(state.pendingAircraft);
+      // Widebody aircraft → unlock Triple / Quad mode tiles in the picker.
+      const widebody = ['a330','a380','b777'].includes(t.dataset.aircraft);
+      document.body.classList.toggle('aircraft-widebody', widebody);
       show('mode');
     });
   });
@@ -1021,13 +1059,17 @@ button{font-family:inherit;color:inherit}
   $('btn-mode-back').addEventListener('click', () => { document.body.className=''; show('home'); });
   document.querySelectorAll('.mode-tile').forEach(t => {
     t.addEventListener('click', () => {
-      const pilots = parseInt(t.dataset.mode, 10);
-      const slug = state.pendingAircraft + '_' + (pilots === 1 ? '1p' : '2p');
+      const mode = t.dataset.mode || 'dual';
+      // All multi-pilot modes (dual/triple/quad) use the _2p checklist data;
+      // single uses _1p. The mode controls capacity, not the items.
+      const slug = state.pendingAircraft + '_' + (mode === 'single' ? '1p' : '2p');
       state.slug = slug;
       state.checklist = CHECKLISTS[slug];
+      state.crewMode = mode;
       setAircraftTheme(state.checklist.theme);
       $('setup-aircraft').textContent = state.checklist.aircraft;
-      $('setup-mode-label').textContent = (pilots === 1 ? 'Single' : 'Dual');
+      $('setup-mode-label').textContent =
+        mode.charAt(0).toUpperCase() + mode.slice(1);
       show('host-setup');
       setTimeout(() => $('host-name').focus(), 60);
     });
@@ -1173,6 +1215,7 @@ button{font-family:inherit;color:inherit}
           roles: state.roles,
           members: state.members,
           flightNumber: state.flightNumber,
+          crewMode: state.crewMode,
           yourKey: conn.peer,
         });
       }
@@ -1221,6 +1264,7 @@ button{font-family:inherit;color:inherit}
         state.roles = msg.roles || {};
         state.members = msg.members || {};
         state.flightNumber = msg.flightNumber || '';
+        state.crewMode = msg.crewMode || (state.checklist && state.checklist.pilots === 1 ? 'single' : 'dual');
         if (msg.yourKey) state.myKey = msg.yourKey;
         setAircraftTheme(state.checklist.theme);
         enterRoomUI();
@@ -1316,8 +1360,9 @@ button{font-family:inherit;color:inherit}
     for (const r of Object.keys(state.roles)) {
       state.roles[r] = state.roles[r].filter(k => k !== peerKey);
     }
-    // Capacity check on the target role
+    // Per-role and total-crew capacity check
     if (state.roles[role].length >= maxHolders()) return false;
+    if (totalPilotsSeated() >= maxTotalPilots()) return false;
     state.roles[role].push(peerKey);
     state.members[peerKey].role = role;
     return true;
