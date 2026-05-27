@@ -113,6 +113,12 @@ button{font-family:inherit;color:inherit}
   color:var(--text-muted);
 }
 .home-brand-tag{font-size:11px;color:var(--text-dim);letter-spacing:0.06em}
+.version-tag{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:10px;color:var(--text-dim);
+  border:1px solid var(--border);border-radius:3px;
+  padding:2px 6px;letter-spacing:0.04em;white-space:nowrap;
+}
 .home-grid{
   flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr 1fr;
   gap:1px;background:var(--border);min-height:480px;
@@ -547,6 +553,7 @@ button{font-family:inherit;color:inherit}
     <span class="home-brand-name">Shared Cockpit Checklist</span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Two browsers · peer-to-peer</span>
+      <span class="version-tag" id="version-tag-home"></span>
       <button class="btn link theme-toggle" id="btn-theme" title="Toggle light / dark">🌙</button>
     </div>
   </div>
@@ -664,6 +671,7 @@ button{font-family:inherit;color:inherit}
       <button class="flight-number" id="flight-number" title="Click to edit"></button>
     </div>
     <div class="topbar-right">
+      <span class="version-tag" id="version-tag-room"></span>
       <button class="btn link" id="btn-theme-room" title="Toggle light / dark">🌙</button>
       <span class="role-badge" id="role-badge">No role</span>
       <button class="btn link" id="btn-change-role">Role</button>
@@ -704,6 +712,10 @@ button{font-family:inherit;color:inherit}
 (function () {
   "use strict";
 
+  // Bump this on every change so you can confirm both browsers loaded the
+  // latest version after a deploy + cache clear. Visible top-right.
+  const APP_VERSION = "v1.1 · turn";
+
   const CHECKLISTS = JSON.parse(document.getElementById("checklists-data").textContent);
   const CODE_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -717,21 +729,26 @@ button{font-family:inherit;color:inherit}
     config: {
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun.relay.metered.ca:80" },
         {
-          urls: "turn:openrelay.metered.ca:80",
-          username: "openrelayproject",
-          credential: "openrelayproject",
+          urls: "turn:global.relay.metered.ca:80",
+          username: "b49d361e37cdc10f6ecd9a2e",
+          credential: "I+Onk/2xnGV7sH4h",
         },
         {
-          urls: "turn:openrelay.metered.ca:443",
-          username: "openrelayproject",
-          credential: "openrelayproject",
+          urls: "turn:global.relay.metered.ca:80?transport=tcp",
+          username: "b49d361e37cdc10f6ecd9a2e",
+          credential: "I+Onk/2xnGV7sH4h",
         },
         {
-          urls: "turn:openrelay.metered.ca:443?transport=tcp",
-          username: "openrelayproject",
-          credential: "openrelayproject",
+          urls: "turn:global.relay.metered.ca:443",
+          username: "b49d361e37cdc10f6ecd9a2e",
+          credential: "I+Onk/2xnGV7sH4h",
+        },
+        {
+          urls: "turns:global.relay.metered.ca:443?transport=tcp",
+          username: "b49d361e37cdc10f6ecd9a2e",
+          credential: "I+Onk/2xnGV7sH4h",
         },
       ],
       iceCandidatePoolSize: 4,
@@ -1978,6 +1995,9 @@ button{font-family:inherit;color:inherit}
   if (btnThemeRoom) btnThemeRoom.addEventListener('click', toggleTheme);
 
   // ---- boot ----
+  ['version-tag-home', 'version-tag-room'].forEach(id => {
+    const el = $(id); if (el) el.textContent = APP_VERSION;
+  });
   applyStoredTheme();
   show('home');
 })();
