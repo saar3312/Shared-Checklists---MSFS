@@ -933,6 +933,30 @@ button{font-family:inherit;color:inherit}
       state.myKey = peer.id;
       const conn = peer.connect(peerIdFor(code), { reliable: true });
       wireConnection(conn, true);
+
+      // Monitor ICE state for diagnostics + show timeout error if the
+      // data channel hasn't opened within 18 seconds (means NAT traversal
+      // failed and TURN didn't help).
+      try {
+        const pc = conn.peerConnection;
+        if (pc) {
+          pc.addEventListener('iceconnectionstatechange', () => {
+            console.log('[checklist] ICE state:', pc.iceConnectionState);
+          });
+        }
+      } catch (e) {}
+
+      const connectTimer = setTimeout(() => {
+        if (state.conns.indexOf(conn) === -1 || !conn.open) {
+          $('connect-spinner').classList.add('hidden');
+          $('connect-eyebrow').textContent = 'Could not establish connection';
+          $('connect-sub').textContent =
+            "Your two browsers found each other but the direct connection didn't open. " +
+            "This usually means both networks are behind strict NATs — try again, or see the README about adding your own TURN credentials.";
+          $('btn-retry').classList.remove('hidden');
+        }
+      }, 18000);
+      conn.on('open', () => clearTimeout(connectTimer));
     });
     peer.on('error', (err) => {
       const sub = $('connect-sub');
