@@ -714,7 +714,7 @@ button{font-family:inherit;color:inherit}
 
   // Bump this on every change so you can confirm both browsers loaded the
   // latest version after a deploy + cache clear. Visible top-right.
-  const APP_VERSION = "v1.2 · livery";
+  const APP_VERSION = "v1.3 · liveries";
 
   const CHECKLISTS = JSON.parse(document.getElementById("checklists-data").textContent);
   const CODE_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -814,54 +814,60 @@ button{font-family:inherit;color:inherit}
   };
 
   // ICAO 3-letter prefix -> primary brand hex color. Used to tint the UI
-  // accent to match the airline once a callsign is entered.
+  // accent to match the airline once a callsign is entered. Values reflect
+  // current (post-rebrand where applicable) primary brand colours.
   const AIRLINE_COLORS = {
-    // North America
-    "AAL":"#BA0C2F","DAL":"#003366","UAL":"#002244","SWA":"#F9B612",
-    "JBU":"#003876","ASA":"#01426A","HAL":"#4F4E89","NKS":"#FFEC00",
+    // ----- North America -----
+    "AAL":"#BA0C2F","DAL":"#003366","UAL":"#002244","SWA":"#304CB2",
+    "JBU":"#003876","ASA":"#01426A","HAL":"#B5125F","NKS":"#FFEC00",
     "FFT":"#00B259","SCX":"#00529B","AAY":"#FF7F00","MXY":"#1B3A6B",
-    "SKW":"#003F87","ENY":"#BA0C2F","RPA":"#13294B",
+    "SKW":"#003F87","ENY":"#BA0C2F","RPA":"#13294B","EDV":"#003366",
+    "JIA":"#005DAA","AWI":"#003366","PDT":"#005DAA","GJS":"#003366",
     "ACA":"#D82A36","WJA":"#0F5499","ROU":"#B81F36","TSC":"#00468C",
-    "POE":"#FFC72C","FLE":"#1B3A6B",
-    "FDX":"#4D148C","UPS":"#351C15","GTI":"#00558B",
-    // Latin America
-    "AMX":"#00205C","VOI":"#A4093E","AVA":"#C8102E","LAN":"#E20E0E",
-    "TAM":"#ED1C24","AZU":"#2A55E8","GLO":"#FF6900","CMP":"#0072CE",
-    "ARG":"#0073BA","ARE":"#1A2D7E",
-    // Europe – Western
+    "POE":"#0E2A50","FLE":"#1B3A6B","JZA":"#D82A36",
+    "FDX":"#4D148C","UPS":"#351C15","GTI":"#00558B","ATN":"#003F7F",
+    "ABX":"#005EB8","CKS":"#1F4297","NJE":"#002F65","EJA":"#A89968",
+    // ----- Latin America -----
+    "AMX":"#00205C","VOI":"#A4093E","AVA":"#C8102E","LAN":"#1D2755",
+    "TAM":"#1D2755","LPE":"#1D2755","AZU":"#2A55E8","GLO":"#FF6900",
+    "CMP":"#0072CE","ARG":"#0073BA","VIV":"#00A859",
+    // ----- Europe (Western) -----
     "BAW":"#075AAA","EIN":"#2E853E","AFR":"#002157","KLM":"#00A1DE",
     "DLH":"#05164D","AUA":"#C8102E","SWR":"#CD212A","BEL":"#006FB7",
-    "IBE":"#C8102E","VLG":"#FFCC00","AEA":"#0066B3","TAP":"#C8102E",
-    "AZA":"#006A4D","ITY":"#0F396B","SAS":"#1F4297","FIN":"#0B1F65",
+    "IBE":"#EC1C24","VLG":"#FFCC00","AEA":"#0066B3","TAP":"#0E844C",
+    "AZA":"#006A4D","ITY":"#0E3D6E","SAS":"#003E7E","FIN":"#0B1F65",
     "ICE":"#0066CC","NAX":"#D81E05","RYR":"#073590","EZY":"#FF6600",
-    "WZZ":"#C6087E","TUI":"#ED1C24","CFG":"#FFAD00","EWG":"#DD0033",
-    "PGT":"#FFC20E","SXS":"#F58220","KLC":"#00A1DE",
-    // Europe – Eastern
-    "AFL":"#002B62","SBI":"#B23A48","SVR":"#00A0E2","UTA":"#009DDC",
+    "WZZ":"#C6087E","TUI":"#003E7E","CFG":"#FFAD00","EWG":"#DD0033",
+    "PGT":"#FFC20E","SXS":"#F58220","KLC":"#00A1DE","TRA":"#00A551",
+    "VOL":"#5A2D81","TFL":"#0078BF","BCS":"#1D3F89",
+    // ----- Europe (Eastern / Russia) -----
+    "AFL":"#002B62","SBI":"#74B643","SVR":"#0066A1","UTA":"#0067B1",
     "LOT":"#11397E","CSA":"#003F87","BTI":"#00BFFF",
-    // Middle East
+    // ----- Middle East -----
     "UAE":"#D71921","ETD":"#BD8B13","QTR":"#5C0632","SVA":"#006C36",
     "GFA":"#C29F51","KAC":"#00558D","OMA":"#862633","RJA":"#5F2167",
-    "MEA":"#C8102E","ELY":"#002F87","ABY":"#9F1B3B",
-    // Africa
-    "SAA":"#FFC800","ETH":"#07873B","KQA":"#A91D2C","RAM":"#CE1126",
+    "MEA":"#C8102E","ELY":"#002F87","ABY":"#4A1C40","FDB":"#1B365D",
+    "THY":"#C70A0C","PGT":"#FFC20E",
+    // ----- Africa -----
+    "SAA":"#009FE3","ETH":"#07873B","KQA":"#A91D2C","RAM":"#CE1126",
     "MSR":"#006D5B","TAR":"#C8102E",
-    // Asia – East
+    // ----- Asia (East) -----
     "CPA":"#006564","HDA":"#C8102E","CCA":"#C8102E","CES":"#0066B3",
     "CSN":"#154D9F","CHH":"#E60012","CSC":"#C8102E","CXA":"#0061AA",
     "AAR":"#C8102E","KAL":"#00256C","JAL":"#E60012","ANA":"#13448F",
-    "APJ":"#7C2C8A","JJP":"#FF6600",
-    // Asia – South/SE
+    "APJ":"#7C2C8A","JJP":"#FF6600","SJO":"#A6CE39",
+    // ----- Asia (South / SE) -----
     "SIA":"#1C53A4","SLK":"#0093D0","TGW":"#FFD400","SCO":"#FFD400",
-    "MAS":"#005AAA","AXM":"#E70033","GIA":"#0067A7","LNI":"#E60012",
-    "BTK":"#0066B3","CTV":"#1B7C3F","PAL":"#003781","CEB":"#FFB81C",
-    "THA":"#4F2683","NOK":"#FFC72C","BKP":"#822888","VJC":"#DA0007",
-    "HVN":"#29336E","BAV":"#1B7339","AIC":"#E87722","IGO":"#002F8E",
-    "SEJ":"#862633","AKJ":"#FF6F00","VTI":"#5F2167","PIA":"#0E5C2F",
-    // Oceania
+    "MAS":"#005AAA","AXM":"#E70033","XAX":"#E70033","GIA":"#0067A7",
+    "LNI":"#E60012","BTK":"#0066B3","CTV":"#1B7C3F","PAL":"#002F87",
+    "CEB":"#FFB81C","THA":"#4F2683","NOK":"#FFC72C","BKP":"#822888",
+    "TLM":"#5C2D91","VJC":"#DA0007","HVN":"#1E3D8F","BAV":"#1B7339",
+    "AIC":"#4B1E3F","IGO":"#002F8E","SEJ":"#862633","AKJ":"#FF6F00",
+    "VTI":"#48184C","PIA":"#0E5C2F","ALK":"#622D75",
+    // ----- Oceania -----
     "QFA":"#E10A0A","JST":"#FF6600","VOZ":"#ED1C24","ANZ":"#00205B",
-    "FJI":"#0066B3",
-    // Virgin family
+    "FJI":"#0066B3","RXA":"#003566",
+    // ----- Virgin family -----
     "VIR":"#DA291C",
   };
 
