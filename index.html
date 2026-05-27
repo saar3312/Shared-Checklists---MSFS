@@ -643,6 +643,7 @@ button{font-family:inherit;color:inherit}
       <div class="spinner" id="connect-spinner"></div>
       <div class="connect-actions">
         <button class="btn" id="btn-copy-code">Copy code</button>
+        <button class="btn primary hidden" id="btn-retry">Retry</button>
         <button class="btn link" id="btn-cancel">Cancel</button>
       </div>
     </div>
@@ -705,6 +706,37 @@ button{font-family:inherit;color:inherit}
 
   const CHECKLISTS = JSON.parse(document.getElementById("checklists-data").textContent);
   const CODE_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+  // ICE config — Google STUN for normal NAT traversal, plus public TURN
+  // servers (Metered Open Relay) so the data channel still works when both
+  // sides are behind strict NATs (different ISPs, mobile carriers, hotel
+  // Wi-Fi, etc). TURN relays packets through a server, so there's slightly
+  // more latency, but the alternative is "could not connect".
+  const PEER_OPTS = {
+    debug: 1,
+    config: {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        {
+          urls: "turn:openrelay.metered.ca:80",
+          username: "openrelayproject",
+          credential: "openrelayproject",
+        },
+        {
+          urls: "turn:openrelay.metered.ca:443",
+          username: "openrelayproject",
+          credential: "openrelayproject",
+        },
+        {
+          urls: "turn:openrelay.metered.ca:443?transport=tcp",
+          username: "openrelayproject",
+          credential: "openrelayproject",
+        },
+      ],
+      iceCandidatePoolSize: 4,
+    },
+  };
 
   // ICAO 3-letter prefix -> radio callsign (telephony name)
   const AIRLINE_CALLSIGNS = {
@@ -895,7 +927,7 @@ button{font-family:inherit;color:inherit}
     $('connect-spinner').classList.remove('hidden');
     show('connect');
 
-    const peer = new Peer(undefined, { debug: 1 });
+    const peer = new Peer(undefined, PEER_OPTS);
     state.peer = peer;
     peer.on('open', () => {
       state.myKey = peer.id;
@@ -907,8 +939,9 @@ button{font-family:inherit;color:inherit}
       $('connect-spinner').classList.add('hidden');
       $('connect-eyebrow').textContent = 'Could not connect';
       sub.textContent = (err && err.type === 'peer-unavailable')
-        ? 'Nobody is hosting room ' + code + ' right now. Ask your co-pilot to start a new room.'
+        ? 'Nobody is hosting room ' + code + ' right now. Make sure your co-pilot has the tab open and try again.'
         : 'Connection failed: ' + (err && err.message || err);
+      $('btn-retry').classList.remove('hidden');
     });
   }
 
@@ -921,7 +954,7 @@ button{font-family:inherit;color:inherit}
   function peerIdFor(code) { return 'cockpit-checklist-' + code; }
 
   function createPeerWithRetry(id, isHost, tries=0) {
-    const peer = new Peer(id, { debug: 1 });
+    const peer = new Peer(id, PEER_OPTS);
     state.peer = peer;
     peer.on('open', () => { if (isHost) onHostReady(); });
     peer.on('connection', (conn) => wireConnection(conn, false));
@@ -1146,6 +1179,7 @@ button{font-family:inherit;color:inherit}
   // ---- entering the room UI ----
   function enterRoomUI() {
     if (!state.checklist) return;
+    acquireWakeLock();
     if (state.role === 'host') {
       state.myKey = '__me__';
       if (!state.members[state.myKey]) {
@@ -1744,6 +1778,23 @@ button{font-family:inherit;color:inherit}
     );
   });
   $('btn-cancel').addEventListener('click', () => { teardown(); show('home'); });
+  $('btn-retry').addEventListener('click', () => {
+    if (!state.code) return;
+    $('btn-retry').classList.add('hidden');
+    $('connect-spinner').classList.remove('hidden');
+    $('connect-eyebrow').textContent = state.role === 'host' ? 'Room code' : 'Joining';
+    $('connect-sub').textContent = state.role === 'host'
+      ? 'Send this code to your co-pilot.'
+      : 'Reaching out to the host browser…';
+    try { if (state.peer) state.peer.destroy(); } catch(e){}
+    state.peer = null;
+    state.conns = [];
+    if (state.role === 'host') {
+      createPeerWithRetry(peerIdFor(state.code), true);
+    } else {
+      joinRoom(state.code);
+    }
+  });
 
   function teardown() {
     state.conns.forEach(c => { try { c.close(); } catch(e){} });
@@ -1789,6 +1840,77 @@ button{font-family:inherit;color:inherit}
     document.body.classList.remove('theme-a320', 'theme-a330', 'theme-b777');
     if (themeName) document.body.classList.add('theme-' + themeName);
   }
+
+  // ---- Wake Lock — try to keep the screen on while in a room so the
+  //       browser doesn't suspend the tab and drop the WebSocket. ------
+  let wakeLock = null;
+  async function acquireWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      }
+    } catch (e) { /* user denied or unsupported */ }
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { try { wakeLock.release(); } catch(e){} wakeLock = null; }
+  }
+
+  // ---- Auto-reconnect when the tab returns to foreground / network ----
+  function tryReconnect() {
+    if (!state.code) return;
+    // Host: re-establish broker registration with the same room code
+    if (state.role === 'host') {
+      if (state.peer && state.peer.disconnected && !state.peer.destroyed) {
+        try { state.peer.reconnect(); } catch (e) {}
+        setConn('reconnecting', 'Reconnecting…');
+      } else if (!state.peer || state.peer.destroyed) {
+        try { if (state.peer) state.peer.destroy(); } catch(e){}
+        state.peer = null;
+        createPeerWithRetry(peerIdFor(state.code), true);
+        setConn('reconnecting', 'Reconnecting…');
+      }
+      acquireWakeLock();
+    }
+    // Guest: if our data connection is dead, redial through the broker
+    if (state.role === 'guest') {
+      const stale = state.conns.length === 0
+        || (state.peer && state.peer.destroyed)
+        || (state.peer && state.peer.disconnected);
+      if (stale) {
+        try { state.conns.forEach(c => c.close()); } catch(e){}
+        state.conns = [];
+        try { if (state.peer) state.peer.destroy(); } catch(e){}
+        state.peer = null;
+        joinRoomSilent(state.code);
+      }
+    }
+  }
+
+  // A "silent" rejoin that doesn't kick the user back to a different
+  // screen — used by the auto-reconnect path.
+  function joinRoomSilent(code) {
+    setConn('reconnecting', 'Reconnecting…');
+    const peer = new Peer(undefined, PEER_OPTS);
+    state.peer = peer;
+    peer.on('open', () => {
+      state.myKey = peer.id;
+      const conn = peer.connect(peerIdFor(code), { reliable: true });
+      wireConnection(conn, true);
+    });
+    peer.on('error', () => {
+      setConn('disconnected', 'Could not reconnect');
+    });
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      setTimeout(tryReconnect, 400);
+      if (state.role === 'host') acquireWakeLock();
+    }
+  });
+  window.addEventListener('focus', () => setTimeout(tryReconnect, 200));
+  window.addEventListener('online', tryReconnect);
 
   // ---- bulk "mark all done" override per block ----
   function markSectionComplete(idx) {
