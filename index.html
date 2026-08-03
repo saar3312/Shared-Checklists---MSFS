@@ -181,6 +181,7 @@ button{font-family:inherit;color:inherit}
   padding:8px 10px;font-size:12px;color:var(--text-muted);
 }
 .top-menu hr{border:none;border-top:1px solid var(--border);margin:4px 0}
+.subnav-links{display:flex;gap:6px;align-items:center}
 /* ---------- App tabs (lobby / roster / logbook) ---------- */
 .app-tabs{
   display:flex;gap:2px;padding:0 20px;background:var(--surface);
@@ -876,7 +877,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.34</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.35</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -910,7 +911,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <div class="subnav">
     <button class="btn link" id="btn-login-back">&larr; Back</button>
     <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
-    <span></span>
+    <span class="subnav-links">
+      <button type="button" class="btn link" id="nav-roster1">Roster</button>
+      <button type="button" class="btn link" id="nav-logbook1">Logbook</button>
+    </span>
   </div>
   <div class="home-welcome">
     <h1 id="pickac-line">Select your aircraft</h1>
@@ -1145,7 +1149,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.34</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.35</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -3178,6 +3182,11 @@ body.light .flight-number .flight-route{color:#15171d}
     show('roster');
     loadRosterData();
   }
+  // Roster & logbook are career-wide (one per pilot ID, across all aircraft),
+  // so they're reachable before an aircraft is even picked.
+  function backToBase() { if (state.checklist) openLobby(); else show('login'); }
+  $('nav-roster1').addEventListener('click', showRosterScreen);
+  $('nav-logbook1').addEventListener('click', showLogbookScreen);
   function setActiveTab(tab) {
     document.querySelectorAll('.app-tabs button').forEach(b => {
       b.classList.toggle('active', b.dataset.tab === tab);
@@ -3186,12 +3195,12 @@ body.light .flight-number .flight-route{color:#15171d}
   document.querySelectorAll('.app-tabs button').forEach(b => {
     b.addEventListener('click', () => {
       const t = b.dataset.tab;
-      if (t === 'lobby') openLobby();
+      if (t === 'lobby') backToBase();
       else if (t === 'roster') showRosterScreen();
       else if (t === 'logbook') showLogbookScreen();
     });
   });
-  $('btn-roster-back').addEventListener('click', () => openLobby());
+  $('btn-roster-back').addEventListener('click', backToBase);
   $('rb-sort-hours').addEventListener('click', () => { lbSort = 'hours'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
   $('rb-sort-money').addEventListener('click', () => { lbSort = 'money'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
   $('btn-leaderboard2').addEventListener('click', openLeaderboard);
@@ -3236,7 +3245,7 @@ body.light .flight-number .flight-route{color:#15171d}
       $('logbook-modal').hidden = true;
     }
   });
-  $('btn-logbook-back').addEventListener('click', () => openLobby());
+  $('btn-logbook-back').addEventListener('click', backToBase);
   $('logbook-close').addEventListener('click', () => { $('logbook-modal').hidden = true; });
   $('logbook-modal').addEventListener('click', (e) => { if (e.target === $('logbook-modal')) $('logbook-modal').hidden = true; });
   $('btn-menu').addEventListener('click', (e) => {
