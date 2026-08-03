@@ -186,11 +186,17 @@ button{font-family:inherit;color:inherit}
   display:inline-block;font-size:9px;font-weight:800;letter-spacing:0.1em;
   text-transform:uppercase;border-radius:2px;padding:2px 6px;white-space:nowrap;
 }
-.lvl-0{background:#3a4250;color:#c9d2de}
-.lvl-1{background:#365647;color:#bfe4cf}
-.lvl-2{background:#4e6a85;color:#e2edf7}
-.lvl-3{background:#8f6f3a;color:#f7ecd8}
-.lvl-4{background:linear-gradient(90deg,#8a97a8,#d8dee8);color:#12151b}
+.lvl-0{background:#3f4653;color:#cdd5e0}
+.lvl-1{background:#2c6e50;color:#c9ecd9}
+.lvl-2{background:#9c7426;color:#f4e6c6}
+.lvl-3{background:#5f4a91;color:#e6dcf7}
+.lvl-4{background:linear-gradient(90deg,#2fb5ba,#7fe3e6);color:#073033}
+.rank-ink{font-weight:800;letter-spacing:0.06em}
+.rank-0{color:#8a94a3}
+.rank-1{color:#2fa170}
+.rank-2{color:#c9942e}
+.rank-3{color:#8d6cc9}
+.rank-4{color:#40cfd4}
 .lb-table{width:100%;border-collapse:collapse;font-size:12px}
 .lb-table th{
   text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;
@@ -891,7 +897,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-login" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-login-back">&larr; Back</button>
-    <span class="subnav-title"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
     <span></span>
   </div>
   <div class="home-welcome">
@@ -920,7 +926,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-lobby" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-lobby-back">&larr; Back</button>
-    <span class="subnav-title" id="lobby-aircraft"><strong>Flight Deck</strong></span>
+    <span class="subnav-title brand-line" id="lobby-aircraft"><strong>Flight Deck EFB</strong></span>
     <span></span>
   </div>
   <div class="center-stack">
@@ -974,7 +980,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-logbook" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-logbook-back">&larr; Back</button>
-    <span class="subnav-title"><strong>Logbook</strong></span>
+    <span class="subnav-title brand-line"><strong>Logbook</strong></span>
     <span></span>
   </div>
   <div class="center-stack" style="align-items:flex-start">
@@ -1484,6 +1490,7 @@ body.light .flight-number .flight-route{color:#15171d}
     state.myCode = code;
     state.myName = name;
     syncCareerFromCloud();
+    updateBrandLines();
     updateTileRates();
     setTimeout(updateTileRates, 1500); // refresh once the cloud career lands
     $('pickac-line').textContent = 'Select your aircraft, ' + (name.split(' ')[0] || '');
@@ -1554,7 +1561,7 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   function openLobby() {
     $('welcome-line').textContent = 'Welcome to Flight Deck EFB, ' + state.myName;
-    $('lobby-aircraft').innerHTML = '<strong>' + (state.checklist ? state.checklist.aircraft : 'Flight Deck') + '</strong>';
+    updateBrandLines();
     renderCareerLine();
     show('lobby');
     lobbyStart();
@@ -3725,6 +3732,8 @@ body.light .flight-number .flight-route{color:#15171d}
         cloudPushCareer();                  // first time in the cloud
       }
       renderCareerLine();
+      updateBrandLines();
+      updateTileRates();
     }).catch(() => renderCareerLine());
   }
   // ---- pilot levels: your logged hours set your pay grade ----
@@ -3740,14 +3749,14 @@ body.light .flight-number .flight-route{color:#15171d}
     for (let i = 0; i < LEVELS.length - 1; i++) {
       if (h <= LEVELS[i].max) return Object.assign({ idx: i }, LEVELS[i]);
     }
-    // Platinum Captain: +0.2x for every additional 50 h flown past 500
-    const steps = Math.floor((h - 500) / 50);
+    // Platinum Captain: +0.1x for every additional 100 h flown past 500
+    const steps = Math.floor((h - 500) / 100);
     return {
       idx: LEVELS.length - 1,
       name: 'Platinum Captain',
       max: Infinity,
-      mult: Math.round((2.2 + 0.2 * steps) * 10) / 10,
-      nextAt: 500 + 50 * (steps + 1),
+      mult: Math.round((2.2 + 0.1 * steps) * 10) / 10,
+      nextAt: 500 + 100 * (steps + 1),
     };
   }
   // flight-length multiplier grows per minute up to x1.5 at 4 h; earnings are
@@ -3769,6 +3778,15 @@ body.light .flight-number .flight-route{color:#15171d}
     return estPay(state.slug, role, hours, salaryMinutes());
   }
   function fmtMoney(v) { return '$' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function brandLineHtml() {
+    if (!state.myName) return '<strong>Flight Deck EFB</strong>';
+    const lv = levelFor(myCareer().hours);
+    return '<strong>Flight Deck EFB</strong> — ' + escapeHTML(state.myName.toUpperCase()) +
+      ', <span class="rank-ink rank-' + lv.idx + '">' + lv.name.toUpperCase() + '</span>';
+  }
+  function updateBrandLines() {
+    document.querySelectorAll('.brand-line').forEach(el => { el.innerHTML = brandLineHtml(); });
+  }
   function careerSummaryHtml(c) {
     const lv = levelFor(c.hours);
     let html = '<span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span> · Career: <strong>' +
@@ -3777,7 +3795,7 @@ body.light .flight-number .flight-route{color:#15171d}
     if (isFinite(lv.max)) {
       html += ' · ' + (lv.max - c.hours).toFixed(1) + ' h to ' + LEVELS[lv.idx + 1].name;
     } else {
-      html += ' · x' + lv.mult.toFixed(1) + ' pay · +0.2x at ' + lv.nextAt + ' h';
+      html += ' · x' + lv.mult.toFixed(1) + ' pay · +0.1x at ' + lv.nextAt + ' h';
     }
     return html;
   }
@@ -3872,6 +3890,7 @@ body.light .flight-number .flight-route{color:#15171d}
         careers[state.myCode] = c;
         saveCareers(careers);
         cloudPushCareer();
+        updateBrandLines();
         toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
       }
     }
