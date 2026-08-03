@@ -864,7 +864,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.31</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.32</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -934,7 +934,7 @@ body.light .flight-number .flight-route{color:#15171d}
       <h2 id="welcome-line">Welcome</h2>
       <div class="career-line" id="career-line"></div>
       <div style="display:flex;gap:8px;margin:-4px 0 16px">
-        <button type="button" class="btn" id="btn-leaderboard" style="flex:1 1 0">Leaderboard</button>
+        <button type="button" class="btn" id="btn-leaderboard" style="flex:1 1 0">Roster</button>
         <button type="button" class="btn" id="btn-logbook-open" style="flex:1 1 0">Logbook</button>
       </div>
       <div class="lobby-create">
@@ -1102,11 +1102,11 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.31</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.32</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
-          <button class="btn link" id="btn-leaderboard2">Leaderboard</button>
+          <button class="btn link" id="btn-leaderboard2">Roster</button>
           <button class="btn link" id="btn-compact">Detail: off</button>
           <button class="btn link" id="btn-theme-room">Theme</button>
           <button class="btn link" id="btn-change-role">Change role</button>
@@ -1134,7 +1134,7 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <div class="modal-backdrop" id="leaderboard-modal" hidden>
     <div class="modal" style="max-width:560px">
-      <h2>Leaderboard</h2>
+      <h2>Pilot Roster</h2>
       <div style="display:flex;gap:8px;margin:0 0 10px">
         <button class="btn" id="lb-sort-hours">By hours</button>
         <button class="btn" id="lb-sort-money">By earnings</button>
@@ -3097,11 +3097,20 @@ body.light .flight-number .flight-route{color:#15171d}
   let lbData = null;
   function openLeaderboard() {
     $('top-menu').hidden = true;
-    $('leaderboard-body').innerHTML = '<div class="lobby-empty">Loading…</div>';
+    $('leaderboard-body').innerHTML = '<div class="lobby-empty">Loading the roster…</div>';
     $('leaderboard-modal').hidden = false;
-    const local = () => { lbData = [loadCareers(), localPilotsMap()]; renderLeaderboard(lbData[0], lbData[1]); };
+    let settled = false;
+    const local = () => {
+      if (settled) return;
+      settled = true;
+      lbData = [loadCareers(), localPilotsMap()];
+      renderLeaderboard(lbData[0], lbData[1]);
+    };
     if (fdb) {
+      setTimeout(local, 5000); // cloud slow or unreachable -> show local data
       Promise.all([fdb.ref('careers').get(), fdb.ref('pilots').get()]).then(([c, p]) => {
+        if (settled) return;
+        settled = true;
         lbData = [c.val() || {}, p.val() || {}];
         renderLeaderboard(lbData[0], lbData[1]);
       }).catch(local);
@@ -3326,9 +3335,16 @@ body.light .flight-number .flight-route{color:#15171d}
     document.querySelectorAll('.pane-name').forEach(el => {
       const role = el.dataset.role;
       const holderKey = state.roles[role];
-      const name = holderKey && state.members[holderKey] ? state.members[holderKey].name : null;
-      if (name) { el.textContent = name; el.classList.remove('empty'); }
-      else { el.textContent = 'available'; el.classList.add('empty'); }
+      const member = holderKey && state.members[holderKey];
+      if (member && member.name) {
+        const lv = levelFor(member.hours || 0);
+        el.innerHTML = escapeHTML(member.name) +
+          ' <span class="lvl lvl-' + lv.idx + '" style="margin-left:6px;vertical-align:middle">' + lv.name + '</span>';
+        el.classList.remove('empty');
+      } else {
+        el.textContent = 'available';
+        el.classList.add('empty');
+      }
     });
   }
   // ---- flight info (callsign · route · off-block) ----
