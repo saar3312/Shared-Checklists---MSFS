@@ -839,7 +839,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.0</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.2</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1052,8 +1052,9 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.0</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.2</span></div>
           <hr />
+          <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-compact">Detail: off</button>
           <button class="btn link" id="btn-theme-room">Theme</button>
@@ -1085,7 +1086,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <h2>Logbook</h2>
       <div class="career-line" id="logbook-body" style="margin:0"></div>
       <div class="setup-actions" style="margin-top:14px">
-        <span></span>
+        <span>
+          <button class="btn" id="logbook-export">Export</button>
+          <button class="btn" id="logbook-import">Import</button>
+        </span>
         <button class="btn primary" id="logbook-close">Close</button>
       </div>
     </div>
@@ -1160,10 +1164,36 @@ body.light .flight-number .flight-route{color:#15171d}
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <!-- pdf.js for the shared OFP viewer -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- Firebase (free Spark tier): pilot database, cloud logbooks, live lobby -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script>
 (function () {
   "use strict";
   const CHECKLISTS = JSON.parse(document.getElementById("checklists-data").textContent);
+  // =========================================================================
+  // FIREBASE — flight-deck-efb project (console.firebase.google.com).
+  // Powers: the shared pilot database (real login), cloud-synced logbooks
+  // (your hours follow your pilot ID to any computer), and the live lobby.
+  // If Firebase can't be reached the app falls back to the local pilot list,
+  // device-local logbooks, and the peer-to-peer lobby.
+  // =========================================================================
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDYBbtN7Ubci41ynOKeTwwIhBaJV95WjYc",
+    authDomain: "flight-deck-efb.firebaseapp.com",
+    databaseURL: "https://flight-deck-efb-default-rtdb.firebaseio.com",
+    projectId: "flight-deck-efb",
+    storageBucket: "flight-deck-efb.firebasestorage.app",
+    messagingSenderId: "958160526812",
+    appId: "1:958160526812:web:ea18536eb368275182c319",
+  };
+  let fdb = null;
+  try {
+    if (window.firebase && firebase.initializeApp) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      fdb = firebase.database();
+    }
+  } catch (e) { console.error('firebase init failed', e); fdb = null; }
   // =========================================================================
   // PILOT DATABASE — the login "database". Add crew as  'code': 'Full Name'.
   // Anyone without a valid code cannot log in or take a seat.
@@ -1388,16 +1418,57 @@ body.light .flight-number .flight-route{color:#15171d}
   // ---- home screen: pick an aircraft ----
   // ---- login (home) -> aircraft select -> lobby ----
   let desiredRole = null; // seat chosen in the lobby; auto-claimed on entering
+  function pilotByCodeCached(code) {
+    // last-known cloud pilots (offline fallback), then the built-in list
+    try {
+      const cache = JSON.parse(localStorage.getItem('fdeck-pilots-cache') || '{}');
+      if (cache[code] && cache[code].name) return cache[code].name;
+    } catch (e) {}
+    return pilotByCode(code);
+  }
+  function finishLogin(code, name) {
+    state.myCode = code;
+    state.myName = name;
+    syncCareerFromCloud();
+    $('pickac-line').textContent = 'Select your aircraft, ' + (name.split(' ')[0] || '');
+    show('login'); // the aircraft-select screen
+  }
   $('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const code = ($('login-code').value || '').trim();
-    const name = pilotByCode(code);
     if (!code) { toast('Pilot ID is required'); $('login-code').focus(); return; }
-    if (!name) { toast('Invalid pilot ID'); $('login-code').focus(); $('login-code').select(); return; }
-    state.myCode = code;
-    state.myName = name;
-    $('pickac-line').textContent = 'Select your aircraft, ' + (name.split(' ')[0] || '');
-    show('login'); // the aircraft-select screen
+    const reject = () => { toast('Invalid pilot ID'); $('login-code').focus(); $('login-code').select(); };
+    if (fdb) {
+      const btn = document.querySelector('#login-form button[type="submit"]');
+      if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+      const done = (fn) => { if (btn) { btn.disabled = false; btn.textContent = 'Log in'; } fn(); };
+      const timer = setTimeout(() => { // cloud slow/unreachable -> local fallback
+        const nm = pilotByCodeCached(code);
+        done(() => nm ? finishLogin(code, nm) : reject());
+      }, 6000);
+      fdb.ref('pilots/' + code).get().then(snap => {
+        clearTimeout(timer);
+        const v = snap && snap.val();
+        if (v && v.name) {
+          try { // refresh the offline cache with the whole roster
+            fdb.ref('pilots').get().then(all => {
+              if (all && all.val()) localStorage.setItem('fdeck-pilots-cache', JSON.stringify(all.val()));
+            });
+          } catch (e) {}
+          done(() => finishLogin(code, v.name));
+        } else {
+          done(reject);
+        }
+      }).catch(() => {
+        clearTimeout(timer);
+        const nm = pilotByCodeCached(code);
+        done(() => nm ? finishLogin(code, nm) : reject());
+      });
+      return;
+    }
+    const name = pilotByCodeCached(code);
+    if (!name) { reject(); return; }
+    finishLogin(code, name);
   });
   $('btn-login-back').addEventListener('click', () => show('home'));
   document.querySelectorAll('.home-tile[data-slug]').forEach(tile => {
@@ -1693,6 +1764,43 @@ body.light .flight-number .flight-route{color:#15171d}
       }
     });
   }
+  // The departing PIC handed us the aircraft: take over as single-pilot host,
+  // keeping every tick, the OFP, ink and pads exactly as they are.
+  function becomeSoloHost() {
+    clearTimeout(joinWatchdog);
+    try { state.peer && state.peer.destroy(); } catch (e) {}
+    state.conns = [];
+    state.role = 'host';
+    state.myKey = '__me__';
+    state.solo = true;
+    desiredRole = state.myRole || 'PIC';
+    state.members = { '__me__': { name: state.myName, role: 'PIC', hours: myCareer().hours } };
+    state.roles = { PIC: '__me__', PM: null };
+    recomputeMyRole();
+    // re-claim the room's peer id once the old host releases it
+    const tryClaim = (n) => {
+      const p = new Peer(peerIdFor(state.code), PEER_OPTS);
+      state.peer = p;
+      let ok = false;
+      p.on('open', () => { ok = true; lobbyStart(); lobbyAnnounce(); });
+      p.on('connection', (conn) => wireConnection(conn, false));
+      p.on('error', (err) => {
+        if (!ok && err && err.type === 'unavailable-id' && n < 8) {
+          try { p.destroy(); } catch (e) {}
+          setTimeout(() => tryClaim(n + 1), 1500);
+        }
+      });
+    };
+    setTimeout(() => tryClaim(0), 800);
+    renderChecklist();
+    setViewSection(state.viewSection, true);
+    renderPaneHeaders();
+    renderRoleBadge();
+    renderPads();
+    $('aircraft-tag').textContent = state.checklist.aircraft + ' · Single pilot';
+    setConn('connected', 'Single pilot');
+    toast('The other pilot left — you have the aircraft. Continuing single pilot.');
+  }
   function onHostReady() {
     // Host can enter the room solo while waiting
     enterRoomUI();
@@ -1857,6 +1965,9 @@ body.light .flight-number .flight-route{color:#15171d}
       case 'solo_reject':
         joinFailed('That flight deck is single pilot — it cannot be joined.');
         break;
+      case 'handover':
+        becomeSoloHost();
+        break;
       case 'view': // shared section paging — either pilot moves both browsers
         setViewSection(msg.idx, true);
         if (state.role === 'host') {
@@ -1902,7 +2013,16 @@ body.light .flight-number .flight-route{color:#15171d}
     else state.members[peerKey].name = name || state.members[peerKey].name;
     if (typeof hours === 'number') state.members[peerKey].hours = hours;
     const prev = state.roles[role];
-    if (prev && prev !== peerKey) return false;
+    if (prev && prev !== peerKey) {
+      const prevName = state.members[prev] && state.members[prev].name;
+      if (!name || prevName !== name) return false;
+      // same pilot signing back in from another browser — hand the seat over
+      for (const r of Object.keys(state.roles)) {
+        if (state.roles[r] === prev) state.roles[r] = null;
+      }
+      delete state.members[prev];
+      state.conns = state.conns.filter(c => c.peer !== prev);
+    }
     // Free any role this peer currently holds (e.g. switching)
     for (const r of Object.keys(state.roles)) {
       if (state.roles[r] === peerKey) state.roles[r] = null;
@@ -1983,8 +2103,11 @@ body.light .flight-number .flight-route{color:#15171d}
     if (state.solo) setConn('connected', 'Single pilot');
     else setConn(state.conns.length ? 'connected' : 'reconnecting',
             state.conns.length ? 'Connected' : (state.role === 'host' ? 'Waiting for co-pilot…' : 'Connecting…'));
-    // Auto-claim the seat picked at login (PIC set up the flight, PM joined)
-    if (!state.myRole && desiredRole && state.myName && !state.roles[desiredRole]) {
+    // Auto-claim the seat picked at login (PIC set up the flight, PM joined).
+    // A seat held under YOUR name (old browser/tab) is reclaimable.
+    const dHolder = desiredRole && state.roles[desiredRole];
+    const dHolderName = dHolder && state.members[dHolder] && state.members[dHolder].name;
+    if (!state.myRole && desiredRole && state.myName && (!dHolder || dHolderName === state.myName)) {
       if (state.role === 'host') {
         claimRole(state.myKey, state.myName, desiredRole, myCareer().hours);
         broadcastState();
@@ -2855,11 +2978,64 @@ body.light .flight-number .flight-route{color:#15171d}
     $('logbook-body').innerHTML = html;
     $('logbook-modal').hidden = false;
   });
+  $('logbook-export').addEventListener('click', () => {
+    if (!state.myCode) { toast('Log in first'); return; }
+    const payload = {};
+    payload[state.myCode] = myCareer();
+    const blob = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const doCopy = () => toast('Logbook code copied — paste it into Import on your other computer');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(blob).then(doCopy).catch(() => prompt('Copy this logbook code:', blob));
+    } else {
+      prompt('Copy this logbook code:', blob);
+    }
+  });
+  $('logbook-import').addEventListener('click', () => {
+    const blob = prompt('Paste the logbook code from your other computer:');
+    if (!blob) return;
+    let payload;
+    try { payload = JSON.parse(decodeURIComponent(escape(atob(blob.trim())))); } catch (e) { toast('That code could not be read'); return; }
+    const careers = loadCareers();
+    let applied = 0;
+    for (const code of Object.keys(payload)) {
+      const inc = payload[code];
+      if (!inc || typeof inc.hours !== 'number') continue;
+      const cur = careers[code];
+      if (cur && cur.hours > inc.hours) {
+        if (!confirm('This device already has MORE hours for pilot ' + code + ' (' + cur.hours.toFixed(1) +
+          ' h vs ' + inc.hours.toFixed(1) + ' h). Overwrite anyway?')) continue;
+      }
+      careers[code] = inc;
+      applied++;
+    }
+    if (applied) {
+      saveCareers(careers);
+      toast('Logbook imported');
+      renderCareerLine();
+      $('logbook-modal').hidden = true;
+    }
+  });
   $('logbook-close').addEventListener('click', () => { $('logbook-modal').hidden = true; });
   $('logbook-modal').addEventListener('click', (e) => { if (e.target === $('logbook-modal')) $('logbook-modal').hidden = true; });
   $('btn-menu').addEventListener('click', (e) => {
     e.stopPropagation();
-    $('top-menu').hidden = !$('top-menu').hidden;
+    const menu = $('top-menu');
+    menu.hidden = !menu.hidden;
+    // "Allow co-pilot" only makes sense on a single-pilot deck you host
+    $('btn-crew-open').style.display = (state.solo && state.role === 'host') ? '' : 'none';
+  });
+  $('btn-crew-open').addEventListener('click', () => {
+    if (!(state.solo && state.role === 'host')) return;
+    state.solo = false;
+    $('top-menu').hidden = true;
+    renderChecklist();
+    setViewSection(state.viewSection, true);
+    renderPaneHeaders();
+    renderPads();
+    $('aircraft-tag').textContent = state.checklist.aircraft + ' · Dual crew';
+    setConn(state.conns.length ? 'connected' : 'reconnecting', state.conns.length ? 'Connected' : 'Waiting for co-pilot…');
+    lobbyAnnounce();
+    toast('Flight deck opened — the PM seat now shows in the lobby.');
   });
   document.addEventListener('click', (e) => {
     const menu = $('top-menu');
@@ -3118,8 +3294,30 @@ body.light .flight-number .flight-route{color:#15171d}
     c.textContent = label;
   }
   // ---- topbar buttons ----
+  function lobbyUnannounce() {
+    if (fdb) { try { fdb.ref('lobby/' + state.code).remove(); } catch (e) {} return; }
+    if (lobby.isServer) delete lobby.flights[state.code];
+    else if (lobby.conn) { try { lobby.conn.send({ t: 'unannounce', code: state.code }); } catch (e) {} }
+  }
   $('btn-home').addEventListener('click', () => {
-    if (!confirm('Leave this room and go back to the start screen?')) return;
+    if (state.role === 'host') {
+      const otherKey = ['PIC', 'PM'].map(r => state.roles[r]).find(k => k && k !== state.myKey);
+      const other = otherKey && state.members[otherKey];
+      const connected = other && state.conns.some(c => c.peer === otherKey);
+      if (connected) {
+        if (!confirm('Leave the flight deck? ' + other.name + ' keeps the aircraft and continues single pilot.')) return;
+        broadcast({ type: 'handover' });
+        lobbyUnannounce();
+        setTimeout(() => { teardown(); show('home'); }, 400);
+        return;
+      }
+      if (!confirm('Close this flight deck?')) return;
+      lobbyUnannounce();
+      teardown();
+      show('home');
+      return;
+    }
+    if (!confirm('Leave this flight deck?')) return;
     teardown();
     show('home');
   });
@@ -3375,6 +3573,30 @@ body.light .flight-number .flight-route{color:#15171d}
     const c = loadCareers();
     return c[state.myCode] || { hours: 0, money: 0, flights: 0, log: [] };
   }
+  function cloudPushCareer() {
+    if (!fdb || !state.myCode) return;
+    try { fdb.ref('careers/' + state.myCode).set(myCareer()); } catch (e) {}
+  }
+  function syncCareerFromCloud() {
+    if (!fdb || !state.myCode) { renderCareerLine(); return; }
+    fdb.ref('careers/' + state.myCode).get().then(snap => {
+      const remote = snap && snap.val();
+      const careers = loadCareers();
+      const local = careers[state.myCode];
+      if (remote && typeof remote.hours === 'number') {
+        if (!local || remote.hours >= local.hours) {
+          remote.log = remote.log || [];
+          careers[state.myCode] = remote;   // cloud is ahead (or device is fresh)
+          saveCareers(careers);
+        } else {
+          cloudPushCareer();                // this device is ahead — push up
+        }
+      } else if (local) {
+        cloudPushCareer();                  // first time in the cloud
+      }
+      renderCareerLine();
+    }).catch(() => renderCareerLine());
+  }
   function expMult(hours) { return 1 + ((hours || 0) / 100) * 0.5; } // +0.5x per 100 h, no cap
   // flight-length multiplier grows per minute up to x1.5 at 4 h; earnings are
   // the integral of base*seat*exp*length(t) over ACTUAL minutes flown
@@ -3471,6 +3693,7 @@ body.light .flight-number .flight-route{color:#15171d}
         });
         careers[state.myCode] = c;
         saveCareers(careers);
+        cloudPushCareer();
         toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
       }
     }
@@ -3483,6 +3706,16 @@ body.light .flight-number .flight-route{color:#15171d}
   const LOBBY_ID = 'flightdeck-efb-lobby-v1';
   const lobby = { peer: null, isServer: false, conn: null, flights: {}, connecting: false };
   function lobbyStart() {
+    if (fdb) {
+      if (!lobby.fsub) {
+        lobby.fsub = true;
+        fdb.ref('lobby').on('value', snap => {
+          lobby.flights = snap.val() || {};
+          renderLobbyList();
+        });
+      }
+      return;
+    }
     if (lobby.peer && !lobby.peer.destroyed) return;
     if (lobby.connecting) return;
     lobby.connecting = true;
@@ -3526,10 +3759,11 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function lobbyFresh() {
     const now = Date.now(), out = {};
+    const window_ = fdb ? 90000 : 30000; // firebase presence cleans up on disconnect
     for (const k of Object.keys(lobby.flights)) {
-      if (now - (lobby.flights[k].ts || 0) < 30000) out[k] = lobby.flights[k];
+      if (now - (lobby.flights[k].ts || 0) < window_) out[k] = lobby.flights[k];
     }
-    lobby.flights = out;
+    if (!fdb) lobby.flights = out;
     return out;
   }
   function lobbyFlightInfo() {
@@ -3550,6 +3784,15 @@ body.light .flight-number .flight-route{color:#15171d}
   function lobbyAnnounce() {
     if (state.role !== 'host' || !state.code) return;
     const f = lobbyFlightInfo();
+    if (fdb) {
+      try {
+        const ref = fdb.ref('lobby/' + state.code);
+        f.ts = Date.now();
+        ref.set(f);
+        ref.onDisconnect().remove(); // vanishes from the lobby if the tab dies
+      } catch (e) {}
+      return;
+    }
     if (lobby.isServer) {
       lobby.flights[f.code] = Object.assign({}, f, { ts: Date.now() });
     } else if (lobby.conn) {
@@ -3592,13 +3835,15 @@ body.light .flight-number .flight-route{color:#15171d}
           b.type = 'button';
           b.className = 'lobby-seat seat-' + r.toLowerCase();
           const holder = f.roles && f.roles[r];
+          const mine = holder && holder === state.myName;
           let seatSub = holder ? escapeHTML(holder) : 'Join this seat';
+          if (mine) seatSub = 'Rejoin — ' + escapeHTML(holder);
           if (!holder && f.eteMin) {
             const est = estPay(f.slug, r, myCareer().hours, f.eteMin + 20);
             seatSub = 'Join this seat · est. <span class="money">' + fmtMoney(est) + '</span>';
           }
           b.innerHTML = '<span class="seat-tag">' + (r === 'PIC' ? 'Pilot in Command' : 'Pilot Monitoring') + '</span>' + seatSub;
-          if (holder) b.disabled = true;
+          if (holder && !mine) b.disabled = true;
           else b.addEventListener('click', () => {
             desiredRole = r;
             if (f.slug && CHECKLISTS[f.slug]) { state.slug = f.slug; state.checklist = CHECKLISTS[f.slug]; }
@@ -3614,9 +3859,11 @@ body.light .flight-number .flight-route{color:#15171d}
   let lobbyBeat = 0;
   function lobbyTick() {
     lobbyBeat++;
-    if (state.role === 'host' && state.code && lobbyBeat % 8 === 0) lobbyAnnounce();
+    const beatEvery = fdb ? 20 : 8;
+    if (state.role === 'host' && state.code && lobbyBeat % beatEvery === 0) lobbyAnnounce();
     if (!screens.lobby.classList.contains('hidden')) {
-      if (lobbyBeat % 5 === 0) {
+      if (fdb) { if (lobbyBeat % 10 === 0) renderLobbyList(); }
+      else if (lobbyBeat % 5 === 0) {
         if (lobby.isServer) renderLobbyList();
         else if (lobby.conn) { try { lobby.conn.send({ t: 'list' }); } catch (e) {} }
         else lobbyStart();
