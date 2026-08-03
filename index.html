@@ -181,6 +181,18 @@ button{font-family:inherit;color:inherit}
   padding:8px 10px;font-size:12px;color:var(--text-muted);
 }
 .top-menu hr{border:none;border-top:1px solid var(--border);margin:4px 0}
+/* ---------- App tabs (lobby / roster / logbook) ---------- */
+.app-tabs{
+  display:flex;gap:2px;padding:0 20px;background:var(--surface);
+  border-bottom:1px solid var(--border);
+}
+.app-tabs button{
+  background:transparent;border:none;color:var(--text-muted);cursor:pointer;
+  font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
+  padding:11px 16px;border-bottom:2px solid transparent;min-height:40px;
+}
+.app-tabs button:hover{color:var(--text)}
+.app-tabs button.active{color:var(--accent);border-bottom-color:var(--accent)}
 /* ---------- Levels & leaderboard ---------- */
 .lvl{
   display:inline-block;font-size:9px;font-weight:800;letter-spacing:0.1em;
@@ -249,7 +261,7 @@ button{font-family:inherit;color:inherit}
 /* =====================================================================
    SCREEN 2: Host setup (login: first + last name, flight # required)
    ===================================================================== */
-#screen-host-setup, #screen-connect, #screen-login, #screen-lobby, #screen-join, #screen-logbook{
+#screen-host-setup, #screen-connect, #screen-login, #screen-lobby, #screen-join, #screen-logbook, #screen-roster{
   display:flex;flex-direction:column;min-height:100vh;
 }
 .subnav{
@@ -864,7 +876,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.32</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.34</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -929,14 +941,16 @@ body.light .flight-number .flight-route{color:#15171d}
     <span class="subnav-title brand-line" id="lobby-aircraft"><strong>Flight Deck EFB</strong></span>
     <span></span>
   </div>
+  <nav class="app-tabs">
+    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="logbook">Logbook</button>
+  </nav>
+
   <div class="center-stack">
     <div class="setup-card lobby-card">
       <h2 id="welcome-line">Welcome</h2>
       <div class="career-line" id="career-line"></div>
-      <div style="display:flex;gap:8px;margin:-4px 0 16px">
-        <button type="button" class="btn" id="btn-leaderboard" style="flex:1 1 0">Roster</button>
-        <button type="button" class="btn" id="btn-logbook-open" style="flex:1 1 0">Logbook</button>
-      </div>
       <div class="lobby-create">
         <button type="button" class="btn primary" id="btn-create-dual">Create new flight deck</button>
         <button type="button" class="btn" id="btn-create-solo">Single pilot</button>
@@ -980,12 +994,41 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <!-- SCREEN 2: PIC flight setup (OFP-first)                       -->
 <!-- ============================================================ -->
+<div id="screen-roster" class="hidden">
+  <div class="subnav">
+    <button class="btn link" id="btn-roster-back">&larr; Back</button>
+    <span class="subnav-title brand-line"><strong>Pilot Roster</strong></span>
+    <span></span>
+  </div>
+  <nav class="app-tabs">
+    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="logbook">Logbook</button>
+  </nav>
+
+  <div class="center-stack" style="align-items:flex-start">
+    <div class="setup-card lobby-card" style="max-width:720px">
+      <h2>Pilot Roster</h2>
+      <div style="display:flex;gap:8px;margin:0 0 12px">
+        <button class="btn" id="rb-sort-hours">By hours</button>
+        <button class="btn" id="rb-sort-money">By earnings</button>
+      </div>
+      <div id="roster-body" style="overflow-x:auto"></div>
+    </div>
+  </div>
+</div>
 <div id="screen-logbook" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-logbook-back">&larr; Back</button>
     <span class="subnav-title brand-line"><strong>Logbook</strong></span>
     <span></span>
   </div>
+  <nav class="app-tabs">
+    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="logbook">Logbook</button>
+  </nav>
+
   <div class="center-stack" style="align-items:flex-start">
     <div class="setup-card lobby-card" style="max-width:820px">
       <h2 id="logbook-title">Logbook</h2>
@@ -1102,7 +1145,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.32</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.34</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1470,6 +1513,7 @@ body.light .flight-number .flight-route{color:#15171d}
     login: $('screen-login'),
     lobby: $('screen-lobby'),
     logbook: $('screen-logbook'),
+    roster: $('screen-roster'),
     join: $('screen-join'),
     "host-setup": $('screen-host-setup'),
     connect: $('screen-connect'),
@@ -1566,6 +1610,7 @@ body.light .flight-number .flight-route{color:#15171d}
     $('welcome-line').textContent = 'Welcome to Flight Deck EFB, ' + state.myName;
     updateBrandLines();
     renderCareerLine();
+    setActiveTab('lobby');
     show('lobby');
     lobbyStart();
     renderLobbyList();
@@ -3090,15 +3135,17 @@ body.light .flight-number .flight-route{color:#15171d}
         '<td>' + r.flights + '</td></tr>';
     });
     html += '</table>';
-    $('leaderboard-body').innerHTML = html;
-    $('lb-sort-hours').classList.toggle('primary', lbSort === 'hours');
-    $('lb-sort-money').classList.toggle('primary', lbSort === 'money');
+    const target = $(lbTargetId);
+    if (target) target.innerHTML = html;
+    [['lb-sort-hours', 'hours'], ['lb-sort-money', 'money'],
+     ['rb-sort-hours', 'hours'], ['rb-sort-money', 'money']].forEach(([id, key]) => {
+      const b = $(id);
+      if (b) b.classList.toggle('primary', lbSort === key);
+    });
   }
   let lbData = null;
-  function openLeaderboard() {
-    $('top-menu').hidden = true;
-    $('leaderboard-body').innerHTML = '<div class="lobby-empty">Loading the roster…</div>';
-    $('leaderboard-modal').hidden = false;
+  let lbTargetId = 'leaderboard-body';
+  function loadRosterData() {
     let settled = false;
     const local = () => {
       if (settled) return;
@@ -3116,8 +3163,37 @@ body.light .flight-number .flight-route{color:#15171d}
       }).catch(local);
     } else local();
   }
-  $('btn-leaderboard').addEventListener('click', openLeaderboard);
-  $('btn-logbook-open').addEventListener('click', showLogbookScreen);
+  function openLeaderboard() { // compact popup, used from the in-flight menu
+    $('top-menu').hidden = true;
+    lbTargetId = 'leaderboard-body';
+    $('leaderboard-body').innerHTML = '<div class="lobby-empty">Loading the roster…</div>';
+    $('leaderboard-modal').hidden = false;
+    loadRosterData();
+  }
+  function showRosterScreen() { // full page, used from the lobby
+    lbTargetId = 'roster-body';
+    $('roster-body').innerHTML = '<div class="lobby-empty">Loading the roster…</div>';
+    updateBrandLines();
+    setActiveTab('roster');
+    show('roster');
+    loadRosterData();
+  }
+  function setActiveTab(tab) {
+    document.querySelectorAll('.app-tabs button').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+  }
+  document.querySelectorAll('.app-tabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      const t = b.dataset.tab;
+      if (t === 'lobby') openLobby();
+      else if (t === 'roster') showRosterScreen();
+      else if (t === 'logbook') showLogbookScreen();
+    });
+  });
+  $('btn-roster-back').addEventListener('click', () => openLobby());
+  $('rb-sort-hours').addEventListener('click', () => { lbSort = 'hours'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
+  $('rb-sort-money').addEventListener('click', () => { lbSort = 'money'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
   $('btn-leaderboard2').addEventListener('click', openLeaderboard);
   $('lb-sort-hours').addEventListener('click', () => { lbSort = 'hours'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
   $('lb-sort-money').addEventListener('click', () => { lbSort = 'money'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
@@ -3802,7 +3878,7 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!state.myName) return '<strong>Flight Deck EFB</strong>';
     const lv = levelFor(myCareer().hours);
     return '<strong>Flight Deck EFB</strong> — ' + escapeHTML(state.myName.toUpperCase()) +
-      ', <span class="rank-ink rank-' + lv.idx + '">' + lv.name.toUpperCase() + '</span>';
+      ' <span class="lvl lvl-' + lv.idx + '" style="vertical-align:middle;margin-left:6px">' + lv.name.toUpperCase() + '</span>';
   }
   function updateBrandLines() {
     document.querySelectorAll('.brand-line').forEach(el => { el.innerHTML = brandLineHtml(); });
@@ -3849,6 +3925,8 @@ body.light .flight-number .flight-route{color:#15171d}
     $('logbook-title').textContent = 'Logbook — ' + (state.myName || '');
     $('logbook-career').innerHTML = careerSummaryHtml(c);
     $('logbook-table').innerHTML = logbookTableHtml(c);
+    updateBrandLines();
+    setActiveTab('logbook');
     show('logbook');
   }
   let flightCommitted = false;
