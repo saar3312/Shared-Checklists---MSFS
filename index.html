@@ -243,7 +243,7 @@ button{font-family:inherit;color:inherit}
 /* =====================================================================
    SCREEN 2: Host setup (login: first + last name, flight # required)
    ===================================================================== */
-#screen-host-setup, #screen-connect, #screen-login, #screen-lobby, #screen-join{
+#screen-host-setup, #screen-connect, #screen-login, #screen-lobby, #screen-join, #screen-logbook{
   display:flex;flex-direction:column;min-height:100vh;
 }
 .subnav{
@@ -971,6 +971,27 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <!-- SCREEN 2: PIC flight setup (OFP-first)                       -->
 <!-- ============================================================ -->
+<div id="screen-logbook" class="hidden">
+  <div class="subnav">
+    <button class="btn link" id="btn-logbook-back">&larr; Back</button>
+    <span class="subnav-title"><strong>Logbook</strong></span>
+    <span></span>
+  </div>
+  <div class="center-stack" style="align-items:flex-start">
+    <div class="setup-card lobby-card" style="max-width:820px">
+      <h2 id="logbook-title">Logbook</h2>
+      <div class="career-line" id="logbook-career"></div>
+      <div id="logbook-table" style="overflow-x:auto"></div>
+      <div class="setup-actions" style="margin-top:14px">
+        <span>
+          <button class="btn" id="logbook-export">Export</button>
+          <button class="btn" id="logbook-import">Import</button>
+        </span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="screen-host-setup" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-setup-back">&larr; Back</button>
@@ -1121,10 +1142,7 @@ body.light .flight-number .flight-route{color:#15171d}
       <h2>Logbook</h2>
       <div class="career-line" id="logbook-body" style="margin:0"></div>
       <div class="setup-actions" style="margin-top:14px">
-        <span>
-          <button class="btn" id="logbook-export">Export</button>
-          <button class="btn" id="logbook-import">Import</button>
-        </span>
+        <span></span>
         <button class="btn primary" id="logbook-close">Close</button>
       </div>
     </div>
@@ -1442,6 +1460,7 @@ body.light .flight-number .flight-route{color:#15171d}
     home: $('screen-home'),
     login: $('screen-login'),
     lobby: $('screen-lobby'),
+    logbook: $('screen-logbook'),
     join: $('screen-join'),
     "host-setup": $('screen-host-setup'),
     connect: $('screen-connect'),
@@ -3027,7 +3046,8 @@ body.light .flight-number .flight-route{color:#15171d}
     html += log.length
       ? '<div class="logbook">' + log.map(e =>
           e.date + ' · ' + e.aircraft + ' · ' + (e.flight || '—') + ' ' + e.dep + '→' + e.arr +
-          ' · ' + e.role + (e.crew ? '/' + e.crew : '') + ' · ' + e.minutes + ' min · <span class="money">' + fmtMoney(e.pay) + '</span>').join('<br>') + '</div>'
+          ' · ' + e.role + (e.crew ? '/' + e.crew : '') + (e.copilot ? ' w/ ' + e.copilot : '') +
+          ' · ' + e.minutes + ' min · <span class="money">' + fmtMoney(e.pay) + '</span>').join('<br>') + '</div>'
       : '<div class="logbook">No flights logged yet — complete a checklist front to back and it lands here.</div>';
     $('logbook-body').innerHTML = html;
     $('logbook-modal').hidden = false;
@@ -3120,6 +3140,7 @@ body.light .flight-number .flight-route{color:#15171d}
       $('logbook-modal').hidden = true;
     }
   });
+  $('btn-logbook-back').addEventListener('click', () => openLobby());
   $('logbook-close').addEventListener('click', () => { $('logbook-modal').hidden = true; });
   $('logbook-modal').addEventListener('click', (e) => { if (e.target === $('logbook-modal')) $('logbook-modal').hidden = true; });
   $('btn-menu').addEventListener('click', (e) => {
@@ -3716,10 +3737,18 @@ body.light .flight-number .flight-route{color:#15171d}
   ];
   function levelFor(hours) {
     const h = hours || 0;
-    for (let i = 0; i < LEVELS.length; i++) {
+    for (let i = 0; i < LEVELS.length - 1; i++) {
       if (h <= LEVELS[i].max) return Object.assign({ idx: i }, LEVELS[i]);
     }
-    return Object.assign({ idx: LEVELS.length - 1 }, LEVELS[LEVELS.length - 1]);
+    // Platinum Captain: +0.2x for every additional 50 h flown past 500
+    const steps = Math.floor((h - 500) / 50);
+    return {
+      idx: LEVELS.length - 1,
+      name: 'Platinum Captain',
+      max: Infinity,
+      mult: Math.round((2.2 + 0.2 * steps) * 10) / 10,
+      nextAt: 500 + 50 * (steps + 1),
+    };
   }
   // flight-length multiplier grows per minute up to x1.5 at 4 h; earnings are
   // the integral of base*seat*exp*length(t) over ACTUAL minutes flown
@@ -3740,33 +3769,49 @@ body.light .flight-number .flight-route{color:#15171d}
     return estPay(state.slug, role, hours, salaryMinutes());
   }
   function fmtMoney(v) { return '$' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-  let logbookExpanded = false;
-  function renderCareerLine() {
-    const el = $('career-line');
-    if (!el) return;
-    const c = myCareer();
+  function careerSummaryHtml(c) {
     const lv = levelFor(c.hours);
     let html = '<span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span> · Career: <strong>' +
       c.hours.toFixed(1) + ' h</strong> · <span class="money">' + fmtMoney(c.money) + '</span> · ' +
       c.flights + (c.flights === 1 ? ' flight' : ' flights');
     if (isFinite(lv.max)) {
       html += ' · ' + (lv.max - c.hours).toFixed(1) + ' h to ' + LEVELS[lv.idx + 1].name;
+    } else {
+      html += ' · x' + lv.mult.toFixed(1) + ' pay · +0.2x at ' + lv.nextAt + ' h';
     }
-    const log = (c.log || []).slice().reverse();
-    const shown = logbookExpanded ? log : log.slice(0, 4);
-    if (shown.length) {
-      html += '<div class="logbook">' + shown.map(e =>
-        e.date + ' · ' + e.aircraft + ' · ' + (e.flight || '—') + ' ' + e.dep + '→' + e.arr +
-        ' · ' + e.role + (e.crew ? '/' + e.crew : '') + ' · ' + e.minutes + ' min · <span class="money">' + fmtMoney(e.pay) + '</span>').join('<br>') + '</div>';
-    }
-    if (logbookExpanded && !log.length) {
-      html += '<div class="logbook">No flights logged yet — complete a checklist front to back and it lands here.</div>';
-    }
-    html += '<button type="button" class="btn link" id="btn-logbook-toggle" style="padding:4px 0">' +
-      (logbookExpanded ? 'Show recent only' : 'View logbook (' + log.length + (log.length === 1 ? ' flight)' : ' flights)')) + '</button>';
-    el.innerHTML = html;
+    return html;
+  }
+  function renderCareerLine() {
+    const el = $('career-line');
+    if (!el) return;
+    const c = myCareer();
+    const log = (c.log || []);
+    el.innerHTML = careerSummaryHtml(c) +
+      '<button type="button" class="btn link" id="btn-logbook-toggle" style="padding:4px 0;display:block">' +
+      'Open logbook (' + log.length + (log.length === 1 ? ' flight)' : ' flights)') + '</button>';
     const tb = document.getElementById('btn-logbook-toggle');
-    if (tb) tb.addEventListener('click', () => { logbookExpanded = !logbookExpanded; renderCareerLine(); });
+    if (tb) tb.addEventListener('click', showLogbookScreen);
+  }
+  function logbookTableHtml(c) {
+    const log = (c.log || []).slice().reverse();
+    if (!log.length) {
+      return '<div class="lobby-empty">No flights logged yet — complete a checklist front to back and it lands here.</div>';
+    }
+    let h = '<table class="lb-table"><tr><th>Date</th><th>Aircraft</th><th>Flight</th><th>Route</th><th>Seat</th><th>With</th><th>Min</th><th>Pay</th></tr>';
+    log.forEach(e => {
+      h += '<tr><td>' + e.date + '</td><td>' + escapeHTML(e.aircraft || '') + '</td><td>' +
+        escapeHTML(e.flight || '—') + '</td><td>' + escapeHTML((e.dep || '') + '→' + (e.arr || '')) + '</td><td>' +
+        e.role + (e.crew ? '/' + e.crew : '') + '</td><td>' + escapeHTML(e.copilot || '—') + '</td><td>' +
+        e.minutes + '</td><td><span class="money">' + fmtMoney(e.pay) + '</span></td></tr>';
+    });
+    return h + '</table>';
+  }
+  function showLogbookScreen() {
+    const c = myCareer();
+    $('logbook-title').textContent = 'Logbook — ' + (state.myName || '');
+    $('logbook-career').innerHTML = careerSummaryHtml(c);
+    $('logbook-table').innerHTML = logbookTableHtml(c);
+    show('logbook');
   }
   let flightCommitted = false;
   function salaryTick() {
@@ -3816,6 +3861,12 @@ body.light .flight-number .flight-route{color:#15171d}
           aircraft: state.checklist.aircraft, flight: state.flightNumber,
           dep: state.depApt, arr: state.arrApt, role: state.myRole,
           crew: state.solo ? 'SINGLE' : 'DUAL',
+          copilot: (() => { // the other seat's occupant, for the logbook
+            if (state.solo) return '';
+            const otherRole = state.myRole === 'PIC' ? 'PM' : 'PIC';
+            const k = state.roles[otherRole];
+            return (k && state.members[k] && state.members[k].name) || '';
+          })(),
           minutes, pay: Math.round(pay * 100) / 100,
         });
         careers[state.myCode] = c;
