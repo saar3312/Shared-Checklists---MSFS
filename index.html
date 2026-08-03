@@ -766,17 +766,12 @@ body.light .flight-number .flight-route{color:#15171d}
   <div class="center-stack">
     <div class="setup-card">
       <h2>Log in &amp; start the flight</h2>
-      <p class="setup-sub">Log in with your first and last name. You will pick your role (PIC or PM) once the room opens.</p>
-      <div class="field-row">
-        <label class="field">
-          <span class="field-label">First name<span class="req">*</span></span>
-          <input id="host-first" class="input" type="text" maxlength="20" required />
-        </label>
-        <label class="field">
-          <span class="field-label">Last name<span class="req">*</span></span>
-          <input id="host-last" class="input" type="text" maxlength="20" required />
-        </label>
-      </div>
+      <p class="setup-sub">Log in with your pilot code. You will pick your role (PIC or PM) once the room opens.</p>
+      <label class="field">
+        <span class="field-label">Login code<span class="req">*</span></span>
+        <input id="host-code" class="input mono" type="text" maxlength="8" required
+          autocomplete="off" spellcheck="false" inputmode="numeric" />
+      </label>
       <label class="field">
         <span class="field-label">Callsign / flight number<span class="req">*</span></span>
         <input id="host-flight" class="input mono" type="text" maxlength="16" required
@@ -870,16 +865,11 @@ body.light .flight-number .flight-route{color:#15171d}
   <div class="modal-backdrop" id="role-modal" hidden>
     <div class="modal" id="role-modal-inner">
       <h2>Log in</h2>
-      <div class="field-row">
-        <label class="field">
-          <span class="field-label">First name<span class="req">*</span></span>
-          <input id="first-input" class="input" maxlength="20" />
-        </label>
-        <label class="field">
-          <span class="field-label">Last name<span class="req">*</span></span>
-          <input id="last-input" class="input" maxlength="20" />
-        </label>
-      </div>
+      <label class="field">
+        <span class="field-label">Login code<span class="req">*</span></span>
+        <input id="code-input" class="input mono" maxlength="8"
+          autocomplete="off" spellcheck="false" inputmode="numeric" />
+      </label>
       <p class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;margin:14px 0 8px">Pick a role — one pilot per role</p>
       <div class="role-options" id="role-options"></div>
     </div>
@@ -954,6 +944,18 @@ body.light .flight-number .flight-route{color:#15171d}
 (function () {
   "use strict";
   const CHECKLISTS = JSON.parse(document.getElementById("checklists-data").textContent);
+  // =========================================================================
+  // PILOT DATABASE — the login "database". Add crew as  'code': 'Full Name'.
+  // Anyone without a valid code cannot log in or take a seat.
+  // =========================================================================
+  const PILOT_DB = {
+    '7789': 'Saarang Mulukutla',
+    '4143': 'Jayvir Monga',
+  };
+  function pilotByCode(code) {
+    const c = String(code || '').trim();
+    return (c && Object.prototype.hasOwnProperty.call(PILOT_DB, c)) ? PILOT_DB[c] : null;
+  }
   // Card groupings for the open-if-needed menu
   const CARD_MENU = [
     ["Briefings", ["br_prep","br_fa","br_departure","br_arrival","br_approach"]],
@@ -1073,8 +1075,7 @@ body.light .flight-number .flight-route{color:#15171d}
     conns: [],
     slug: 'b777_2p',
     checklist: null,
-    myFirst: '',
-    myLast: '',
+    myCode: '',
     myName: '',
     myKey: null,              // '__me__' for host, peer.id for guest
     myRole: null,             // derived: 'PIC' | 'PM'
@@ -1167,7 +1168,7 @@ body.light .flight-number .flight-route{color:#15171d}
     state.slug = 'b777_2p';
     state.checklist = CHECKLISTS.b777_2p;
     show('host-setup');
-    setTimeout(() => $('host-first').focus(), 60);
+    setTimeout(() => $('host-code').focus(), 60);
   });
   $('join-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1189,25 +1190,24 @@ body.light .flight-number .flight-route{color:#15171d}
     return String(v || '').trim().replace(/\s+/g, ' ').slice(0, 20);
   }
   $('btn-setup-create').addEventListener('click', () => {
-    const first = cleanNamePart($('host-first').value);
-    const last = cleanNamePart($('host-last').value);
+    const code = ($('host-code').value || '').trim();
+    const name = pilotByCode(code);
     const flight = ($('host-flight').value || '').trim().toUpperCase().slice(0, 16);
     const dep = cleanAirport($('host-dep').value);
     const arr = cleanAirport($('host-arr').value);
     const std = cleanZulu($('host-std').value);
     const depGate = cleanGate($('host-depgate').value);
     const arrGate = cleanGate($('host-arrgate').value);
-    if (!first) { toast('First name is required'); $('host-first').focus(); return; }
-    if (!last) { toast('Last name is required'); $('host-last').focus(); return; }
+    if (!code) { toast('Login code is required'); $('host-code').focus(); return; }
+    if (!name) { toast('Invalid login code'); $('host-code').focus(); $('host-code').select(); return; }
     if (!flight) { toast('Flight number is required'); $('host-flight').focus(); return; }
     if (dep.length < 3) { toast('Departure airport (ICAO/IATA) is required'); $('host-dep').focus(); return; }
     if (arr.length < 3) { toast('Arrival airport (ICAO/IATA) is required'); $('host-arr').focus(); return; }
     if (std.length !== 0 && std.length !== 4) { toast('Off-block time: 4-digit Zulu, e.g. 1435 — or leave blank to read it from the OFP'); $('host-std').focus(); return; }
     if (!depGate) { toast('Planned departure gate is required'); $('host-depgate').focus(); return; }
     if (!arrGate) { toast('Planned arrival gate is required'); $('host-arrgate').focus(); return; }
-    state.myFirst = first;
-    state.myLast = last;
-    state.myName = first + ' ' + last;
+    state.myCode = code;
+    state.myName = name;
     state.flightNumber = flight;
     state.depApt = dep;
     state.arrApt = arr;
@@ -2478,10 +2478,9 @@ body.light .flight-number .flight-route{color:#15171d}
   // ---- role modal (login) ----
   function openRoleModal() {
     $('role-modal').hidden = false;
-    $('first-input').value = state.myFirst || '';
-    $('last-input').value = state.myLast || '';
+    $('code-input').value = state.myCode || '';
     drawRoleOptions();
-    setTimeout(() => $('first-input').focus(), 50);
+    setTimeout(() => $('code-input').focus(), 50);
   }
   function closeRoleModal() { $('role-modal').hidden = true; }
   function drawRoleOptions() {
@@ -2506,13 +2505,12 @@ body.light .flight-number .flight-route{color:#15171d}
         + '</span>';
       if (!taken) {
         b.addEventListener('click', () => {
-          const first = cleanNamePart($('first-input').value);
-          const last = cleanNamePart($('last-input').value);
-          if (!first) { toast('First name is required'); $('first-input').focus(); return; }
-          if (!last) { toast('Last name is required'); $('last-input').focus(); return; }
-          state.myFirst = first;
-          state.myLast = last;
-          state.myName = first + ' ' + last;
+          const code = ($('code-input').value || '').trim();
+          const nm = pilotByCode(code);
+          if (!code) { toast('Login code is required'); $('code-input').focus(); return; }
+          if (!nm) { toast('Invalid login code'); $('code-input').focus(); $('code-input').select(); return; }
+          state.myCode = code;
+          state.myName = nm;
           if (state.role === 'host') {
             const ok = claimRole(state.myKey, state.myName, role);
             if (!ok) { toast(role + ' is taken'); return; }
