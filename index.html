@@ -899,7 +899,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.40</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.42</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1002,6 +1002,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <div class="setup-card lobby-card">
       <h2 id="welcome-line">Welcome</h2>
       <div class="career-line" id="career-line"></div>
+      <div id="lobby-resume" style="display:none"></div>
       <div class="lobby-create">
         <button type="button" class="btn primary" id="btn-create-dual">Create new flight deck</button>
         <button type="button" class="btn" id="btn-create-solo">Single pilot</button>
@@ -1197,7 +1198,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.40</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.42</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1672,6 +1673,7 @@ body.light .flight-number .flight-route{color:#15171d}
     show('lobby');
     lobbyStart();
     renderLobbyList();
+    renderLobbyResume();
   }
   $('nav-decks1').addEventListener('click', () => {
     if (!state.myName) { show('home'); return; }
@@ -1873,6 +1875,18 @@ body.light .flight-number .flight-route{color:#15171d}
     state.checklist = CHECKLISTS[state.slug] || CHECKLISTS.b777_2p;
     state.members[state.myKey] = { name: state.myName, role: null };
     state.roles = { PIC: null, PM: null };
+    if (resumeSave) {
+      // Restoring a paused solo flight: ticks, card acks and the salary
+      // clock come back exactly where they stopped — elapsed offsets mean
+      // no time passed while the flight was paused.
+      const now = Date.now();
+      state.ticked = new Set(resumeSave.ticked || []);
+      state.acks = resumeSave.acks || {};
+      state.pushAt = resumeSave.pushElapsed ? now - resumeSave.pushElapsed : 0;
+      state.gearUpAt = resumeSave.gearUpElapsed ? now - resumeSave.gearUpElapsed : 0;
+      state.engOffAt = resumeSave.engOffElapsed ? now - resumeSave.engOffElapsed : 0;
+      resumeSave = null;
+    }
     $('connect-eyebrow').textContent = 'Cockpit code';
     $('connect-code').textContent = state.code;
     $('connect-sub').textContent = 'Send this cockpit code to your PM. Or head in and start the flows — they can join any time.';
@@ -2149,7 +2163,7 @@ body.light .flight-number .flight-route{color:#15171d}
         break;
       case 'tick_batch':
         if (state.role === 'host') {
-          handleTickBatch(conn.peer, msg.ids || [], msg.actors || []);
+          handleTickBatch(conn.peer, msg.ids || [], msg.actors || [], !!msg.all);
         }
         break;
       case 'ack': // guest acknowledges a card
@@ -2197,6 +2211,7 @@ body.light .flight-number .flight-route{color:#15171d}
       members: state.members,
       flight: flightInfo(),
     });
+    soloSaveSoon(); // solo flights auto-save on every change
   }
   // claimRole: returns true if granted, false if denied (role taken by someone else)
   function claimRole(peerKey, name, role, hours) {
@@ -2246,14 +2261,16 @@ body.light .flight-number .flight-route{color:#15171d}
     else state.ticked.add(itemId);
     broadcastState();
   }
-  function handleTickBatch(peerKey, ids, actors) {
+  function handleTickBatch(peerKey, ids, actors, all) {
     const member = state.members[peerKey];
     const myRole = member && member.role;
     if (!myRole) return;
     let changed = false;
     for (let i = 0; i < ids.length; i++) {
       const id = ids[i], actor = actors[i];
-      if (actor !== myRole && actor !== 'CM') continue;
+      // "Mark all done" is a full override — a seated pilot may complete
+      // the whole page, the other seat's items and card rows included.
+      if (!all && actor !== myRole && actor !== 'CM') continue;
       if (isItemInLockedSection(id)) continue;
       if (!state.ticked.has(id)) { state.ticked.add(id); changed = true; }
     }
@@ -3610,7 +3627,12 @@ body.light .flight-number .flight-route{color:#15171d}
         setTimeout(() => { teardown(); show('home'); }, 400);
         return;
       }
-      if (!confirm('Close this flight deck?')) return;
+      if (state.solo && !flightCommitted && state.ticked.size) {
+        if (!confirm('Pause this solo flight? It is saved — resume it any time from the lobby, on any device. The clock stays frozen while you are away.')) return;
+        soloSaveNow();
+      } else {
+        if (!confirm('Close this flight deck?')) return;
+      }
       lobbyUnannounce();
       teardown();
       show('home');
@@ -3880,7 +3902,14 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function cloudPushCareer() {
     if (!fdb || !state.myCode) return;
-    try { fdb.ref('careers/' + state.myCode).set(myCareer()); } catch (e) {}
+    const c = myCareer();
+    // update(), not set(): the same node carries the paused-flight save under
+    // /careers/{code}/save — a career push must never wipe it.
+    try {
+      const ref = fdb.ref('careers/' + state.myCode);
+      const fields = { hours: c.hours, money: c.money, flights: c.flights, log: c.log || [] };
+      if (ref.update) ref.update(fields); else ref.set(c);
+    } catch (e) {}
   }
   function syncCareerFromCloud() {
     if (!fdb || !state.myCode) { renderCareerLine(); return; }
@@ -3889,6 +3918,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const careers = loadCareers();
       const local = careers[state.myCode];
       if (remote && typeof remote.hours === 'number') {
+        delete remote.save; // the paused-flight save is not part of the career
         if (!local || remote.hours >= local.hours) {
           remote.log = remote.log || [];
           careers[state.myCode] = remote;   // cloud is ahead (or device is fresh)
@@ -3904,6 +3934,131 @@ body.light .flight-number .flight-route{color:#15171d}
       updateTileRates();
     }).catch(() => renderCareerLine());
   }
+  // =====================================================================
+  // PAUSED SOLO FLIGHTS — the deck lives in the host tab, so closing it
+  // would normally cancel the flight. For single-pilot flights the state
+  // auto-saves (locally AND to the cloud under /careers/{code}/save), and
+  // the lobby offers to resume it — from this browser or any other device.
+  // The salary clock stores ELAPSED time, so it is frozen while you're
+  // away: an inactive pilot never keeps logging.
+  // =====================================================================
+  const SOLO_SAVE_PREFIX = 'fdeck-solo-save-';
+  let soloSaveTimer = 0;
+  function soloSaveData() {
+    if (!state.solo || state.role !== 'host' || !state.code || !state.myCode) return null;
+    if (flightCommitted || !state.checklist) return null;
+    const now = Date.now();
+    return {
+      v: 1, ts: now, slug: state.slug,
+      flight: state.flightNumber || '', dep: state.depApt || '', arr: state.arrApt || '',
+      depGate: state.depGate || '', arrGate: state.arrGate || '', offBlock: state.offBlock || '',
+      eteMin: state.eteMin || 0, depDate: state.depDate || '',
+      paFlightTime: state.paFlightTime || '', paWx: state.paWx || '', paTemp: state.paTemp || '',
+      ticked: Array.from(state.ticked), acks: state.acks || {},
+      pushElapsed: state.pushAt ? (now - state.pushAt) : 0,
+      gearUpElapsed: state.gearUpAt ? (now - state.gearUpAt) : 0,
+      engOffElapsed: state.engOffAt ? (now - state.engOffAt) : 0,
+    };
+  }
+  function soloSaveNow() {
+    const s = soloSaveData();
+    if (!s) return;
+    try { localStorage.setItem(SOLO_SAVE_PREFIX + state.myCode, JSON.stringify(s)); } catch (e) {}
+    if (fdb) { try { fdb.ref('careers/' + state.myCode + '/save').set(s); } catch (e) {} }
+  }
+  function soloSaveSoon() {
+    if (!state.solo || state.role !== 'host') return;
+    clearTimeout(soloSaveTimer);
+    soloSaveTimer = setTimeout(soloSaveNow, 1200);
+  }
+  function soloSaveClear() {
+    if (!state.myCode) return;
+    clearTimeout(soloSaveTimer);
+    try { localStorage.removeItem(SOLO_SAVE_PREFIX + state.myCode); } catch (e) {}
+    if (fdb) { try { fdb.ref('careers/' + state.myCode + '/save').remove(); } catch (e) {} }
+  }
+  function loadSoloSave(cb) {
+    let local = null;
+    try { local = JSON.parse(localStorage.getItem(SOLO_SAVE_PREFIX + state.myCode)); } catch (e) {}
+    if (!fdb) { cb(local); return; }
+    let settled = false;
+    const finish = (remote) => {
+      if (settled) return;
+      settled = true;
+      // newer save wins — lets you pause on the laptop and resume on the PC
+      if (remote && (!local || (remote.ts || 0) > (local.ts || 0))) cb(remote);
+      else cb(local);
+    };
+    setTimeout(() => finish(null), 4000);
+    fdb.ref('careers/' + state.myCode + '/save').get()
+      .then(snap => finish(snap && snap.val()))
+      .catch(() => finish(null));
+  }
+  let resumeSave = null; // consumed by startHostRoom to restore a paused flight
+  function resumeSoloFlight(save) {
+    const cl = CHECKLISTS[save.slug];
+    if (!cl) { toast("This save is for an aircraft this file doesn't have"); return; }
+    lobbyGlobal = false;
+    desiredRole = 'PIC';
+    state.solo = true;
+    state.slug = save.slug;
+    state.flightNumber = save.flight || '';
+    state.depApt = save.dep || ''; state.arrApt = save.arr || '';
+    state.depGate = save.depGate || ''; state.arrGate = save.arrGate || '';
+    state.offBlock = save.offBlock || '';
+    state.eteMin = save.eteMin || 0; state.depDate = save.depDate || '';
+    state.paFlightTime = save.paFlightTime || '';
+    state.paWx = save.paWx || ''; state.paTemp = save.paTemp || '';
+    resumeSave = save;
+    startHostRoom();
+  }
+  function agoPhrase(ms) {
+    const m = Math.round(ms / 60000);
+    if (m < 2) return 'just now';
+    if (m < 60) return m + ' min ago';
+    if (m < 60 * 48) return Math.round(m / 6) / 10 + ' h ago';
+    return Math.round(m / 1440) + ' days ago';
+  }
+  function renderLobbyResume() {
+    const box = $('lobby-resume');
+    if (!box) return;
+    box.style.display = 'none';
+    box.innerHTML = '';
+    if (!state.myCode) return;
+    loadSoloSave(save => {
+      if (!save || !save.slug) return;
+      if (screens.lobby.classList.contains('hidden')) return;
+      const cl = CHECKLISTS[save.slug];
+      const flightMin = save.pushElapsed
+        ? Math.max(0, Math.round((save.pushElapsed - (save.engOffElapsed || 0)) / 60000)) : 0;
+      box.style.display = '';
+      box.innerHTML = '<p class="lobby-h">Paused solo flight</p>' +
+        '<div class="lobby-flight"><div class="lobby-flight-top">' +
+        '<span class="lobby-flight-num">' + escapeHTML(save.flight || '') + '</span>' +
+        '<span class="lobby-flight-ac">' + escapeHTML(cl ? cl.aircraft : save.slug) +
+          (save.dep ? ' · ' + escapeHTML(save.dep) + ' → ' + escapeHTML(save.arr || '') : '') + '</span>' +
+        '<span class="lobby-flight-phase">SAVED ' + escapeHTML(agoPhrase(Date.now() - (save.ts || 0))) + '</span>' +
+        '</div><div class="lobby-seats">' +
+        '<button type="button" class="lobby-seat seat-pic" id="btn-resume-solo"><span class="seat-tag">Resume flight</span>' +
+          (flightMin ? flightMin + ' min on the clock — paused while you were away' : 'Picks up right where you left off') +
+        '</button>' +
+        '<button type="button" class="lobby-seat" id="btn-discard-solo"><span class="seat-tag">Discard</span>Delete this saved flight</button>' +
+        '</div></div>';
+      $('btn-resume-solo').addEventListener('click', () => resumeSoloFlight(save));
+      $('btn-discard-solo').addEventListener('click', () => {
+        if (!confirm('Delete the saved solo flight? This cannot be undone.')) return;
+        soloSaveClear();
+        box.style.display = 'none';
+        toast('Saved flight deleted');
+      });
+    });
+  }
+  window.addEventListener('beforeunload', () => {
+    // last-chance save when the tab closes mid-solo-flight
+    if (state.solo && state.role === 'host' && state.code && !flightCommitted) {
+      try { soloSaveNow(); } catch (e) {}
+    }
+  });
   // ---- pilot levels: your logged hours set your pay grade ----
   const LEVELS = [
     { name: 'Junior First Officer', max: 40,       mult: 1.0 },
@@ -4002,8 +4157,12 @@ body.light .flight-number .flight-route{color:#15171d}
     show('logbook');
   }
   let flightCommitted = false;
+  let soloBeat = 0;
   function salaryTick() {
     if (!state.checklist || screens.room.classList.contains('hidden')) return;
+    // refresh the solo save every minute so the salary clock stays current
+    // even through long quiet stretches (cruise) — a pause never rewinds far
+    if (state.solo && state.role === 'host' && !flightCommitted && ++soloBeat % 60 === 0) soloSaveNow();
     // Host stamps pushback start (first tick in the pushback section) and
     // engines-off (parking section complete)
     if (state.role === 'host') {
@@ -4060,6 +4219,7 @@ body.light .flight-number .flight-route{color:#15171d}
         careers[state.myCode] = c;
         saveCareers(careers);
         cloudPushCareer();
+        if (state.solo) soloSaveClear(); // flight is banked — the save is done
         updateBrandLines();
         toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
       }
@@ -4347,14 +4507,13 @@ body.light .flight-number .flight-route{color:#15171d}
     }
     const sec = state.checklist.sections[idx];
     if (!sec) return;
+    // Full override: every single row on the page — both pilots' items,
+    // briefings, checklists and PAs — is marked complete in one shot.
     const ids = [], actors = [];
-    let skippedLinks = 0;
     function gather(items) {
       for (const it of (items || [])) {
         if (it.actor === '_NOTE_' || it.actor === '_BULLET_' || it.duty) continue;
         if (!it.id) continue;
-        if (it.link) { if (!state.ticked.has(it.id)) skippedLinks++; continue; }
-        if (it.actor !== state.myRole && it.actor !== 'CM') continue;
         if (state.ticked.has(it.id)) continue;
         ids.push(it.id);
         actors.push(it.actor);
@@ -4364,19 +4523,13 @@ body.light .flight-number .flight-route{color:#15171d}
       gather(g.items);
       for (const sg of (g.subgroups || [])) gather(sg.items);
     }
-    if (!ids.length) {
-      toast(skippedLinks
-        ? 'Only briefings / checklists left — open and acknowledge those'
-        : 'Nothing left to tick');
-      return;
-    }
-    if (skippedLinks) toast('Briefings & checklists still need to be opened and acknowledged');
+    if (!ids.length) { toast('Nothing left to tick'); return; }
     if (state.role === 'host') {
       ids.forEach(id => state.ticked.add(id));
       broadcastState();
     } else {
       const conn = state.conns[0];
-      if (conn) send(conn, { type: 'tick_batch', ids, actors });
+      if (conn) send(conn, { type: 'tick_batch', ids, actors, all: true });
     }
   }
   // ---- OFP viewers (one per pilot's half) ----
