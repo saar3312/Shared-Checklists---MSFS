@@ -899,7 +899,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.42</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.43</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1198,7 +1198,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.42</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.43</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1360,6 +1360,9 @@ body.light .flight-number .flight-route{color:#15171d}
     '7789': 'Saarang Mulukutla',
     '4143': 'Jayvir Monga',
   };
+  function initials(n) {
+    return String(n || '').trim().split(/\s+/).map(w => (w[0] || '').toUpperCase()).join('').slice(0, 3);
+  }
   function pilotByCode(code) {
     const c = String(code || '').trim();
     return (c && Object.prototype.hasOwnProperty.call(PILOT_DB, c)) ? PILOT_DB[c] : null;
@@ -1593,7 +1596,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateBrandLines();
     updateTileRates();
     setTimeout(updateTileRates, 1500); // refresh once the cloud career lands
-    $('pickac-line').textContent = 'Select your aircraft, ' + (name.split(' ')[0] || '');
+    $('pickac-line').textContent = 'Select your aircraft, ' + initials(name);
     show('login'); // the aircraft-select screen
   }
   $('login-form').addEventListener('submit', (e) => {
@@ -1662,7 +1665,7 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   let lobbyGlobal = false; // opened from the main menu, no aircraft picked yet
   function openLobby() {
-    $('welcome-line').textContent = 'Welcome to Flight Deck EFB, ' + state.myName;
+    $('welcome-line').textContent = 'Welcome to Flight Deck EFB, ' + initials(state.myName);
     updateBrandLines();
     renderCareerLine();
     const global_ = !state.checklist;
@@ -1686,7 +1689,7 @@ body.light .flight-number .flight-route{color:#15171d}
   $('btn-create-dual').addEventListener('click', () => {
     desiredRole = 'PIC';
     state.solo = false;
-    $('setup-welcome').textContent = 'Set up the flight, ' + (state.myName.split(' ')[0] || 'Captain');
+    $('setup-welcome').textContent = 'Set up the flight, ' + (initials(state.myName) || 'Captain');
     show('host-setup');
     setTimeout(() => $('host-ofp').focus(), 60);
   });
@@ -1699,7 +1702,7 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   $('btn-join-code2').addEventListener('click', () => {
     desiredRole = 'PM';
-    $('join-welcome').textContent = 'Join the cockpit, ' + (state.myName.split(' ')[0] || '');
+    $('join-welcome').textContent = 'Join the cockpit, ' + initials(state.myName);
     show('join');
     setTimeout(() => $('join-code').focus(), 60);
   });
@@ -3183,7 +3186,7 @@ body.light .flight-number .flight-route{color:#15171d}
     html += log.length
       ? '<div class="logbook">' + log.map(e =>
           e.date + ' · ' + e.aircraft + ' · ' + (e.flight || '—') + ' ' + e.dep + '→' + e.arr +
-          ' · ' + e.role + (e.crew ? '/' + e.crew : '') + (e.copilot ? ' w/ ' + e.copilot : '') +
+          ' · ' + e.role + (e.crew ? '/' + e.crew : '') + (e.copilot ? ' w/ ' + initials(e.copilot) : '') +
           ' · ' + e.minutes + ' min · <span class="money">' + fmtMoney(e.pay) + '</span>').join('<br>') + '</div>'
       : '<div class="logbook">No flights logged yet — complete a checklist front to back and it lands here.</div>';
     $('logbook-body').innerHTML = html;
@@ -3210,7 +3213,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const lv = levelFor(r.hours);
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
         '<td class="lb-rank">' + (i + 1) + '</td>' +
-        '<td>' + escapeHTML(r.name) + '</td>' +
+        '<td>' + escapeHTML(initials(r.name)) + '</td>' +
         '<td><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span></td>' +
         '<td>' + r.hours.toFixed(1) + '</td>' +
         '<td><span class="money">' + fmtMoney(r.money) + '</span></td>' +
@@ -3460,7 +3463,7 @@ body.light .flight-number .flight-route{color:#15171d}
         '<span class="role-name">' + role + ' — ' + ROLE_NAMES[role] + '</span>' +
         '<span class="role-holder">' +
           (isMine ? 'You' :
-            (taken ? 'Taken by ' + escapeHTML(holder) :
+            (taken ? 'Taken by ' + escapeHTML(initials(holder)) :
               'Available'))
         + '</span>';
       if (!taken) {
@@ -3501,7 +3504,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const member = holderKey && state.members[holderKey];
       if (member && member.name) {
         const lv = levelFor(member.hours || 0);
-        el.innerHTML = escapeHTML(member.name) +
+        el.innerHTML = escapeHTML(initials(member.name)) +
           ' <span class="lvl lvl-' + lv.idx + '" style="margin-left:6px;vertical-align:middle">' + lv.name + '</span>';
         el.classList.remove('empty');
       } else {
@@ -3621,7 +3624,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const other = otherKey && state.members[otherKey];
       const connected = other && state.conns.some(c => c.peer === otherKey);
       if (connected) {
-        if (!confirm('Leave the flight deck? ' + other.name + ' keeps the aircraft and continues single pilot.')) return;
+        if (!confirm('Leave the flight deck? ' + initials(other.name) + ' keeps the aircraft and continues single pilot.')) return;
         broadcast({ type: 'handover' });
         lobbyUnannounce();
         setTimeout(() => { teardown(); show('home'); }, 400);
@@ -4104,7 +4107,7 @@ body.light .flight-number .flight-route{color:#15171d}
   function brandLineHtml() {
     if (!state.myName) return '<strong>Flight Deck EFB</strong>';
     const lv = levelFor(myCareer().hours);
-    return '<strong>Flight Deck EFB</strong> — ' + escapeHTML(state.myName.toUpperCase()) +
+    return '<strong>Flight Deck EFB</strong> — ' + escapeHTML(initials(state.myName)) +
       ' <span class="lvl lvl-' + lv.idx + '" style="vertical-align:middle;margin-left:6px">' + lv.name.toUpperCase() + '</span>';
   }
   function updateBrandLines() {
@@ -4142,14 +4145,14 @@ body.light .flight-number .flight-route{color:#15171d}
     log.forEach(e => {
       h += '<tr><td>' + e.date + '</td><td>' + escapeHTML(e.aircraft || '') + '</td><td>' +
         escapeHTML(e.flight || '—') + '</td><td>' + escapeHTML((e.dep || '') + '→' + (e.arr || '')) + '</td><td>' +
-        e.role + (e.crew ? '/' + e.crew : '') + '</td><td>' + escapeHTML(e.copilot || '—') + '</td><td>' +
+        e.role + (e.crew ? '/' + e.crew : '') + '</td><td>' + escapeHTML(e.copilot ? initials(e.copilot) : '—') + '</td><td>' +
         e.minutes + '</td><td><span class="money">' + fmtMoney(e.pay) + '</span></td></tr>';
     });
     return h + '</table>';
   }
   function showLogbookScreen() {
     const c = myCareer();
-    $('logbook-title').textContent = 'Logbook — ' + (state.myName || '');
+    $('logbook-title').textContent = 'Logbook — ' + initials(state.myName);
     $('logbook-career').innerHTML = careerSummaryHtml(c);
     $('logbook-table').innerHTML = logbookTableHtml(c);
     updateBrandLines();
@@ -4355,7 +4358,7 @@ body.light .flight-number .flight-route{color:#15171d}
       if (f.solo) {
         const solopilot = (f.roles && (f.roles.PIC || f.roles.PM)) || '';
         seats.innerHTML = '<span class="solo-badge">SINGLE PILOT' +
-          (solopilot ? ' — ' + escapeHTML(solopilot) : '') + ' · LOCKED</span>';
+          (solopilot ? ' — ' + escapeHTML(initials(solopilot)) : '') + ' · LOCKED</span>';
       } else {
         ['PIC', 'PM'].forEach(r => {
           const b = document.createElement('button');
@@ -4363,8 +4366,8 @@ body.light .flight-number .flight-route{color:#15171d}
           b.className = 'lobby-seat seat-' + r.toLowerCase();
           const holder = f.roles && f.roles[r];
           const mine = holder && holder === state.myName;
-          let seatSub = holder ? escapeHTML(holder) : 'Join this seat';
-          if (mine) seatSub = 'Rejoin — ' + escapeHTML(holder);
+          let seatSub = holder ? escapeHTML(initials(holder)) : 'Join this seat';
+          if (mine) seatSub = 'Rejoin — ' + escapeHTML(initials(holder));
           if (!holder && f.eteMin) {
             const est = estPay(f.slug, r, myCareer().hours, f.eteMin + 20);
             seatSub = 'Join this seat · est. <span class="money">' + fmtMoney(est) + '</span>';
