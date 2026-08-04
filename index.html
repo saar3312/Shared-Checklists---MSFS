@@ -227,8 +227,9 @@ button{font-family:inherit;color:inherit}
 /* Aircraft selection — iPad-style app icon grid */
 .home-apps{
   flex:1 1 auto;display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
+  grid-template-columns:repeat(4,1fr);
   gap:6px;padding:22px 20px 36px;align-content:start;justify-items:center;
+  max-width:860px;margin:0 auto;width:100%;box-sizing:border-box;
   min-height:420px;
 }
 .home-tile{
@@ -898,7 +899,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.38</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.40</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -933,6 +934,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button class="btn link" id="btn-login-back">&larr; Back</button>
     <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
     <span class="subnav-links">
+      <button type="button" class="btn link" id="nav-decks1">Flight Decks</button>
       <button type="button" class="btn link" id="nav-roster1">Roster</button>
       <button type="button" class="btn link" id="nav-logbook1">Logbook</button>
     </span>
@@ -1004,6 +1006,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button type="button" class="btn primary" id="btn-create-dual">Create new flight deck</button>
         <button type="button" class="btn" id="btn-create-solo">Single pilot</button>
       </div>
+      <p class="setup-sub" id="lobby-create-hint" style="display:none">Browsing every aircraft's decks — to host a new one, go back and pick an aircraft first.</p>
       <p class="lobby-h">Active flight decks</p>
       <div class="lobby-list" id="lobby-list"><div class="lobby-empty">Looking for active flight decks…</div></div>
       <div class="setup-actions" style="margin-top:14px">
@@ -1194,7 +1197,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.38</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.40</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1650,20 +1653,33 @@ body.light .flight-number .flight-route{color:#15171d}
   document.querySelectorAll('.home-tile[data-slug]').forEach(tile => {
     tile.addEventListener('click', () => {
       if (!state.myName) { show('home'); return; }
+      lobbyGlobal = false;
       state.slug = tile.dataset.slug;
       state.checklist = CHECKLISTS[state.slug];
       openLobby();
     });
   });
+  let lobbyGlobal = false; // opened from the main menu, no aircraft picked yet
   function openLobby() {
     $('welcome-line').textContent = 'Welcome to Flight Deck EFB, ' + state.myName;
     updateBrandLines();
     renderCareerLine();
+    const global_ = !state.checklist;
+    $('btn-create-dual').style.display = global_ ? 'none' : '';
+    $('btn-create-solo').style.display = global_ ? 'none' : '';
+    $('lobby-create-hint').style.display = global_ ? '' : 'none';
     setActiveTab('lobby');
     show('lobby');
     lobbyStart();
     renderLobbyList();
   }
+  $('nav-decks1').addEventListener('click', () => {
+    if (!state.myName) { show('home'); return; }
+    lobbyGlobal = true;
+    state.slug = null;
+    state.checklist = null;
+    openLobby();
+  });
   $('btn-lobby-back').addEventListener('click', () => show('login'));
   $('btn-create-dual').addEventListener('click', () => {
     desiredRole = 'PIC';
@@ -3229,7 +3245,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // Roster & logbook are career-wide (one per pilot ID, across all aircraft),
   // so they're reachable before an aircraft is even picked.
-  function backToBase() { if (state.checklist) openLobby(); else show('login'); }
+  function backToBase() { if (state.checklist || lobbyGlobal) openLobby(); else show('login'); }
   $('nav-roster1').addEventListener('click', showRosterScreen);
   $('nav-logbook1').addEventListener('click', showLogbookScreen);
   function setActiveTab(tab) {
