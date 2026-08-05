@@ -162,6 +162,8 @@ button{font-family:inherit;color:inherit}
 .lobby-seat.seat-pic .seat-tag{color:var(--pic)}
 .lobby-seat.seat-pm .seat-tag{color:var(--pm)}
 .lobby-empty{color:var(--text-dim);font-size:12px;font-style:italic;padding:12px 4px}
+.lobby-paused{opacity:0.7}
+.lobby-paused .lobby-flight-phase{color:var(--text-muted);border-color:var(--text-muted)}
 .solo-badge{
   font-size:10px;font-weight:700;letter-spacing:0.1em;color:var(--text-muted);
   border:1px solid var(--border-strong);border-radius:10px;padding:2px 9px;
@@ -899,7 +901,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.43</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.44</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1198,7 +1200,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.43</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.44</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1675,6 +1677,7 @@ body.light .flight-number .flight-route{color:#15171d}
     setActiveTab('lobby');
     show('lobby');
     lobbyStart();
+    lobbyFetchPaused();
     renderLobbyList();
     renderLobbyResume();
   }
@@ -4331,16 +4334,49 @@ body.light .flight-number .flight-route{color:#15171d}
       lobbyStart();
     }
   }
+  // Everyone's paused solo flights show in the list too (view-only), so the
+  // roster can always see what's in the air even while nobody's flying it.
+  function lobbyFetchPaused() {
+    if (!fdb) return;
+    fdb.ref('careers').get().then(snap => {
+      const v = (snap && snap.val()) || {};
+      const out = {};
+      for (const code of Object.keys(v)) {
+        if (v[code] && v[code].save && v[code].save.slug) out[code] = v[code].save;
+      }
+      lobby.paused = out;
+      renderLobbyList();
+    }).catch(() => {});
+  }
   function renderLobbyList() {
     const list = $('lobby-list');
     if (!list || screens.lobby.classList.contains('hidden')) return;
     const flights = lobbyFresh();
     const codes = Object.keys(flights);
+    const paused = lobby.paused || {};
+    const pausedCodes = Object.keys(paused).filter(c => c !== state.myCode);
     list.innerHTML = '';
-    if (!codes.length) {
+    if (!codes.length && !pausedCodes.length) {
       list.innerHTML = '<div class="lobby-empty">No active flight decks right now — create one above.</div>';
       return;
     }
+    const pilots = localPilotsMap();
+    pausedCodes.forEach(pcode => {
+      const sv = paused[pcode];
+      const cl = CHECKLISTS[sv.slug];
+      const nm = (pilots[pcode] && pilots[pcode].name) || pcode;
+      const row = document.createElement('div');
+      row.className = 'lobby-flight lobby-paused';
+      row.innerHTML = '<div class="lobby-flight-top">' +
+        '<span class="lobby-flight-num">' + escapeHTML(sv.flight || '') + '</span>' +
+        '<span class="lobby-flight-ac">' + escapeHTML(cl ? cl.aircraft : sv.slug) +
+          (sv.dep ? ' · ' + escapeHTML(sv.dep) + ' → ' + escapeHTML(sv.arr || '') : '') + '</span>' +
+        '<span class="lobby-flight-phase">PAUSED</span></div>' +
+        '<div class="lobby-seats"><span class="solo-badge">SINGLE PILOT — ' + escapeHTML(initials(nm)) +
+          ' · SAVED ' + escapeHTML(agoPhrase(Date.now() - (sv.ts || 0))) + '</span></div>';
+      list.appendChild(row);
+    });
+    if (!codes.length) return;
     codes.forEach(code => {
       const f = flights[code];
       const row = document.createElement('div');
@@ -4392,7 +4428,10 @@ body.light .flight-number .flight-route{color:#15171d}
     const beatEvery = fdb ? 20 : 8;
     if (state.role === 'host' && state.code && lobbyBeat % beatEvery === 0) lobbyAnnounce();
     if (!screens.lobby.classList.contains('hidden')) {
-      if (fdb) { if (lobbyBeat % 10 === 0) renderLobbyList(); }
+      if (fdb) {
+        if (lobbyBeat % 30 === 0) lobbyFetchPaused();
+        if (lobbyBeat % 10 === 0) renderLobbyList();
+      }
       else if (lobbyBeat % 5 === 0) {
         if (lobby.isServer) renderLobbyList();
         else if (lobby.conn) { try { lobby.conn.send({ t: 'list' }); } catch (e) {} }
