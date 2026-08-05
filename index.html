@@ -1092,10 +1092,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.11</div>
+<div class="ver-float app-version">v4.12</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.11</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.12</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1741,7 +1741,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.11</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.12</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2616,10 +2616,9 @@ body.light .flight-number .flight-route{color:#15171d}
     const c = myCareer();
     const lv = levelFor(c.hours);
     const holders = [0, 0, 0, 0, 0, 0];
-    const pmap = localPilotsMap();
-    for (const pc of Object.keys(pmap)) {
-      if (pc in hoursCache) holders[levelFor(hoursCache[pc]).idx]++;
-    }
+    // count ONLY pilots that exist on the roster right now — orphaned careers don't hold a rank
+    const counted = livePilotCodes || Object.keys(localPilotsMap()).filter(pc => pc in hoursCache);
+    for (const pc of counted) holders[levelFor(hoursCache[pc] || 0).idx]++;
     let html = '<p style="font-size:13px">Every hour you log moves you up the line — your rank multiplies every paycheck.</p>' +
       '<div class="rm-track">';
     LEVELS.forEach((L, i) => {
@@ -5295,6 +5294,10 @@ body.light .flight-number .flight-route{color:#15171d}
   // =====================================================================
   const SOLO_SAVE_PREFIX = 'fdeck-solo-save-';
   let soloSaveTimer = 0;
+  function savedPhase(sv) {
+    const log = (sv && sv.phaseLog) || [];
+    return log.length ? String(log[log.length - 1].phase || '') : '';
+  }
   function soloSaveData() {
     if (!state.solo || state.role !== 'host' || !state.code || !state.myCode) return null;
     if (flightCommitted || !state.checklist) return null;
@@ -5393,7 +5396,7 @@ body.light .flight-number .flight-route{color:#15171d}
         '<span class="lobby-flight-num">' + escapeHTML(save.flight || '') + '</span>' +
         '<span class="lobby-flight-ac">' + escapeHTML(cl ? cl.aircraft : save.slug) +
           (save.dep ? ' · ' + escapeHTML(save.dep) + ' → ' + escapeHTML(save.arr || '') : '') + '</span>' +
-        '<span class="lobby-flight-phase">SAVED ' + escapeHTML(agoPhrase(Date.now() - (save.ts || 0))) + '</span>' +
+        '<span class="lobby-flight-phase">PAUSED' + (savedPhase(save) ? ' — ' + escapeHTML(savedPhase(save)) : '') + ' · SAVED ' + escapeHTML(agoPhrase(Date.now() - (save.ts || 0))) + '</span>' +
         '</div><div class="lobby-seats">' +
         '<button type="button" class="lobby-seat seat-pic" id="btn-resume-solo"><span class="seat-tag">Resume flight</span>' +
           (flightMin ? flightMin + ' min on the clock — still earning while paused' : 'Picks up right where you left off') +
@@ -6316,14 +6319,21 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   let hoursCache = {}; // code -> hours, filled by any careers fetch
   function noteHours(code, h) { if (code && code[0] !== '_') hoursCache[code] = h || 0; }
+  let livePilotCodes = null; // codes of pilots that exist in the cloud RIGHT NOW
   function fetchAllHours(cb) {
     if (!fdb) { cb && cb(); return; }
-    fdb.ref('careers').get().then(sn => {
-      const v = (sn && sn.val()) || {};
+    Promise.all([
+      fdb.ref('careers').get().then(sn => (sn && sn.val()) || {}).catch(() => ({})),
+      fdb.ref('pilots').get().then(sn => (sn && sn.val()) || {}).catch(() => null),
+    ]).then(([v, pl]) => {
       for (const c of Object.keys(v)) if (v[c] && typeof v[c].hours === 'number') noteHours(c, v[c].hours);
+      if (pl) {
+        livePilotCodes = Object.keys(pl);
+        try { localStorage.setItem('fdeck-pilots-cache', JSON.stringify(pl)); } catch (e) {}
+      }
       // roster pilots with no career record yet are brand-new JFOs (0 h)
-      const pm = localPilotsMap();
-      for (const c of Object.keys(pm)) if (!(c in hoursCache)) noteHours(c, 0);
+      const pm = livePilotCodes || Object.keys(localPilotsMap());
+      for (const c of pm) if (!(c in hoursCache)) noteHours(c, 0);
       cb && cb();
     }).catch(() => cb && cb());
   }
@@ -6438,7 +6448,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const row = document.createElement('div');
       row.className = 'lobby-flight lobby-paused';
       row.innerHTML = '<div class="deck2-head"><span class="deck2-callsign">' + escapeHTML(sv.flight || '') + '</span>' +
-        '<span class="lobby-flight-phase">PAUSED</span></div>' +
+        '<span class="lobby-flight-phase">PAUSED' + (savedPhase(sv) ? ' — ' + escapeHTML(savedPhase(sv)) : '') + '</span></div>' +
         '<div class="deck2-facts">' +
         '<div><span class="f-k">DEP:</span><span class="f-v mono">' + escapeHTML(sv.dep || '—') + '</span></div>' +
         '<div><span class="f-k">ARR:</span><span class="f-v mono">' + escapeHTML(sv.arr || '—') + '</span></div>' +
