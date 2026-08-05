@@ -1119,10 +1119,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.01</div>
+<div class="ver-float app-version">v1.02</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.01</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.02</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1765,7 +1765,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.01</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.02</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -6151,15 +6151,29 @@ body.light .flight-number .flight-route{color:#15171d}
         const t2 = threads[tid] || { msgs: [] };
         const nm = initials((pilots[chatWith] && pilots[chatWith].name) || chatWith);
         $('chat-title').innerHTML = 'Messages — ' + wingedByCode(chatWith) + crewBadgeHtml(chatWith);
-        // mark seen
-        try { fdb.ref('careers/_chats/' + tid + '/seen/' + state.myCode).set(Date.now()); } catch (e) {}
-        const bubbles = (t2.msgs || []).map(m => {
+        // mark seen — and clear the badge RIGHT NOW, not on the next background refresh
+        const nowSeen = Date.now();
+        try { fdb.ref('careers/_chats/' + tid + '/seen/' + state.myCode).set(nowSeen); } catch (e) {}
+        if (!t2.seen) t2.seen = {};
+        t2.seen[state.myCode] = nowSeen;
+        threads[tid] = t2;
+        chatCache[tid] = t2;
+        updateChatBadge(threads);
+        // read receipt: their seen-stamp tells us the moment they last opened this chat
+        const theirSeen = (t2.seen && t2.seen[chatWith]) || 0;
+        const msgsArr = t2.msgs || [];
+        let lastMine = -1;
+        for (let i = msgsArr.length - 1; i >= 0; i--) { if (msgsArr[i].from === state.myCode) { lastMine = i; break; } }
+        const bubbles = msgsArr.map((m, idx) => {
           const mine = m.from === state.myCode;
+          const readLine = (mine && idx === lastMine && theirSeen >= (m.ts || 0))
+            ? '<div class="chat-meta" style="color:var(--good)">Read ' + escapeHTML(agoPhrase(Date.now() - theirSeen)) + '</div>'
+            : '';
           return '<div class="chat-line' + (mine ? ' chat-mine' : '') + '">' +
             '<div class="chat-bubble">' + escapeHTML(m.text || '') + '</div>' +
             '<div class="chat-meta">' + escapeHTML(mine ? initials(state.myName) : nm) +
             stripesByCode(mine ? state.myCode : chatWith) +
-            (m.ts ? ' · ' + escapeHTML(agoPhrase(Date.now() - m.ts)) : '') + '</div></div>';
+            (m.ts ? ' · ' + escapeHTML(agoPhrase(Date.now() - m.ts)) : '') + '</div>' + readLine + '</div>';
         }).join('') || '<p class="lobby-empty">No messages yet — say hi.</p>';
         box.innerHTML =
           '<button type="button" class="btn link" id="chat-to-list">&larr; All chats</button>' +
