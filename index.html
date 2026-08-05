@@ -226,6 +226,9 @@ button{font-family:inherit;color:inherit}
   border:1px solid var(--border);border-radius:999px;padding:3px 12px}
 .award-row{display:flex;align-items:center;gap:10px;border:1px solid var(--accent);border-radius:12px;
   padding:12px 16px;margin:8px 0;font-size:15px;box-shadow:0 0 10px rgba(201,148,46,0.25)}
+.lb-table td.pc{text-align:center}
+.pilot-wrap{position:relative;display:inline-flex;align-items:center}
+.pilot-wrap .dot-on{position:absolute;left:-18px;margin:0}
 .lb-table th.rs{cursor:pointer}
 .lb-table th.rs:hover{color:var(--text)}
 .lb-table th.rs.on{color:var(--accent)}
@@ -1073,10 +1076,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.79</div>
+<div class="ver-float app-version">v3.80</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.79</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.80</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1649,7 +1652,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.79</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.80</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -4445,14 +4448,14 @@ body.light .flight-number .flight-route{color:#15171d}
     } catch (e) {}
     const admin = state.myCode === ADMIN_CODE; // SM sees everyone's pilot IDs
     const th = (k, label) => '<th class="rs' + (lbSort === k ? ' on' : '') + '" data-rs="' + k + '">' + label + '</th>';
-    let html = '<table class="lb-table"><tr><th></th><th>Pilot</th>' + (admin ? '<th>ID</th><th>Word</th>' : '') +
+    let html = '<table class="lb-table"><tr><th>Seniority</th><th style="text-align:center">Pilot</th>' + (admin ? '<th>ID</th><th>Word</th>' : '') +
       th('level', 'Level') + th('hours', 'Hours') + th('money', 'Earnings') + th('flights', 'Flights') + '</tr>';
     rows.forEach((r, i) => {
       const lv = levelFor(r.hours);
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
         '<td class="lb-rank">' + (i + 1) + '</td>' +
-        '<td>' + (online.has(r.name) ? '<span class="dot-on" title="in a flight deck now"></span>' : '') +
-          wingedHtml(escapeHTML(initials(r.name)), r.hours) + '</td>' +
+        '<td class="pc"><span class="pilot-wrap">' + (online.has(r.name) ? '<span class="dot-on" title="in a flight deck now"></span>' : '') +
+          wingedHtml(escapeHTML(initials(r.name)), r.hours) + '</span></td>' +
         (admin ? '<td class="mono">' + escapeHTML(r.code) +
           (r.code !== state.myCode
             ? ' <button type="button" class="btn link" data-msg-code="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px">✉</button>' +
@@ -5890,6 +5893,7 @@ body.light .flight-number .flight-route{color:#15171d}
             : minutes + ' min flown vs ' + state.eteMin + ' min ETE (+' + TAXI_ALLOWANCE + ' min taxi allowance)';
           submitForReview(entry, reason);
           if (state.solo) soloSaveClear();
+          if (state.role === 'host') lobbyUnannounce();
           toast('Flight flagged: ' + reason + '. Sent to SM (7789) for approval — it is credited once accepted.');
         } else {
           const careers = loadCareers();
@@ -5903,6 +5907,7 @@ body.light .flight-number .flight-route{color:#15171d}
           saveCareers(careers);
           cloudPushCareer();
           if (state.solo) soloSaveClear(); // flight is banked — the save is done
+          if (state.role === 'host') lobbyUnannounce(); // completed flights leave Active Decks
           updateBrandLines();
           checkFirstAwards();
           toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
@@ -6008,6 +6013,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function lobbyAnnounce() {
     if (state.role !== 'host' || !state.code) return;
+    if (flightCommitted) { lobbyUnannounce(); return; } // done flying — off the actives list
     const f = lobbyFlightInfo();
     if (fdb) {
       try {
