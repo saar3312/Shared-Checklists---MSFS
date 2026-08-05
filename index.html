@@ -1080,10 +1080,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.08</div>
+<div class="ver-float app-version">v4.09</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.08</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.09</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1577,11 +1577,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <div class="center-stack">
     <div class="setup-card">
       <h2 id="setup-welcome">Set up the flight</h2>
-      <p class="setup-sub">Upload the SimBrief OFP first — callsign, route, off-block time, flight time and destination weather all fill in from it.</p>
+      <p class="setup-sub">Fetch your SimBrief OFP first — callsign, route, off-block time, flight time and destination weather all fill in from it.</p>
       <label class="field">
-        <span class="field-label">SimBrief OFP (PDF) — <span style="color:#c9942e;font-weight:800">OPTIONAL: IF NOT LOADED, ALL FLIGHTS WILL HAVE TO BE MANUALLY REVIEWED BY SUPPORT</span></span>
-        <input id="host-ofp" class="input" type="file" accept="application/pdf" />
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <span class="field-label">SimBrief OFP — <span style="color:#c9942e;font-weight:800">OPTIONAL: IF NOT FETCHED, ALL FLIGHTS WILL HAVE TO BE MANUALLY REVIEWED BY SUPPORT</span></span>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:2px;flex-wrap:wrap">
           <input id="sb-user" class="input mono" type="text" maxlength="40" placeholder="SimBrief username"
             autocomplete="off" spellcheck="false" style="max-width:190px" />
           <button type="button" class="btn" id="btn-sb-fetch">Fetch latest SimBrief plan</button>
@@ -1613,13 +1612,13 @@ body.light .flight-number .flight-route{color:#15171d}
       </div>
       <div class="field-row">
         <label class="field">
-          <span class="field-label" id="depgate-label">Departure gate<span class="req">*</span></span>
-          <input id="host-depgate" class="input mono" type="text" maxlength="6" required
+          <span class="field-label" id="depgate-label">Departure gate</span>
+          <input id="host-depgate" class="input mono" type="text" maxlength="6"
             autocomplete="off" autocapitalize="characters" spellcheck="false" />
         </label>
         <label class="field">
-          <span class="field-label" id="arrgate-label">Arrival gate<span class="req">*</span></span>
-          <input id="host-arrgate" class="input mono" type="text" maxlength="6" required
+          <span class="field-label" id="arrgate-label">Arrival gate</span>
+          <input id="host-arrgate" class="input mono" type="text" maxlength="6"
             autocomplete="off" autocapitalize="characters" spellcheck="false" />
         </label>
       </div>
@@ -1677,7 +1676,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.08</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.09</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1755,7 +1754,6 @@ body.light .flight-number .flight-route{color:#15171d}
       <div class="ofp-head">
         <span class="ofp-title o-title">OFP</span>
         <span class="ofp-file o-file">no document loaded</span>
-        <label class="btn o-upload">Upload PDF<input type="file" class="o-input" accept="application/pdf" /></label>
         <span class="ofp-spacer"></span>
         <button class="btn o-prev">&larr; Prev</button>
         <span class="ofp-pageinfo o-pageinfo">— / —</span>
@@ -2826,7 +2824,7 @@ body.light .flight-number .flight-route{color:#15171d}
     state.solo = false;
     $('setup-welcome').textContent = 'Set up the flight, ' + (initials(state.myName) || 'Captain');
     show('host-setup');
-    setTimeout(() => $('host-ofp').focus(), 60);
+    setTimeout(() => $('sb-user').focus(), 60);
   });
   $('btn-create-solo').addEventListener('click', () => {
     const proceed = () => {
@@ -2834,7 +2832,7 @@ body.light .flight-number .flight-route{color:#15171d}
       state.solo = true;
       $('setup-welcome').textContent = 'Single pilot — set up the flight';
       show('host-setup');
-      setTimeout(() => $('host-ofp').focus(), 60);
+      setTimeout(() => $('sb-user').focus(), 60);
     };
     // Paused flight waiting? Point at Resume before they spawn a duplicate.
     loadSoloSave(save => {
@@ -2871,8 +2869,8 @@ body.light .flight-number .flight-route{color:#15171d}
   function updateGateLabels() {
     const dep = cleanAirport($('host-dep').value);
     const arr = cleanAirport($('host-arr').value);
-    $('depgate-label').innerHTML = (dep ? dep + ' departure gate' : 'Departure gate') + '<span class="req">*</span>';
-    $('arrgate-label').innerHTML = (arr ? arr + ' arrival gate' : 'Arrival gate') + '<span class="req">*</span>';
+    $('depgate-label').innerHTML = (dep ? dep + ' departure gate' : 'Departure gate');
+    $('arrgate-label').innerHTML = (arr ? arr + ' arrival gate' : 'Arrival gate');
   }
   $('host-dep').addEventListener('input', updateGateLabels);
   $('host-arr').addEventListener('input', updateGateLabels);
@@ -2940,117 +2938,13 @@ body.light .flight-number .flight-route{color:#15171d}
               }).catch(() => {});
             }
           }).catch(() => {
-            hint.innerHTML = msg + ' · (document not downloadable — upload the PDF if you want the in-cockpit viewer)';
+            hint.innerHTML = msg + ' · (document not downloadable from SimBrief)';
           });
         }
       })
       .catch(() => {
-        hint.textContent = 'Could not fetch from SimBrief — check the username, make sure a plan is filed, or upload the PDF instead.';
+        hint.textContent = 'Could not fetch from SimBrief — check the username and make sure a plan is filed there.';
       });
-  });
-  $('host-ofp').addEventListener('change', () => {
-    const file = $('host-ofp').files && $('host-ofp').files[0];
-    if (!file) return;
-    if (file.size > 40 * 1024 * 1024) { toast('PDF too large (40 MB max)'); return; }
-    $('host-ofp-hint').textContent = 'reading the OFP…';
-    file.arrayBuffer().then(ab => {
-      ofpBytes = new Uint8Array(ab);
-      ofpDoc = null;
-      if (typeof pdfjsLib === 'undefined') {
-        $('host-ofp-hint').textContent = 'PDF library unavailable — fill the fields by hand';
-        return;
-      }
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      pdfjsLib.getDocument({ data: ofpBytes.slice() }).promise.then(doc => {
-        ofpDoc = doc;
-        state.ofp.name = file.name;
-        state.ofp.size = ofpBytes.length;
-        state.ofp.pages = doc.numPages;
-        const pageCount = Math.min(doc.numPages, 60);
-        const jobs = [];
-        for (let i = 1; i <= pageCount; i++) {
-          jobs.push(doc.getPage(i).then(p => p.getTextContent())
-            .then(tc => tc.items.map(it => it.str).join(' ')).catch(() => ''));
-        }
-        return Promise.all(jobs).then(parts => {
-          const text = parts.join('  ').toUpperCase();
-          const found = [];
-          // callsign: "ATC C/S UAL221"
-          const cs = text.match(/\bATC\s+C\/S\s+([A-Z]{2,3}\s?\d{1,4}[A-Z]?)\b/);
-          if (cs) { $('host-flight').value = cs[1].replace(/\s+/g, ''); found.push(cs[1].replace(/\s+/g, '')); }
-          // city pair: "KORD-KLAX"
-          const cp = text.match(/\b([A-Z]{4})-([A-Z]{4})\b/);
-          if (cp) {
-            $('host-dep').value = cp[1];
-            $('host-arr').value = cp[2];
-            found.push(cp[1] + '→' + cp[2]);
-          }
-          const dep = cleanAirport($('host-dep').value);
-          const arr = cleanAirport($('host-arr').value);
-          // scheduled OUT from the header times
-          if (dep) {
-            const dm = text.match(new RegExp('\\b' + dep + '\\/[A-Z0-9]{3}\\b'));
-            if (dm) {
-              const win = text.slice(dm.index, dm.index + 400);
-              const re = /\b(\d{4})\/(\d{4})\b/g;
-              let om;
-              while ((om = re.exec(win))) {
-                const ok = (s) => parseInt(s.slice(0, 2), 10) < 24 && parseInt(s.slice(2), 10) < 60;
-                if (!ok(om[1]) || !ok(om[2])) continue;
-                $('host-std').value = om[1];
-                found.push('OUT ' + om[1] + 'Z');
-                break;
-              }
-            }
-          }
-          // flight time (wheels up to wheels down) + destination weather
-          setupOfp = { eteMin: 0, ftPhrase: '', wx: '', temp: '', depDate: parseOfpDate(text) };
-          if (setupOfp.depDate) found.push('DEP ' + setupOfp.depDate);
-          const pats = [
-            /\bETE\b[\s.:]{0,4}(\d{1,2})[:.]?(\d{2})\b/,
-            /\bEET\b[\s.:]{0,4}(\d{1,2})[:.]?(\d{2})\b/,
-            /\bAIR\s*TIME\b[\s.:]{0,4}(\d{1,2})[:.]?(\d{2})\b/,
-            /\bTRIP\b\s+(?:[A-Z]{3}\s+)?\d{3,6}\s+(\d{1,2})(\d{2})\b/,
-            /\bTRIP\s*TIME\b[\s.:]{0,4}(\d{1,2})[:.]?(\d{2})\b/,
-            /\b(?:FLT|FLIGHT)\s*TIME\b[\s.:]{0,4}(\d{1,2})[:.]?(\d{2})\b/,
-          ];
-          for (const re of pats) {
-            const m = text.match(re);
-            if (!m) continue;
-            const h = parseInt(m[1], 10), mm = parseInt(m[2], 10);
-            if (isNaN(h) || isNaN(mm) || mm > 59 || h > 20 || (h === 0 && mm === 0)) continue;
-            setupOfp.eteMin = h * 60 + mm;
-            setupOfp.ftPhrase = (h ? h + (h === 1 ? ' hour' : ' hours') : '') +
-              (h && mm ? ' and ' : '') + (mm ? mm + (mm === 1 ? ' minute' : ' minutes') : '');
-            found.push('ETE ' + h + ':' + pad2(mm));
-            break;
-          }
-          const metar = findMetar(text, arr);
-          if (metar) {
-            const w = parseMetar(metar);
-            if (w) { setupOfp.wx = w.wx; setupOfp.temp = w.temp || ''; found.push(arr + ' METAR'); }
-          }
-          updateGateLabels();
-          if (found.length) {
-            let hint = 'Read from the OFP: ' + escapeHTML(found.join(' · '));
-            if (setupOfp.eteMin) {
-              // estimate: ETE plus ~20 min of taxi either end, flown as PIC
-              const est = estPay(state.slug, 'PIC', myCareer().hours, setupOfp.eteMin + 20);
-              hint += ' · Est. pay: <span class="money">' + fmtMoney(est) + '</span>';
-            }
-            $('host-ofp-hint').innerHTML = hint;
-            $('host-depgate').focus();
-          } else {
-            $('host-ofp-hint').textContent = 'Could not read flight details — fill the fields by hand';
-          }
-        });
-      }).catch(e => {
-        console.error(e);
-        ofpDoc = null;
-        $('host-ofp-hint').textContent = 'Could not read that PDF';
-      });
-    });
   });
   $('host-flight').addEventListener('input', () => {
     const parsed = parseCallsign($('host-flight').value);
@@ -3074,8 +2968,6 @@ body.light .flight-number .flight-route{color:#15171d}
     if (dep.length < 3) { toast('Departure airport (ICAO/IATA) is required'); $('host-dep').focus(); return; }
     if (arr.length < 3) { toast('Arrival airport (ICAO/IATA) is required'); $('host-arr').focus(); return; }
     if (std.length !== 0 && std.length !== 4) { toast('Off-block time: 4-digit Zulu, e.g. 1435 — or upload the OFP'); $('host-std').focus(); return; }
-    if (!depGate) { toast(dep + ' departure gate is required'); $('host-depgate').focus(); return; }
-    if (!arrGate) { toast(arr + ' arrival gate is required'); $('host-arrgate').focus(); return; }
     state.flightNumber = flight;
     state.depApt = dep;
     state.arrApt = arr;
@@ -6698,7 +6590,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const q = (cls) => root.querySelector('.' + cls);
     const ui = {
       side, root,
-      title: q('o-title'), file: q('o-file'), upload: q('o-upload'), input: q('o-input'),
+      title: q('o-title'), file: q('o-file'),
       prev: q('o-prev'), pageinfo: q('o-pageinfo'), next: q('o-next'),
       draw: q('o-draw'), undo: q('o-undo'), clear: q('o-clear'), close: q('o-close'),
       empty: q('o-empty'), stage: q('o-stage'), scroll: q('o-scroll'),
@@ -6722,13 +6614,6 @@ body.light .flight-number .flight-route{color:#15171d}
     }));
     ui.undo.addEventListener('click', ownerOnly(() => ofpOp({ op: 'undo', page: state.ofp.page })));
     ui.clear.addEventListener('click', ownerOnly(() => ofpOp({ op: 'clearmine', page: state.ofp.page })));
-    ui.input.addEventListener('change', () => {
-      const file = ui.input.files && ui.input.files[0];
-      ui.input.value = '';
-      if (!file) return;
-      if (!isMine()) { toast(side + "'s copy — upload from your own"); return; }
-      handleOfpFile(file, side);
-    });
     const point = (e) => {
       const r = ui.ink.getBoundingClientRect();
       return [
@@ -7129,7 +7014,6 @@ body.light .flight-number .flight-route{color:#15171d}
       ui.stage.classList.toggle('hidden', !haveDoc);
       // Only the owner gets working controls on their copy — the co-pilot
       // sees the same document and ink, hands off.
-      ui.upload.style.display = (mine && !(state.ofp.name && !haveDoc)) ? '' : 'none';
       [ui.prev, ui.next, ui.draw, ui.undo, ui.clear, ui.close].forEach(b => {
         b.style.display = mine ? '' : 'none';
       });
