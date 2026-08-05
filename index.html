@@ -192,10 +192,18 @@ button{font-family:inherit;color:inherit}
 /* Chat / Roster / Logbook / My Career: full-size pages, fitted type */
 #screen-roster .lobby-card,#screen-logbook .lobby-card,#screen-stats .lobby-card,#screen-chat .lobby-card{max-width:1080px;width:100%}
 #screen-roster h2,#screen-logbook h2{font-size:26px}
-#screen-roster .lb-table,#screen-logbook .lb-table{font-size:17px}
-#screen-roster .lb-table td,#screen-logbook .lb-table td{padding:16px 14px}
-#screen-roster .lb-table th,#screen-logbook .lb-table th{font-size:13px;padding:12px 14px}
-#screen-roster .lvl,#screen-logbook .lvl{font-size:13px;padding:5px 12px}
+#screen-logbook .lb-table{font-size:17px}
+#screen-logbook .lb-table td{padding:16px 14px}
+#screen-logbook .lb-table th{font-size:13px;padding:12px 14px}
+#screen-logbook .lvl{font-size:13px;padding:5px 12px}
+/* Roster: slightly tighter so all columns fit without sideways scrolling */
+#screen-roster .lobby-card{max-width:1160px}
+#screen-roster .lb-table{font-size:14px;width:100%;table-layout:auto}
+#screen-roster .lb-table td{padding:9px 7px}
+#screen-roster .lb-table th{font-size:11px;padding:8px 7px}
+#screen-roster .lvl{font-size:11px;padding:4px 8px}
+#screen-roster .lb-table td.mono{font-size:12px}
+#screen-roster .lb-table .money{font-size:13px}
 #screen-stats .stat-row{font-size:17px;padding:15px 0}
 #screen-stats .stat-k{font-size:15px}
 #screen-stats .lobby-h,#screen-chat .lobby-h{font-size:13px}
@@ -1072,10 +1080,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.01</div>
+<div class="ver-float app-version">v4.03</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.01</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.03</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1084,7 +1092,7 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <div class="home-welcome">
     <h1>Welcome to CrewDeck EFB</h1>
-    <p>Log in with your pilot ID to begin.</p>
+    <p>Log in with your email to begin.</p>
   </div>
   <div class="center-stack">
     <div class="setup-card">
@@ -1106,7 +1114,7 @@ body.light .flight-number .flight-route{color:#15171d}
         </div>
       </form>
       <div class="setup-actions" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
-        <span class="muted" style="font-size:12px">New pilot?</span>
+        <span class="muted" style="font-size:12px" id="signup-np-label">New pilot?</span>
         <button type="button" class="btn link" id="btn-signup-toggle">Create an account</button>
       </div>
       <form id="signup-form" class="hidden" style="margin-top:6px">
@@ -1669,7 +1677,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.01</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.03</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2286,9 +2294,16 @@ body.light .flight-number .flight-route{color:#15171d}
   }
 
   // ---- account creation: pick a free 4-digit pilot ID in the cloud roster ----
+  function setSignupOpen(open) {
+    $('signup-form').classList.toggle('hidden', !open);
+    $('login-form').classList.toggle('hidden', open); // one form at a time — 4 stacked fields was confusing
+    $('btn-signup-toggle').textContent = open ? 'Back to sign in' : 'Create an account';
+    $('signup-np-label').textContent = open ? 'Already have an account?' : 'New pilot?';
+  }
   $('btn-signup-toggle').addEventListener('click', () => {
-    $('signup-form').classList.toggle('hidden');
-    if (!$('signup-form').classList.contains('hidden')) setTimeout(() => $('signup-name').focus(), 50);
+    const open = $('signup-form').classList.contains('hidden');
+    setSignupOpen(open);
+    if (open) setTimeout(() => $('signup-email').focus(), 50);
   });
   let takenInitials = null;
   $('signup-name').addEventListener('input', () => {
