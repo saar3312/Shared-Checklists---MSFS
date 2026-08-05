@@ -167,7 +167,8 @@ button{font-family:inherit;color:inherit}
 #screen-roadmap h2{font-size:26px}
 .stripes{display:inline-flex;gap:2px;align-items:center;margin:0 6px;vertical-align:middle;
   background:#101318;border:1px solid rgba(255,255,255,0.08);border-radius:4px;padding:3px 5px}
-.stripes i{display:block;width:3px;height:12px;border-radius:1px;background:currentColor}
+.stripes i{display:block;width:3px;height:12px;border-radius:1px;background:currentColor;
+  box-shadow:0 0 5px currentColor}
 body.light .stripes{background:#2c313c}
 .rm-track{display:flex;flex-direction:column}
 .rm-row{display:flex;gap:18px}
@@ -229,13 +230,16 @@ body.light .stripes{background:#2c313c}
 /* ---------- App tabs (lobby / roster / logbook) ---------- */
 .app-tabs{
   display:flex;gap:2px;padding:0 20px;background:var(--surface);
-  border-bottom:1px solid var(--border);
+  border-bottom:1px solid var(--border);justify-content:flex-end;flex-wrap:wrap;
 }
 .app-tabs button{
   background:transparent;border:none;color:var(--text-muted);cursor:pointer;
   font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
-  padding:11px 16px;border-bottom:2px solid transparent;min-height:40px;
+  padding:11px 16px;border-bottom:2px solid transparent;min-height:40px;position:relative;
 }
+.tab-badge{position:absolute;top:2px;right:0;background:#e5484d;color:#fff;border-radius:999px;
+  font-size:10px;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;
+  padding:0 4px;box-shadow:0 0 6px rgba(229,72,77,0.7);letter-spacing:0}
 .app-tabs button:hover{color:var(--text)}
 .app-tabs button.active{color:var(--accent);border-bottom-color:var(--accent)}
 /* ---------- Levels & leaderboard ---------- */
@@ -243,12 +247,12 @@ body.light .stripes{background:#2c313c}
   display:inline-block;font-size:9px;font-weight:800;letter-spacing:0.1em;
   text-transform:uppercase;border-radius:2px;padding:2px 6px;white-space:nowrap;
 }
-.lvl-0{background:#3f4653;color:#cdd5e0}
-.lvl-1{background:#2d5a7a;color:#cfe6f5}
-.lvl-2{background:#2c6e50;color:#c9ecd9}
-.lvl-3{background:#9c7426;color:#f4e6c6}
-.lvl-4{background:#5f4a91;color:#e6dcf7}
-.lvl-5{background:linear-gradient(90deg,#2fb5ba,#7fe3e6);color:#073033}
+.lvl-0{background:#3f4653;color:#cdd5e0;box-shadow:0 0 9px rgba(138,148,163,0.45)}
+.lvl-1{background:#2d5a7a;color:#cfe6f5;box-shadow:0 0 9px rgba(91,159,196,0.55)}
+.lvl-2{background:#2c6e50;color:#c9ecd9;box-shadow:0 0 9px rgba(47,161,112,0.55)}
+.lvl-3{background:#9c7426;color:#f4e6c6;box-shadow:0 0 9px rgba(201,148,46,0.55)}
+.lvl-4{background:#5f4a91;color:#e6dcf7;box-shadow:0 0 9px rgba(141,108,201,0.55)}
+.lvl-5{background:linear-gradient(90deg,#2fb5ba,#7fe3e6);color:#073033;box-shadow:0 0 12px rgba(64,207,212,0.75)}
 .rank-ink{font-weight:800;letter-spacing:0.06em}
 .rank-0{color:#8a94a3}
 .rank-1{color:#5b9fc4}
@@ -991,10 +995,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.62</div>
+<div class="ver-float app-version">v3.66</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.62</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.66</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1088,17 +1092,20 @@ body.light .flight-number .flight-route{color:#15171d}
   <div class="subnav">
     <button class="btn link" id="btn-login-back">&larr; Back</button>
     <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
-    <span class="subnav-links">
-      <button type="button" class="btn link" id="nav-inbox1" style="display:none">Inbox</button>
-      <button type="button" class="btn link" id="nav-msgs1" style="display:none">Messages</button>
-      <button type="button" class="btn link" id="nav-guide1">Guide</button>
-      <button type="button" class="btn link" id="nav-roadmap1">Roadmap</button>
-      <button type="button" class="btn link" id="nav-stats1">Stats</button>
-      <button type="button" class="btn link" id="nav-decks1">Flight Decks</button>
-      <button type="button" class="btn link" id="nav-roster1">Roster</button>
-      <button type="button" class="btn link" id="nav-logbook1">Logbook</button>
-    </span>
+    <span></span>
   </div>
+  <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
+    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
+    <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="logbook">Logbook</button>
+    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
+    <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+  </nav>
   <div class="home-welcome">
     <h1 id="pickac-line">Select Your Aircraft</h1>
     <p>Ordered by compensation.</p>
@@ -1154,13 +1161,15 @@ body.light .flight-number .flight-route{color:#15171d}
     <span></span>
   </div>
   <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
     <button type="button" data-tab="lobby">Flight Decks</button>
     <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="guide">Guide</button>
-    <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
   </nav>
 
@@ -1188,13 +1197,15 @@ body.light .flight-number .flight-route{color:#15171d}
     <span></span>
   </div>
   <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
     <button type="button" data-tab="lobby">Flight Decks</button>
     <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="guide">Guide</button>
-    <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
   </nav>
   <div class="center-stack">
@@ -1214,13 +1225,15 @@ body.light .flight-number .flight-route{color:#15171d}
     <span></span>
   </div>
   <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
     <button type="button" data-tab="lobby">Flight Decks</button>
     <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="guide">Guide</button>
-    <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
   </nav>
   <div class="center-stack">
@@ -1241,13 +1254,15 @@ body.light .flight-number .flight-route{color:#15171d}
     <span></span>
   </div>
   <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
     <button type="button" data-tab="lobby">Flight Decks</button>
     <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="guide">Guide</button>
-    <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
   </nav>
   <div class="center-stack">
@@ -1265,13 +1280,15 @@ body.light .flight-number .flight-route{color:#15171d}
     <span></span>
   </div>
   <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
     <button type="button" data-tab="lobby">Flight Decks</button>
     <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="guide">Guide</button>
-    <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
   </nav>
   <div class="center-stack">
@@ -1289,19 +1306,47 @@ body.light .flight-number .flight-route{color:#15171d}
     <span></span>
   </div>
   <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
     <button type="button" data-tab="lobby">Flight Decks</button>
     <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="guide">Guide</button>
-    <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
       <h2>Your Stats</h2>
       <div id="stats-body" style="font-size:13px;line-height:1.6"></div>
+    </div>
+  </div>
+</div>
+<!-- Chat tab: pilot-to-pilot DMs (15 s slow mode) -->
+<div id="screen-chat" class="hidden">
+  <div class="subnav">
+    <button class="btn link" id="btn-chat-back">&larr; Back</button>
+    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
+    <span></span>
+  </div>
+  <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
+    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
+    <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="logbook">Logbook</button>
+    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
+    <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+  </nav>
+  <div class="center-stack">
+    <div class="setup-card lobby-card">
+      <h2 id="chat-title">Chat</h2>
+      <div id="chat-body"><p class="lobby-empty">Loading…</p></div>
     </div>
   </div>
 </div>
@@ -1341,13 +1386,15 @@ body.light .flight-number .flight-route{color:#15171d}
     <span></span>
   </div>
   <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
     <button type="button" data-tab="lobby">Flight Decks</button>
     <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="guide">Guide</button>
-    <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
   </nav>
 
@@ -1369,13 +1416,15 @@ body.light .flight-number .flight-route{color:#15171d}
     <span></span>
   </div>
   <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
     <button type="button" data-tab="lobby">Flight Decks</button>
     <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="guide">Guide</button>
-    <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
   </nav>
 
@@ -1493,15 +1542,17 @@ body.light .flight-number .flight-route{color:#15171d}
     </div>
     <div class="topbar-right">
       <button class="detail-toggle" id="btn-compact" title="Compact = one row per task · Detail = every switch">Detail: off</button>
+      <button class="btn link" id="btn-tabs-out" title="Browse the app — your flight stays active">Tabs</button>
       <button class="btn link" id="btn-ofp" title="Shared OFP — synced page and ink">OFP</button>
       <button class="btn link" id="btn-cards" title="All briefings, checklists & callouts">Cards</button>
       <button class="btn link" id="btn-pad" title="Scratchpad">Pad</button>
       <span class="role-badge" id="role-badge">No role</span>
+      <span id="rank-top" style="display:inline-flex;align-items:center"></span>
       <div class="menu-wrap">
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.62</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.66</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1885,6 +1936,7 @@ body.light .flight-number .flight-route{color:#15171d}
     guide: $('screen-guide'),
     roadmap: $('screen-roadmap'),
     stats: $('screen-stats'),
+    chat: $('screen-chat'),
     logbook: $('screen-logbook'),
     roster: $('screen-roster'),
     join: $('screen-join'),
@@ -1923,6 +1975,7 @@ body.light .flight-number .flight-route{color:#15171d}
     checkMyMessages(true);
     updateInboxTab();
     checkAdminInbox(true);
+    chatFetch(threads => updateChatBadge(threads));
   }
   $('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -2465,10 +2518,6 @@ body.light .flight-number .flight-route{color:#15171d}
     updateInboxTab();
     $('stats-body').innerHTML = statsHtml();
   }
-  $('nav-inbox1').addEventListener('click', showInboxScreen);
-  $('nav-guide1').addEventListener('click', showGuideScreen);
-  $('nav-roadmap1').addEventListener('click', showRoadmapScreen);
-  $('nav-stats1').addEventListener('click', showStatsScreen);
   // everyone must set a support word on their first login (support only, not login)
   function maybeAskWord() {
     if (!state.myCode || !fdb) return;
@@ -2501,6 +2550,13 @@ body.light .flight-number .flight-route{color:#15171d}
     saveGuideMeta(m);
     toast('Got it — hidden for the next 10 logins, then you get one refresher');
   });
+  function updateMyFlightTab() {
+    const on = !!(state.code && state.checklist);
+    document.querySelectorAll('.app-tabs button[data-tab="flight"]').forEach(b2 => {
+      b2.style.display = on ? '' : 'none';
+      if (on) b2.textContent = 'My Flight · ' + (state.flightNumber || state.code);
+    });
+  }
   function updateInboxTab() {
     const isAdmin = state.myCode === ADMIN_CODE;
     document.querySelectorAll('.app-tabs button[data-tab="inbox"]')
@@ -2532,6 +2588,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function showDecksScreen() {
     if (!state.myName) { show('home'); return; }
+    if (!state.checklist) lobbyGlobal = true;
     setActiveTab('decks');
     show('decks');
     updateInboxTab();
@@ -2550,13 +2607,6 @@ body.light .flight-number .flight-route{color:#15171d}
     renderSupport();
     checkAdminInbox(false);
   }
-  $('nav-decks1').addEventListener('click', () => {
-    if (!state.myName) { show('home'); return; }
-    lobbyGlobal = true;
-    state.slug = null;
-    state.checklist = null;
-    showDecksScreen();
-  });
   $('btn-lobby-back').addEventListener('click', () => show('login'));
   $('btn-create-dual').addEventListener('click', () => {
     desiredRole = 'PIC';
@@ -3262,6 +3312,7 @@ body.light .flight-number .flight-route{color:#15171d}
       }
     }
     show('room');
+    updateMyFlightTab();
     screens.room.classList.add('dual');
     findEngineStartId();
     updateClocks();
@@ -4170,12 +4221,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function wireRosterMessageButtons(container) {
     container.querySelectorAll('[data-msg-code]').forEach(b2 =>
-      b2.addEventListener('click', () => {
-        const txt = prompt('Message to pilot ' + b2.dataset.msgCode + ' (they see it on their next login):', 'Your pilot ID is ' + b2.dataset.msgCode);
-        if (txt === null || !txt.trim()) return;
-        sendPilotMessage(b2.dataset.msgCode, txt.trim());
-        toast('Message sent to ' + b2.dataset.msgCode);
-      }));
+      b2.addEventListener('click', () => { chatWith = b2.dataset.msgCode; showChatScreen(); }));
     container.querySelectorAll('[data-del-pilot]').forEach(b2 =>
       b2.addEventListener('click', () => {
         const code = b2.dataset.delPilot;
@@ -4281,20 +4327,21 @@ body.light .flight-number .flight-route{color:#15171d}
   // Roster & logbook are career-wide (one per pilot ID, across all aircraft),
   // so they're reachable before an aircraft is even picked.
   function backToBase() { if (state.checklist || lobbyGlobal) openLobby(); else show('login'); }
-  $('nav-roster1').addEventListener('click', showRosterScreen);
-  $('nav-logbook1').addEventListener('click', showLogbookScreen);
   function setActiveTab(tab) {
     document.querySelectorAll('.app-tabs button').forEach(b => {
       b.classList.toggle('active', b.dataset.tab === tab);
     });
     updateInboxTab();
+    updateMyFlightTab();
   }
   document.querySelectorAll('.app-tabs button').forEach(b => {
     b.addEventListener('click', () => {
       const t = b.dataset.tab;
-      if (t === 'lobby') backToBase();
+      if (t === 'flight') { if (state.code && state.checklist) show('room'); }
+      else if (t === 'lobby') backToBase();
       else if (t === 'decks') showDecksScreen();
       else if (t === 'inbox') showInboxScreen();
+      else if (t === 'chat') showChatScreen();
       else if (t === 'guide') showGuideScreen();
       else if (t === 'roadmap') showRoadmapScreen();
       else if (t === 'stats') showStatsScreen();
@@ -4306,6 +4353,7 @@ body.light .flight-number .flight-route{color:#15171d}
   $('btn-decks-back').addEventListener('click', backToBase);
   $('btn-inbox-back').addEventListener('click', backToBase);
   $('btn-guide-back').addEventListener('click', backToBase);
+  $('btn-chat-back').addEventListener('click', backToBase);
   $('btn-roadmap-back').addEventListener('click', backToBase);
   $('btn-stats-back').addEventListener('click', backToBase);
   $('rb-sort-hours').addEventListener('click', () => { lbSort = 'hours'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
@@ -4520,6 +4568,13 @@ body.light .flight-number .flight-route{color:#15171d}
       ? 'VIEWING · ' + (initials(state.myName) || '')
       : (state.myRole ? state.myRole + ' · ' + (initials(state.myName) || 'You') : 'No role');
     b.className = 'role-badge' + (state.myRole && !state.observer ? ' role-' + state.myRole : '');
+    const rt = $('rank-top');
+    if (rt) {
+      const lv = levelFor(myCareer().hours);
+      rt.innerHTML = state.myCode
+        ? '<span class="lvl lvl-' + lv.idx + '">' + lv.name.toUpperCase() + '</span>' + stripesHtml(lv.idx)
+        : '';
+    }
     if (typeof updateMobilePane === 'function') updateMobilePane();
   }
   // ---- pane headers ----
@@ -4672,6 +4727,7 @@ body.light .flight-number .flight-route{color:#15171d}
     teardown();
     show('home');
   });
+  $('btn-tabs-out').addEventListener('click', () => { openLobby(); });
   $('flight-number').addEventListener('click', editFlightNumber);
   $('btn-change-role').addEventListener('click', openRoleModal);
   $('btn-reset').addEventListener('click', () => {
@@ -4744,6 +4800,7 @@ body.light .flight-number .flight-route{color:#15171d}
     state.viewSection = 0;
     engineStartId = null;
     releaseWakeLock();
+    updateMyFlightTab();
   }
   // ---- Zulu clock & pushback countdown ----
   // The clock lives on the home screen, next to the off-block input, and
@@ -5240,14 +5297,142 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   $('msgs-close').addEventListener('click', () => { $('msgs-modal').hidden = true; });
   $('msgs-modal').addEventListener('click', (e) => { if (e.target === $('msgs-modal')) $('msgs-modal').hidden = true; });
-  $('nav-msgs1').addEventListener('click', () => {
-    if (!fdb || !state.myCode) return;
-    fdb.ref('careers/' + state.myCode + '/inbox').get().then(snap => {
-      const all = (snap && snap.val()) || {};
-      const ids = Object.keys(all).sort((a, b) => (all[b].ts || 0) - (all[a].ts || 0));
-      openMessages(all, ids);
-    }).catch(() => {});
-  });
+  // =====================================================================
+  // CHAT — pilot-to-pilot DMs. Same bubbles as support, threads stored at
+  // careers/_chats/{a_b}. 15-second slow mode + hourly cap stop spamming.
+  // =====================================================================
+  const CHAT_SLOWMODE_MS = 15000;
+  const CHAT_HOURLY_CAP = 30;
+  let chatWith = null;
+  let chatCache = {};
+  function chatThreadId(a2, b2) { return [a2, b2].sort().join('_'); }
+  function chatOther(t2) { const p2 = (t2.split('_')); return p2[0] === state.myCode ? p2[1] : p2[0]; }
+  function showChatScreen() {
+    if (!state.myName) { show('home'); return; }
+    setActiveTab('chat');
+    show('chat');
+    updateInboxTab();
+    renderChat();
+  }
+  function chatFetch(cb) {
+    if (!fdb) { cb({}); return; }
+    fdb.ref('careers/_chats').get().then(sn => {
+      const all = (sn && sn.val()) || {};
+      const mine = {};
+      for (const k of Object.keys(all)) {
+        if (k.split('_').indexOf(state.myCode) >= 0) mine[k] = all[k];
+      }
+      chatCache = mine;
+      cb(mine);
+    }).catch(() => cb(chatCache));
+  }
+  function chatUnreadCount(threads) {
+    let n = 0;
+    for (const k of Object.keys(threads || {})) {
+      const t2 = threads[k];
+      const msgs = (t2 && t2.msgs) || [];
+      const last = msgs[msgs.length - 1];
+      const seen = (t2 && t2.seen && t2.seen[state.myCode]) || 0;
+      if (last && last.from !== state.myCode && (last.ts || 0) > seen) n++;
+    }
+    return n;
+  }
+  function updateChatBadge(threads) {
+    const n = chatUnreadCount(threads || chatCache);
+    document.querySelectorAll('.app-tabs button[data-tab="chat"]').forEach(b2 => {
+      b2.innerHTML = 'Chat' + (n ? '<span class="tab-badge">' + (n > 9 ? '9+' : n) + '</span>' : '');
+    });
+  }
+  function renderChat() {
+    const box = $('chat-body');
+    if (!box) return;
+    if (!fdb) { box.innerHTML = '<p class="lobby-empty">Chat needs internet.</p>'; return; }
+    chatFetch(threads => {
+      if (screens.chat.classList.contains('hidden')) return;
+      updateChatBadge(threads);
+      const pilots = localPilotsMap();
+      if (chatWith) {
+        const tid = chatThreadId(state.myCode, chatWith);
+        const t2 = threads[tid] || { msgs: [] };
+        const nm = initials((pilots[chatWith] && pilots[chatWith].name) || chatWith);
+        $('chat-title').textContent = 'Chat — ' + nm;
+        // mark seen
+        try { fdb.ref('careers/_chats/' + tid + '/seen/' + state.myCode).set(Date.now()); } catch (e) {}
+        const bubbles = (t2.msgs || []).map(m => {
+          const mine = m.from === state.myCode;
+          return '<div class="chat-line' + (mine ? ' chat-mine' : '') + '">' +
+            '<div class="chat-bubble">' + escapeHTML(m.text || '') + '</div>' +
+            '<div class="chat-meta">' + escapeHTML(mine ? initials(state.myName) : nm) +
+            (m.ts ? ' · ' + escapeHTML(agoPhrase(Date.now() - m.ts)) : '') + '</div></div>';
+        }).join('') || '<p class="lobby-empty">No messages yet — say hi.</p>';
+        box.innerHTML =
+          '<button type="button" class="btn link" id="chat-to-list">&larr; All chats</button>' +
+          '<div class="chat-thread" style="margin-top:8px">' + bubbles + '</div>' +
+          '<div class="chat-send"><input class="input" id="chat-input" maxlength="200" placeholder="Message ' + escapeHTML(nm) + '… (15 s slow mode)" />' +
+          '<button type="button" class="btn primary" id="chat-send-btn">Send</button></div>';
+        $('chat-to-list').addEventListener('click', () => { chatWith = null; renderChat(); });
+        const doSend = () => {
+          const inp = $('chat-input');
+          const txt = (inp.value || '').trim();
+          if (!txt) return;
+          const myMsgs = (t2.msgs || []).filter(m => m.from === state.myCode);
+          const lastMine = myMsgs[myMsgs.length - 1];
+          if (lastMine && Date.now() - (lastMine.ts || 0) < CHAT_SLOWMODE_MS) {
+            toast('Slow mode — wait ' + Math.ceil((CHAT_SLOWMODE_MS - (Date.now() - lastMine.ts)) / 1000) + ' s');
+            return;
+          }
+          const hourAgo = Date.now() - 3600000;
+          if (myMsgs.filter(m => (m.ts || 0) > hourAgo).length >= CHAT_HOURLY_CAP) {
+            toast('Spam cap — max ' + CHAT_HOURLY_CAP + ' messages per hour in one chat');
+            return;
+          }
+          fdb.ref('careers/_chats/' + tid).get().then(sn => {
+            const v = (sn && sn.val()) || {};
+            const msgs = (v.msgs || []).slice(-99);
+            msgs.push({ ts: Date.now(), from: state.myCode, text: txt.slice(0, 200) });
+            const seen = v.seen || {};
+            seen[state.myCode] = Date.now();
+            fdb.ref('careers/_chats/' + tid).set({ msgs: msgs, seen: seen }).then(() => renderChat());
+          }).catch(() => toast('Could not send — try again'));
+        };
+        $('chat-send-btn').addEventListener('click', doSend);
+        $('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doSend(); } });
+        setTimeout(() => { const i2 = $('chat-input'); if (i2) i2.focus(); }, 60);
+      } else {
+        $('chat-title').textContent = 'Chat';
+        const codes = Object.keys(pilots).filter(c => c !== state.myCode);
+        if (!codes.length) { box.innerHTML = '<p class="lobby-empty">No other pilots on the roster yet.</p>'; return; }
+        // order: unread first, then most recent thread, then the rest
+        const rowFor = (c) => {
+          const tid = chatThreadId(state.myCode, c);
+          const t2 = threads[tid];
+          const msgs = (t2 && t2.msgs) || [];
+          const last = msgs[msgs.length - 1];
+          const seen = (t2 && t2.seen && t2.seen[state.myCode]) || 0;
+          const unread = last && last.from !== state.myCode && (last.ts || 0) > seen;
+          return { c: c, last: last, unread: unread, ts: (last && last.ts) || 0 };
+        };
+        const rows = codes.map(rowFor).sort((x, y) => (y.unread - x.unread) || (y.ts - x.ts));
+        box.innerHTML = rows.map(r => {
+          const nm = initials((pilots[r.c] && pilots[r.c].name) || r.c);
+          return '<div class="chat-thread" style="cursor:pointer" data-chat-open="' + escapeHTML(r.c) + '">' +
+            '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center">' +
+            '<span>' + (r.unread ? '<span class="dot-on"></span>' : '') + '<strong>' + escapeHTML(nm) + '</strong>' +
+            '<span style="font-size:12px;color:var(--text-muted)"> · ' +
+              (r.last ? escapeHTML(((r.last.from === state.myCode ? 'you: ' : '') + r.last.text).slice(0, 46)) : 'Start a chat') + '</span></span>' +
+            '<span style="font-size:11px;color:var(--text-muted)">' + (r.ts ? escapeHTML(agoPhrase(Date.now() - r.ts)) : '') + '</span>' +
+            '</div></div>';
+        }).join('');
+        box.querySelectorAll('[data-chat-open]').forEach(el =>
+          el.addEventListener('click', () => { chatWith = el.dataset.chatOpen; renderChat(); }));
+      }
+    });
+  }
+  let chatBeat = 0;
+  function chatTick() {
+    chatBeat++;
+    if (!screens.chat.classList.contains('hidden') && chatBeat % 5 === 0) renderChat();
+  }
   function renderSupport() {
     const box = $('lobby-support');
     if (!box) return;
@@ -5415,7 +5600,8 @@ body.light .flight-number .flight-route{color:#15171d}
   let flightCommitted = false;
   let soloBeat = 0;
   function salaryTick() {
-    if (!state.checklist || screens.room.classList.contains('hidden')) return;
+    if (!state.checklist) return;
+    if (screens.room.classList.contains('hidden') && !state.code) return; // flight over AND not in the room
     // refresh the solo save every minute so the salary clock stays current
     // even through long quiet stretches (cruise) — a pause never rewinds far
     if (state.solo && state.role === 'host' && !flightCommitted && ++soloBeat % 60 === 0) soloSaveNow();
@@ -5571,6 +5757,10 @@ body.light .flight-number .flight-route{color:#15171d}
       const k = state.roles[r];
       return k && state.members[k] ? state.members[k].name : null;
     };
+    const hoursOf = (r) => {
+      const k = state.roles[r];
+      return (k && state.members[k] && state.members[k].hours) || 0;
+    };
     return {
       code: state.code, slug: state.slug,
       aircraft: state.checklist ? state.checklist.aircraft : '',
@@ -5578,6 +5768,9 @@ body.light .flight-number .flight-route{color:#15171d}
       solo: !!state.solo,
       eteMin: state.eteMin || 0,
       roles: { PIC: nameOf('PIC'), PM: nameOf('PM') },
+      hoursBy: { PIC: hoursOf('PIC'), PM: hoursOf('PM') },
+      pushAt: state.pushAt || 0,
+      engOffAt: state.engOffAt || 0,
       phase: (currentPhase().label || 'PREFLIGHT'),
     };
   }
@@ -5609,11 +5802,47 @@ body.light .flight-number .flight-route{color:#15171d}
       const v = (snap && snap.val()) || {};
       const out = {};
       for (const code of Object.keys(v)) {
-        if (v[code] && v[code].save && v[code].save.slug) out[code] = v[code].save;
+        if (v[code] && v[code].save && v[code].save.slug) {
+          out[code] = v[code].save;
+          out[code]._hours = v[code].hours || 0;
+        }
       }
       lobby.paused = out;
       renderLobbyList();
     }).catch(() => {});
+  }
+  function liveCompHtml(f, role) {
+    if (!f.pushAt) return '<span style="font-size:11px;color:var(--text-muted)">at the gate — clock not started</span>';
+    const minutes = Math.max(0, ((f.engOffAt || Date.now()) - f.pushAt) / 60000);
+    const hrs = (f.hoursBy && f.hoursBy[role]) || 0;
+    const pay = estPay(f.slug, role, hrs, minutes);
+    return '<span class="money" data-lc="' + escapeHTML(f.code) + ':' + role + '" style="font-size:12px">' + fmtMoney(pay) + '</span>' +
+      '<span data-lcm="' + escapeHTML(f.code) + ':' + role + '" style="font-size:11px;color:var(--text-muted)"> earned · ' + Math.round(minutes) + ' min</span>';
+  }
+  // ticks every second so the money visibly climbs while you watch
+  function refreshLiveComp() {
+    const list = $('lobby-list');
+    if (!list || screens.decks.classList.contains('hidden')) return;
+    const flights = lobby.flights || {};
+    const upd = (el, isMoney) => {
+      const parts = el.dataset.lc ? el.dataset.lc.split(':') : el.dataset.lcm.split(':');
+      const f = flights[parts[0]];
+      if (!f || !f.pushAt) return;
+      const minutes = Math.max(0, ((f.engOffAt || Date.now()) - f.pushAt) / 60000);
+      const hrs = (f.hoursBy && f.hoursBy[parts[1]]) || 0;
+      if (isMoney) el.textContent = fmtMoney(estPay(f.slug, parts[1], hrs, minutes));
+      else el.textContent = ' earned · ' + Math.round(minutes) + ' min';
+    };
+    list.querySelectorAll('[data-lc]').forEach(el => upd(el, true));
+    list.querySelectorAll('[data-lcm]').forEach(el => upd(el, false));
+    // paused decks climb too
+    const paused = lobby.paused || {};
+    list.querySelectorAll('[data-lcp]').forEach(el => {
+      const sv = paused[el.dataset.lcp];
+      if (!sv || !sv.pushAt) return;
+      el.textContent = fmtMoney(estPay(sv.slug, 'PIC', sv._hours || 0,
+        Math.max(0, ((sv.engOffAt || Date.now()) - sv.pushAt) / 60000)));
+    });
   }
   function renderLobbyList() {
     const list = $('lobby-list');
@@ -5653,6 +5882,12 @@ body.light .flight-number .flight-route{color:#15171d}
         '<span class="lobby-flight-phase">PAUSED</span></div>' +
         '<div class="lobby-seats"><span class="solo-badge">SINGLE PILOT — ' + escapeHTML(initials(nm)) +
           ' · SAVED ' + escapeHTML(agoPhrase(Date.now() - (sv.ts || 0))) + '</span>' +
+          (sv.pushAt
+            ? '<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">' +
+              '<span class="money" data-lcp="' + escapeHTML(pcode) + '" style="font-size:12px">' +
+              fmtMoney(estPay(sv.slug, 'PIC', sv._hours || 0, Math.max(0, ((sv.engOffAt || Date.now()) - sv.pushAt) / 60000))) +
+              '</span><span style="font-size:11px;color:var(--text-muted)"> earned — still counting</span></span>'
+            : '') +
           (state.myCode === ADMIN_CODE
             ? '<button type="button" class="lobby-seat" data-del-save="' + escapeHTML(pcode) + '">' +
               '<span class="seat-tag">Delete deck</span>Remove ' + escapeHTML(initials(nm)) + "'s paused flight</button>"
@@ -5699,8 +5934,10 @@ body.light .flight-number .flight-route{color:#15171d}
       };
       if (f.solo) {
         const solopilot = (f.roles && (f.roles.PIC || f.roles.PM)) || '';
+        const soloRole = (f.roles && f.roles.PIC) ? 'PIC' : 'PM';
         seats.innerHTML = '<span class="solo-badge">SINGLE PILOT' +
-          (solopilot ? ' — ' + escapeHTML(initials(solopilot)) : '') + ' · LOCKED</span>';
+          (solopilot ? ' — ' + escapeHTML(initials(solopilot)) : '') + ' · LOCKED</span>' +
+          '<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">' + liveCompHtml(f, soloRole) + '</span>';
         addView();
       } else {
         ['PIC', 'PM'].forEach(r => {
@@ -5709,8 +5946,8 @@ body.light .flight-number .flight-route{color:#15171d}
           b.className = 'lobby-seat seat-' + r.toLowerCase();
           const holder = f.roles && f.roles[r];
           const mine = holder && holder === state.myName;
-          let seatSub = holder ? escapeHTML(initials(holder)) : 'Join this seat';
-          if (mine) seatSub = 'Rejoin — ' + escapeHTML(initials(holder));
+          let seatSub = holder ? escapeHTML(initials(holder)) + '<br>' + liveCompHtml(f, r) : 'Join this seat';
+          if (mine) seatSub = 'Rejoin — ' + escapeHTML(initials(holder)) + '<br>' + liveCompHtml(f, r);
           if (!holder && f.eteMin) {
             const est = estPay(f.slug, r, myCareer().hours, f.eteMin + 20);
             seatSub = 'Join this seat · est. <span class="money">' + fmtMoney(est) + '</span>';
@@ -5734,6 +5971,7 @@ body.light .flight-number .flight-route{color:#15171d}
   let lobbyBeat = 0;
   function lobbyTick() {
     lobbyBeat++;
+    refreshLiveComp();
     const beatEvery = fdb ? 20 : 8;
     if (state.role === 'host' && state.code && lobbyBeat % beatEvery === 0) lobbyAnnounce();
     if (!screens.decks.classList.contains('hidden')) {
@@ -5749,6 +5987,7 @@ body.light .flight-number .flight-route{color:#15171d}
     }
   }
   setInterval(updateClocks, 1000);
+  setInterval(chatTick, 1000);
   updateClocks();
   // debug/diagnostics hook (also handy in the browser console)
   window.__ckpt = {
