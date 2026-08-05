@@ -273,8 +273,6 @@ html.booting #home-auth-wait{display:block !important}
 .lb-table td.pc{text-align:center}
 .pilot-wrap{position:relative;display:inline-flex;align-items:center}
 .pilot-wrap .dot-on{position:absolute;left:-18px;margin:0}
-/* the Crew pill floats beside the name so it never pushes the name off-center */
-.pilot-wrap .crew-badge{position:absolute;left:100%;margin-left:8px}
 .lb-table th.rs{cursor:pointer}
 .lb-table th.rs:hover{color:var(--text)}
 .lb-table th.rs.on{color:var(--accent)}
@@ -1135,10 +1133,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.08</div>
+<div class="ver-float app-version">v1.09</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.08</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.09</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1781,7 +1779,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.08</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.09</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -4960,7 +4958,7 @@ body.light .flight-number .flight-route{color:#15171d}
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
         '<td class="lb-rank">' + (i + 1) + '</td>' +
         '<td class="pc" data-viewlog="' + escapeHTML(r.code) + '" style="cursor:pointer" title="Open logbook"><span class="pilot-wrap">' + (online.has(r.name) ? '<span class="dot-on" title="in a flight deck now"></span>' : '') +
-          wingedHtml(escapeHTML(initials(r.name)), r.hours) + crewBadgeHtml(r.code) + '</span></td>' +
+          wingedHtml(escapeHTML(initials(r.name)), r.hours) + '</span></td>' +
         '<td>' + (r.code === state.myCode ? '' :
           (crewStatusWith(r.code) === 'crew'
             ? '<span style="font-size:11px;color:var(--good)">✓ CREW</span> <button type="button" class="btn link" data-crew-rm="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px" title="Remove from crew">✕</button>'
