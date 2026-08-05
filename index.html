@@ -273,6 +273,8 @@ html.booting #home-auth-wait{display:block !important}
 .lb-table td.pc{text-align:center}
 .pilot-wrap{position:relative;display:inline-flex;align-items:center}
 .pilot-wrap .dot-on{position:absolute;left:-18px;margin:0}
+/* the Crew pill floats beside the name so it never pushes the name off-center */
+.pilot-wrap .crew-badge{position:absolute;left:100%;margin-left:8px}
 .lb-table th.rs{cursor:pointer}
 .lb-table th.rs:hover{color:var(--text)}
 .lb-table th.rs.on{color:var(--accent)}
@@ -1133,10 +1135,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.07</div>
+<div class="ver-float app-version">v1.08</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.07</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.08</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1779,7 +1781,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.07</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.08</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -6097,6 +6099,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const mine = {};
       for (const k of Object.keys(all)) if (k.split('_').indexOf(state.myCode) >= 0) mine[k] = all[k];
       crewCache = mine;
+      updateCrewBadge();
       cb(mine);
     }).catch(() => cb(crewCache));
   }
@@ -6123,12 +6126,13 @@ body.light .flight-number .flight-route{color:#15171d}
     fdb.ref('careers/_crew/' + id + '/status').set('crew').then(() => {
       if (crewCache[id]) crewCache[id].status = 'crew';
       toast('Crewed up — you can chat now');
+      updateCrewBadge();
       renderChat();
       renderCrewIfOpen();
     });
   }
   function crewRemove(id) {
-    fdb.ref('careers/_crew/' + id).remove().then(() => { delete crewCache[id]; renderChat(); renderCrewIfOpen(); if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
+    fdb.ref('careers/_crew/' + id).remove().then(() => { delete crewCache[id]; updateCrewBadge(); renderChat(); renderCrewIfOpen(); if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
   }
   function canChatWith(code) {
     if (isAdminView() || code === ADMIN_CODE) return true; // support line always open
@@ -6264,6 +6268,7 @@ body.light .flight-number .flight-route{color:#15171d}
       for (const k of Object.keys(all)) if (k.split('_').indexOf(state.myCode) >= 0) mine[k] = all[k];
       crewCache = mine;
       updateChatBadge(chatCache);
+      updateCrewBadge();
       if (screens.crew && !screens.crew.classList.contains('hidden')) renderCrew();
     });
   }
@@ -6292,14 +6297,24 @@ body.light .flight-number .flight-route{color:#15171d}
     return n;
   }
   function updateChatBadge(threads) {
-    let n = chatUnreadCount(threads || chatCache);
-    // incoming crew requests wait in the Chat tab too — badge them so they get seen
+    const n = chatUnreadCount(threads || chatCache);
+    document.querySelectorAll('.app-tabs button[data-tab="chat"]').forEach(b2 => {
+      b2.innerHTML = 'Messages' + (n ? '<span class="tab-badge">' + (n > 9 ? '9+' : n) + '</span>' : '');
+    });
+  }
+  function crewPendingCount() {
+    let n = 0;
     for (const id of Object.keys(crewCache)) {
       const rec = crewCache[id];
       if (rec && rec.status === 'pending' && rec.by !== state.myCode) n++;
     }
-    document.querySelectorAll('.app-tabs button[data-tab="chat"]').forEach(b2 => {
-      b2.innerHTML = 'Messages' + (n ? '<span class="tab-badge">' + (n > 9 ? '9+' : n) + '</span>' : '');
+    return n;
+  }
+  function updateCrewBadge() {
+    // incoming crew requests badge the Crew tab, exactly like unread messages badge Messages
+    const n = crewPendingCount();
+    document.querySelectorAll('.app-tabs button[data-tab="crew"]').forEach(b2 => {
+      b2.innerHTML = 'Crew' + (n ? '<span class="tab-badge">' + (n > 9 ? '9+' : n) + '</span>' : '');
     });
   }
   function fetchCloudPilots(cb) {
