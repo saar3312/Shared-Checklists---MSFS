@@ -164,6 +164,9 @@ button{font-family:inherit;color:inherit}
 .lobby-empty{color:var(--text-dim);font-size:12px;font-style:italic;padding:12px 4px}
 .lobby-paused{opacity:0.7}
 /* ---- global size pass: content fills the page (within reason) ---- */
+.brand-line .lvl,#rank-top .lvl{font-size:15px;padding:6px 16px;border-radius:8px;letter-spacing:0.08em}
+.brand-line .stripes,#rank-top .stripes{padding:5px 8px;border-radius:6px}
+.brand-line .stripes i,#rank-top .stripes i{width:4px;height:17px}
 .setup-card h2{font-size:24px}
 #screen-roster .lobby-card,#screen-logbook .lobby-card,#screen-stats .lobby-card,
 #screen-guide .lobby-card,#screen-chat .lobby-card,#screen-inbox .lobby-card{max-width:900px;width:100%}
@@ -172,6 +175,13 @@ button{font-family:inherit;color:inherit}
 .lb-table th{font-size:12px;padding:10px 12px}
 .lvl{font-size:12px}
 #screen-stats .stat-row{font-size:15px;padding:12px 0}
+.mini-rm{display:flex;align-items:center;gap:7px;margin:6px 0 2px;cursor:pointer;flex-wrap:wrap}
+.mini-rm-node{display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0.4;transition:opacity .2s}
+.mini-rm-node .stripes{margin:0}
+.mini-rm-node.on{opacity:1}
+.mini-rm-node.me .lvl{filter:brightness(1.15)}
+.mini-rm-seg{flex:1 1 20px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;min-width:14px}
+.mini-rm-fill{height:100%;border-radius:3px}
 #screen-guide #guide-tab-body{font-size:15px !important;line-height:1.65 !important}
 #screen-chat .chat-bubble{font-size:15px}
 #screen-chat .chat-thread{padding:14px 18px;border-radius:14px}
@@ -191,6 +201,11 @@ button{font-family:inherit;color:inherit}
 #screen-decks .lobby-seat .seat-tag{font-size:12px;margin-bottom:4px}
 #screen-decks .solo-badge{font-size:13px;padding:6px 14px}
 #screen-decks .lobby-flight .money{font-size:17px !important}
+.deck-info{display:flex;gap:18px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.deck-ac{color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;font-size:13px}
+.deck-route{font-weight:800;font-size:17px;letter-spacing:0.04em}
+.deck-ete{color:var(--text-muted);font-size:12px;border:1px solid var(--border);border-radius:8px;padding:2px 10px}
+#screen-decks .lobby-seat .stripes i{height:12px}
 #screen-decks [data-lcm]{font-size:13px !important}
 #screen-roadmap .lobby-card{max-width:780px;width:100%}
 #screen-roadmap h2{font-size:26px}
@@ -266,6 +281,8 @@ body.light .stripes{background:#2c313c}
   font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;
   padding:11px 16px;border-bottom:2px solid transparent;min-height:40px;position:relative;
 }
+.app-tabs .tab-mini{font-size:10px;opacity:0.7;padding:11px 10px;letter-spacing:0.04em}
+.app-tabs .tab-mini:hover{opacity:1}
 .tab-badge{position:absolute;top:2px;right:0;background:#e5484d;color:#fff;border-radius:999px;
   font-size:10px;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;
   padding:0 4px;box-shadow:0 0 6px rgba(229,72,77,0.7);letter-spacing:0}
@@ -1024,10 +1041,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.68</div>
+<div class="ver-float app-version">v3.73</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.68</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.73</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1125,15 +1142,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
   <div class="home-welcome">
     <h1 id="pickac-line">Select Your Aircraft</h1>
@@ -1191,15 +1210,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
 
   <div class="center-stack">
@@ -1227,15 +1248,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1255,15 +1278,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1284,15 +1309,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1310,15 +1337,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1336,19 +1365,21 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
-      <h2>Your Stats</h2>
+      <h2>My Career</h2>
       <div id="stats-body" style="font-size:13px;line-height:1.6"></div>
     </div>
   </div>
@@ -1362,15 +1393,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1416,15 +1449,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
 
   <div class="center-stack" style="align-items:flex-start">
@@ -1446,15 +1481,17 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <nav class="app-tabs">
     <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
-    <button type="button" data-tab="lobby">Flight Decks</button>
+    <button type="button" data-tab="newflight">New Flight</button>
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Chat</button>
     <button type="button" data-tab="roster">Roster</button>
     <button type="button" data-tab="logbook">Logbook</button>
-    <button type="button" data-tab="stats">Stats</button>
+    <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
   </nav>
 
   <div class="center-stack" style="align-items:flex-start">
@@ -1581,7 +1618,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.68</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.73</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1999,12 +2036,14 @@ body.light .flight-number .flight-route{color:#15171d}
     setTimeout(updateTileRates, 1500); // refresh once the cloud career lands
     $('pickac-line').textContent = 'Select Your Aircraft, ' + initials(name);
     show('login'); // the aircraft-select screen
+    setActiveTab('newflight');
     maybeShowGuide();
     maybeAskWord();
     checkMyMessages(true);
     updateInboxTab();
     checkAdminInbox(true);
     chatFetch(threads => updateChatBadge(threads));
+    fetchAllHours();
   }
   $('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -2074,7 +2113,7 @@ body.light .flight-number .flight-route{color:#15171d}
   const TICK_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   $('btn-support').addEventListener('click', () => {
     $('support-box').classList.toggle('hidden');
-    if (!$('support-box').classList.contains('hidden')) renderMyTickets();
+    if (!$('support-box').classList.contains('hidden')) { fetchAllHours(() => renderMyTickets()); renderMyTickets(); }
   });
   function myTickets() {
     try { return JSON.parse(localStorage.getItem('fdeck-my-tickets') || '[]'); } catch (e) { return []; }
@@ -2099,6 +2138,7 @@ body.light .flight-number .flight-route{color:#15171d}
         '<div class="chat-bubble">' + escapeHTML(m.text || '') + '</div>' +
         '<div class="chat-meta">' + escapeHTML(m.who === 'support' ? 'Flight Deck EFB Support'
           : (m.who === 'SM' ? 'SM' : (initials(v.from) || 'pilot'))) +
+        (m.who === 'SM' ? rankChipByCode(ADMIN_CODE) : (m.who === 'pilot' ? rankChipByName(v.from) : '')) +
         (m.ts ? ' · ' + escapeHTML(agoPhrase(Date.now() - m.ts)) : '') + '</div></div>';
     }).join('') || '<p class="lobby-empty">No messages yet.</p>';
   }
@@ -2345,7 +2385,7 @@ body.light .flight-number .flight-route{color:#15171d}
     $('btn-create-dual').style.display = global_ ? 'none' : '';
     $('btn-create-solo').style.display = global_ ? 'none' : '';
     $('lobby-create-hint').style.display = global_ ? '' : 'none';
-    setActiveTab('lobby');
+    setActiveTab('newflight');
     show('lobby');
     updateInboxTab();
     lobbyStart();
@@ -2489,11 +2529,35 @@ body.light .flight-number .flight-route{color:#15171d}
       if (me && me.scrollIntoView) me.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 150);
   }
+  function miniRoadmapHtml() {
+    const c = myCareer();
+    const lv = levelFor(c.hours);
+    let h = '<div class="mini-rm" id="mini-rm" title="Open the Career Roadmap">';
+    LEVELS.forEach((L, i) => {
+      const reached = i <= lv.idx;
+      const me = i === lv.idx;
+      let segPct = 0;
+      if (i < lv.idx) segPct = 100;
+      else if (me) {
+        const lo = i === 0 ? 0 : LEVELS[i - 1].max, hi = L.max;
+        segPct = !isFinite(hi) ? 100 : (hi <= lo ? 0 : Math.min(100, Math.round(((c.hours - lo) / (hi - lo)) * 100)));
+      }
+      h += '<div class="mini-rm-node' + (me ? ' me' : '') + (reached ? ' on' : '') + '">' +
+        '<span class="lvl lvl-' + i + '" style="font-size:' + (me ? 14 : 11) + 'px;padding:' + (me ? '5px 13px' : '3px 9px') + '">' + RANK_ABBR[i] + '</span>' +
+        stripesHtml(i) + '</div>';
+      if (i < LEVELS.length - 1) {
+        h += '<div class="mini-rm-seg"><div class="mini-rm-fill" style="width:' + segPct + '%;background:' + RANK_COLORS[i] + '"></div></div>';
+      }
+    });
+    return h + '</div><div style="text-align:right;margin:2px 0 12px">' +
+      '<button type="button" class="btn link" id="link-roadmap">View the full Career Roadmap →</button></div>';
+  }
   function statsHtml() {
     const c = myCareer();
     const log = c.log || [];
     const row = (k, v) => '<div class="stat-row"><span class="stat-k">' + k + '</span><span class="stat-v">' + v + '</span></div>';
-    let html = row('Total hours', c.hours.toFixed(1) + ' h') +
+    let html = miniRoadmapHtml() +
+      row('Total hours', c.hours.toFixed(1) + ' h') +
       row('Total earnings', '<span class="money">' + fmtMoney(c.money) + '</span>') +
       row('Flights completed', c.flights);
     if (!log.length) {
@@ -2546,6 +2610,8 @@ body.light .flight-number .flight-route{color:#15171d}
     show('stats');
     updateInboxTab();
     $('stats-body').innerHTML = statsHtml();
+    const mr = $('mini-rm'); if (mr) mr.addEventListener('click', showRoadmapScreen);
+    const lr = $('link-roadmap'); if (lr) lr.addEventListener('click', showRoadmapScreen);
   }
   // everyone must set a support word on their first login (support only, not login)
   function maybeAskWord() {
@@ -4235,7 +4301,7 @@ body.light .flight-number .flight-route{color:#15171d}
     html += log.length
       ? '<div class="logbook">' + log.map(e =>
           e.date + ' · ' + e.aircraft + ' · ' + (e.flight || '—') + ' ' + e.dep + '→' + e.arr +
-          ' · ' + e.role + (e.crew ? '/' + e.crew : '') + (e.copilot ? ' w/ ' + initials(e.copilot) : '') +
+          ' · ' + e.role + (e.crew ? '/' + e.crew : '') + (e.copilot ? ' w/ ' + initials(e.copilot) + rankChipByName(e.copilot) : '') +
           ' · ' + e.minutes + ' min · <span class="money">' + fmtMoney(e.pay) + '</span>').join('<br>') + '</div>'
       : '<div class="logbook">No flights logged yet — complete a checklist front to back and it lands here.</div>';
     $('logbook-body').innerHTML = html;
@@ -4355,7 +4421,12 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // Roster & logbook are career-wide (one per pilot ID, across all aircraft),
   // so they're reachable before an aircraft is even picked.
-  function backToBase() { if (state.checklist || lobbyGlobal) openLobby(); else show('login'); }
+  function backToBase() {
+    if (state.checklist && state.code && !screens.room.classList.contains('hidden')) return;
+    if (state.code && state.checklist) { show('room'); return; } // mid-flight: back = cockpit
+    if (state.myName) { show('login'); setActiveTab('newflight'); return; }
+    show('home');
+  }
   function setActiveTab(tab) {
     document.querySelectorAll('.app-tabs button').forEach(b => {
       b.classList.toggle('active', b.dataset.tab === tab);
@@ -4366,8 +4437,19 @@ body.light .flight-number .flight-route{color:#15171d}
   document.querySelectorAll('.app-tabs button').forEach(b => {
     b.addEventListener('click', () => {
       const t = b.dataset.tab;
+      if (t === 'theme') { toggleTheme(); return; }
+      if (t === 'support') {
+        show('home');
+        $('support-box').classList.remove('hidden');
+        renderMyTickets();
+        return;
+      }
       if (t === 'flight') { if (state.code && state.checklist) show('room'); }
-      else if (t === 'lobby') backToBase();
+      else if (t === 'newflight') {
+        if (!state.myName) { show('home'); return; }
+        show('login');
+        setActiveTab('newflight');
+      }
       else if (t === 'decks') showDecksScreen();
       else if (t === 'inbox') showInboxScreen();
       else if (t === 'chat') showChatScreen();
@@ -5341,6 +5423,7 @@ body.light .flight-number .flight-route{color:#15171d}
     setActiveTab('chat');
     show('chat');
     updateInboxTab();
+    fetchAllHours(() => renderChat());
     renderChat();
   }
   function chatFetch(cb) {
@@ -5384,7 +5467,7 @@ body.light .flight-number .flight-route{color:#15171d}
         const tid = chatThreadId(state.myCode, chatWith);
         const t2 = threads[tid] || { msgs: [] };
         const nm = initials((pilots[chatWith] && pilots[chatWith].name) || chatWith);
-        $('chat-title').textContent = 'Chat — ' + nm;
+        $('chat-title').innerHTML = 'Chat — ' + escapeHTML(nm) + rankChipByCode(chatWith);
         // mark seen
         try { fdb.ref('careers/_chats/' + tid + '/seen/' + state.myCode).set(Date.now()); } catch (e) {}
         const bubbles = (t2.msgs || []).map(m => {
@@ -5392,6 +5475,7 @@ body.light .flight-number .flight-route{color:#15171d}
           return '<div class="chat-line' + (mine ? ' chat-mine' : '') + '">' +
             '<div class="chat-bubble">' + escapeHTML(m.text || '') + '</div>' +
             '<div class="chat-meta">' + escapeHTML(mine ? initials(state.myName) : nm) +
+            rankChipByCode(mine ? state.myCode : chatWith) +
             (m.ts ? ' · ' + escapeHTML(agoPhrase(Date.now() - m.ts)) : '') + '</div></div>';
         }).join('') || '<p class="lobby-empty">No messages yet — say hi.</p>';
         box.innerHTML =
@@ -5446,7 +5530,7 @@ body.light .flight-number .flight-route{color:#15171d}
           const nm = initials((pilots[r.c] && pilots[r.c].name) || r.c);
           return '<div class="chat-thread" style="cursor:pointer" data-chat-open="' + escapeHTML(r.c) + '">' +
             '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center">' +
-            '<span>' + (r.unread ? '<span class="dot-on"></span>' : '') + '<strong>' + escapeHTML(nm) + '</strong>' +
+            '<span>' + (r.unread ? '<span class="dot-on"></span>' : '') + '<strong>' + escapeHTML(nm) + '</strong>' + rankChipByCode(r.c) +
             '<span style="font-size:12px;color:var(--text-muted)"> · ' +
               (r.last ? escapeHTML(((r.last.from === state.myCode ? 'you: ' : '') + r.last.text).slice(0, 46)) : 'Start a chat') + '</span></span>' +
             '<span style="font-size:11px;color:var(--text-muted)">' + (r.ts ? escapeHTML(agoPhrase(Date.now() - r.ts)) : '') + '</span>' +
@@ -5486,7 +5570,7 @@ body.light .flight-number .flight-route{color:#15171d}
         const needsReply = !fromTeam(last);
         const viewed = fromTeam(last) && ((m.viewedTs || 0) >= (last.ts || 0));
         html += '<div class="chat-thread"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center">' +
-          '<span><strong>' + escapeHTML(who || '?') + '</strong> <span class="mono" style="font-size:11px;color:var(--text-muted)">' + escapeHTML(tid) + '</span>' +
+          '<span><strong>' + escapeHTML(who || '?') + '</strong>' + rankChipByName(who) + ' <span class="mono" style="font-size:11px;color:var(--text-muted)">' + escapeHTML(tid) + '</span>' +
           '<span style="font-size:11px;color:var(--text-muted)"> · ' +
           (matches.length ? 'roster: ' + matches.map(c => escapeHTML(initials(pilots[c].name)) + ' → ID ' + escapeHTML(c)).join(', ') : 'no roster match') +
           '</span></span>' +
@@ -5831,6 +5915,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const v = (snap && snap.val()) || {};
       const out = {};
       for (const code of Object.keys(v)) {
+        if (v[code] && typeof v[code].hours === 'number') noteHours(code, v[code].hours);
         if (v[code] && v[code].save && v[code].save.slug) {
           out[code] = v[code].save;
           out[code]._hours = v[code].hours || 0;
@@ -5839,6 +5924,38 @@ body.light .flight-number .flight-route{color:#15171d}
       lobby.paused = out;
       renderLobbyList();
     }).catch(() => {});
+  }
+  const RANK_ABBR = ['JFO', 'FO', 'SFO', 'JC', 'SC', 'PC'];
+  let hoursCache = {}; // code -> hours, filled by any careers fetch
+  function noteHours(code, h) { if (code && code[0] !== '_') hoursCache[code] = h || 0; }
+  function fetchAllHours(cb) {
+    if (!fdb) { cb && cb(); return; }
+    fdb.ref('careers').get().then(sn => {
+      const v = (sn && sn.val()) || {};
+      for (const c of Object.keys(v)) if (v[c] && typeof v[c].hours === 'number') noteHours(c, v[c].hours);
+      cb && cb();
+    }).catch(() => cb && cb());
+  }
+  function codeByName(name) {
+    const p = localPilotsMap();
+    const want = initials(name);
+    for (const c of Object.keys(p)) if (initials(p[c] && p[c].name) === want) return c;
+    return null;
+  }
+  function rankChipByCode(c) { return (c && (c in hoursCache)) ? rankChipHtml(hoursCache[c]) : ''; }
+  function rankChipByName(name) { return rankChipByCode(codeByName(name)); }
+  function rankChipHtml(hours) {
+    const lv = levelFor(hours || 0);
+    return ' <span class="lvl lvl-' + lv.idx + '" style="font-size:11px;padding:3px 9px" title="' + lv.name + '">' +
+      RANK_ABBR[lv.idx] + '</span>' + stripesHtml(lv.idx);
+  }
+  function deckInfoHtml(aircraft, dep, arr, eteMin) {
+    const ete = eteMin ? Math.floor(eteMin / 60) + 'h' + pad2(eteMin % 60) : '';
+    return '<div class="deck-info">' +
+      '<span class="deck-ac">' + escapeHTML(aircraft || '') + '</span>' +
+      (dep ? '<span class="deck-route"><span class="mono">' + escapeHTML(dep) + '</span> <span style="color:var(--text-muted)">→</span> <span class="mono">' + escapeHTML(arr || '') + '</span></span>' : '') +
+      (ete ? '<span class="deck-ete">ETE ' + ete + '</span>' : '') +
+      '</div>';
   }
   function liveCompHtml(f, role) {
     if (!f.pushAt) {
@@ -5910,11 +6027,11 @@ body.light .flight-number .flight-route{color:#15171d}
       row.className = 'lobby-flight lobby-paused';
       row.innerHTML = '<div class="lobby-flight-top">' +
         '<span class="lobby-flight-num">' + escapeHTML(sv.flight || '') + '</span>' +
-        '<span class="lobby-flight-ac">' + escapeHTML(cl ? cl.aircraft : sv.slug) +
-          (sv.dep ? ' · ' + escapeHTML(sv.dep) + ' → ' + escapeHTML(sv.arr || '') : '') + '</span>' +
         '<span class="lobby-flight-phase">PAUSED</span></div>' +
+        deckInfoHtml(cl ? cl.aircraft : sv.slug, sv.dep, sv.arr, sv.eteMin) +
         '<div class="lobby-seats"><span class="solo-badge">SINGLE PILOT — ' + escapeHTML(initials(nm)) +
           ' · SAVED ' + escapeHTML(agoPhrase(Date.now() - (sv.ts || 0))) + '</span>' +
+          '<span style="display:inline-flex;align-items:center">' + rankChipHtml(sv._hours) + '</span>' +
           (sv.pushAt
             ? '<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">' +
               '<span class="money" data-lcp="' + escapeHTML(pcode) + '" style="font-size:12px">' +
@@ -5945,10 +6062,11 @@ body.light .flight-number .flight-route{color:#15171d}
       top.className = 'lobby-flight-top';
       top.innerHTML =
         '<span class="lobby-flight-num">' + escapeHTML(f.flight || code) + '</span>' +
-        '<span class="lobby-flight-ac">' + escapeHTML(f.aircraft || '') +
-          (f.dep ? ' · ' + escapeHTML(f.dep) + ' → ' + escapeHTML(f.arr || '') : '') + '</span>' +
         '<span class="lobby-flight-phase">' + escapeHTML(f.phase || 'PREFLIGHT') + '</span>';
       row.appendChild(top);
+      const info = document.createElement('div');
+      info.innerHTML = deckInfoHtml(f.aircraft, f.dep, f.arr, f.eteMin);
+      row.appendChild(info.firstChild);
       const seats = document.createElement('div');
       seats.className = 'lobby-seats';
       const addView = () => {
@@ -5968,8 +6086,10 @@ body.light .flight-number .flight-route{color:#15171d}
       if (f.solo) {
         const solopilot = (f.roles && (f.roles.PIC || f.roles.PM)) || '';
         const soloRole = (f.roles && f.roles.PIC) ? 'PIC' : 'PM';
+        const soloHours = (f.hoursBy && f.hoursBy[soloRole]) || 0;
         seats.innerHTML = '<span class="solo-badge">SINGLE PILOT' +
           (solopilot ? ' — ' + escapeHTML(initials(solopilot)) : '') + ' · LOCKED</span>' +
+          (solopilot ? '<span style="display:inline-flex;align-items:center">' + rankChipHtml(soloHours) + '</span>' : '') +
           '<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">' + liveCompHtml(f, soloRole) + '</span>';
         addView();
       } else {
@@ -5979,8 +6099,11 @@ body.light .flight-number .flight-route{color:#15171d}
           b.className = 'lobby-seat seat-' + r.toLowerCase();
           const holder = f.roles && f.roles[r];
           const mine = holder && holder === state.myName;
-          let seatSub = holder ? escapeHTML(initials(holder)) + '<br>' + liveCompHtml(f, r) : 'Join this seat';
-          if (mine) seatSub = 'Rejoin — ' + escapeHTML(initials(holder)) + '<br>' + liveCompHtml(f, r);
+          const holderHours = (f.hoursBy && f.hoursBy[r]) || 0;
+          let seatSub = holder
+            ? '<strong>' + escapeHTML(initials(holder)) + '</strong>' + rankChipHtml(holderHours) + '<br>' + liveCompHtml(f, r)
+            : 'Join this seat';
+          if (mine) seatSub = 'Rejoin — <strong>' + escapeHTML(initials(holder)) + '</strong>' + rankChipHtml(holderHours) + '<br>' + liveCompHtml(f, r);
           if (!holder && f.eteMin) {
             const est = estPay(f.slug, r, myCareer().hours, f.eteMin + 20);
             seatSub = 'Join this seat · est. <span class="money">' + fmtMoney(est) + '</span>';
