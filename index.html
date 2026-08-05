@@ -189,6 +189,22 @@ button{font-family:inherit;color:inherit}
 #screen-inbox h2,#screen-chat h2,#screen-stats h2,#screen-guide h2{font-size:26px}
 .career-line{font-size:14px}
 .home-welcome h1{font-size:34px}
+/* Chat / Roster / Logbook / My Career: full-size pages, fitted type */
+#screen-roster .lobby-card,#screen-logbook .lobby-card,#screen-stats .lobby-card,#screen-chat .lobby-card{max-width:1080px;width:100%}
+#screen-roster h2,#screen-logbook h2{font-size:26px}
+#screen-roster .lb-table,#screen-logbook .lb-table{font-size:17px}
+#screen-roster .lb-table td,#screen-logbook .lb-table td{padding:16px 14px}
+#screen-roster .lb-table th,#screen-logbook .lb-table th{font-size:13px;padding:12px 14px}
+#screen-roster .lvl,#screen-logbook .lvl{font-size:13px;padding:5px 12px}
+#screen-stats .stat-row{font-size:17px;padding:15px 0}
+#screen-stats .stat-k{font-size:15px}
+#screen-stats .lobby-h,#screen-chat .lobby-h{font-size:13px}
+#screen-chat .chat-bubble{font-size:16px;padding:11px 16px}
+#screen-chat .chat-thread{padding:16px 20px}
+#screen-chat [data-chat-open]{font-size:16px;padding:18px 20px}
+#screen-chat .chat-send .input{font-size:16px;padding:12px 14px}
+#screen-chat .chat-meta{font-size:12px}
+.mini-rm-seg{height:8px}
 /* Active Decks tab is the shop window — make it big */
 #screen-decks .lobby-card{max-width:900px;width:100%}
 #screen-decks h2{font-size:26px}
@@ -1076,10 +1092,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.80</div>
+<div class="ver-float app-version">v3.82</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.80</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.82</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1652,7 +1668,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.80</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.82</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -4454,7 +4470,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const lv = levelFor(r.hours);
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
         '<td class="lb-rank">' + (i + 1) + '</td>' +
-        '<td class="pc"><span class="pilot-wrap">' + (online.has(r.name) ? '<span class="dot-on" title="in a flight deck now"></span>' : '') +
+        '<td class="pc" data-viewlog="' + escapeHTML(r.code) + '" style="cursor:pointer" title="Open logbook"><span class="pilot-wrap">' + (online.has(r.name) ? '<span class="dot-on" title="in a flight deck now"></span>' : '') +
           wingedHtml(escapeHTML(initials(r.name)), r.hours) + '</span></td>' +
         (admin ? '<td class="mono">' + escapeHTML(r.code) +
           (r.code !== state.myCode
@@ -4473,6 +4489,8 @@ body.light .flight-number .flight-route{color:#15171d}
       if (admin) wireRosterMessageButtons(target);
       target.querySelectorAll('th[data-rs]').forEach(h2 =>
         h2.addEventListener('click', () => { lbSort = h2.dataset.rs; if (lbData) renderLeaderboard(lbData[0], lbData[1]); }));
+      target.querySelectorAll('td[data-viewlog]').forEach(td2 =>
+        td2.addEventListener('click', () => showPilotLogbook(td2.dataset.viewlog)));
     }
     [['lb-sort-hours', 'hours'], ['lb-sort-money', 'money'],
      ['rb-sort-hours', 'hours'], ['rb-sort-money', 'money']].forEach(([id, key]) => {
@@ -5214,7 +5232,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const local = careers[state.myCode];
       if (remote && typeof remote.hours === 'number') {
         delete remote.save; // the paused-flight save is not part of the career
-        if (!local || remote.hours >= local.hours) {
+        if (!local || remote.hours >= local.hours || (remote.adjustedAt || 0) > (local.adjustedAt || 0)) {
           remote.log = remote.log || [];
           careers[state.myCode] = remote;   // cloud is ahead (or device is fresh)
           saveCareers(careers);
@@ -5786,25 +5804,86 @@ body.light .flight-number .flight-route{color:#15171d}
     const tb = document.getElementById('btn-logbook-toggle');
     if (tb) tb.addEventListener('click', showLogbookScreen);
   }
-  function logbookTableHtml(c) {
+  function logbookTableHtml(c, delCode) {
     const log = (c.log || []).slice().reverse();
     if (!log.length) {
       return '<div class="lobby-empty">No flights logged yet — complete a checklist front to back and it lands here.</div>';
     }
-    let h = '<table class="lb-table"><tr><th>Date</th><th>Aircraft</th><th>Flight</th><th>Route</th><th>Seat</th><th>With</th><th>Min</th><th>Pay</th></tr>';
-    log.forEach(e => {
+    let h = '<table class="lb-table"><tr><th>Date</th><th>Aircraft</th><th>Flight</th><th>Route</th><th>Seat</th><th>With</th><th>Min</th><th>Pay</th>' +
+      (delCode ? '<th></th>' : '') + '</tr>';
+    log.forEach((e, di) => {
+      const orig = (c.log || []).length - 1 - di; // display is reversed
       h += '<tr><td>' + e.date + '</td><td>' + escapeHTML(e.aircraft || '') + '</td><td>' +
         escapeHTML(e.flight || '—') + '</td><td>' + escapeHTML((e.dep || '') + '→' + (e.arr || '')) + '</td><td>' +
         e.role + (e.crew ? '/' + e.crew : '') + '</td><td>' + escapeHTML(e.copilot ? initials(e.copilot) : '—') + '</td><td>' +
-        e.minutes + '</td><td><span class="money">' + fmtMoney(e.pay) + '</span></td></tr>';
+        e.minutes + '</td><td><span class="money">' + fmtMoney(e.pay) + '</span></td>' +
+        (delCode ? '<td><button type="button" class="btn link" data-dellog="' + orig + '" title="Remove — goes to the discarded pile" style="color:#e5484d;font-size:12px;padding:0 6px">✕</button></td>' : '') +
+        '</tr>';
     });
     return h + '</table>';
+  }
+  function toggleLogbookOwnButtons(own) {
+    const ex = $('logbook-export'), im = $('logbook-import');
+    if (ex) ex.style.display = own ? '' : 'none';
+    if (im) im.style.display = own ? '' : 'none';
+  }
+  function wireLogDeletes(code) {
+    document.querySelectorAll('#logbook-table [data-dellog]').forEach(b2 =>
+      b2.addEventListener('click', () => {
+        if (!confirm('Remove this flight from the logbook? Its hours and pay are deducted, and the flight goes to the discarded pile (retainable from your Inbox).')) return;
+        deleteLogEntry(code, parseInt(b2.dataset.dellog, 10));
+      }));
+  }
+  function deleteLogEntry(code, idx) {
+    if (!fdb) { toast('Needs internet'); return; }
+    fdb.ref('careers/' + code).get().then(sn => {
+      const c = sn && sn.val();
+      if (!c || !c.log || !c.log[idx]) { toast('Entry not found'); return; }
+      const e = c.log.splice(idx, 1)[0];
+      c.hours = Math.max(0, Math.round(((c.hours || 0) - (e.minutes || 0) / 60) * 100) / 100);
+      c.money = Math.max(0, Math.round(((c.money || 0) - (e.pay || 0)) * 100) / 100);
+      c.flights = Math.max(0, (c.flights || 0) - 1);
+      const ref = fdb.ref('careers/' + code);
+      const fields = { hours: c.hours, money: c.money, flights: c.flights, log: c.log, adjustedAt: Date.now() };
+      if (ref.update) ref.update(fields); else ref.set(Object.assign({}, c, fields));
+      const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const p = localPilotsMap();
+      fdb.ref('careers/_reviews/' + id).set({
+        code: code, name: (p[code] && p[code].name) || code, status: 'discarded',
+        reason: 'Removed from the logbook by SM', ete: 0, ts: Date.now(), entry: e,
+      });
+      noteHours(code, c.hours);
+      if (code === state.myCode) syncCareerFromCloud();
+      toast('Flight moved to the discarded pile — ' + (e.minutes || 0) + ' min and ' + fmtMoney(e.pay || 0) + ' deducted');
+      setTimeout(() => showPilotLogbook(code), 400);
+    }).catch(() => toast('Could not update — try again'));
+  }
+  function showPilotLogbook(code) {
+    if (!state.myCode) return;
+    if (code === state.myCode) { showLogbookScreen(); return; }
+    if (!fdb) { toast('Viewing another logbook needs internet'); return; }
+    setActiveTab('logbook');
+    show('logbook');
+    updateInboxTab();
+    $('logbook-title').innerHTML = 'Logbook — ' + wingedByCode(code);
+    $('logbook-career').innerHTML = '<p class="lobby-empty">Loading…</p>';
+    $('logbook-table').innerHTML = '';
+    toggleLogbookOwnButtons(false);
+    fdb.ref('careers/' + code).get().then(sn => {
+      const c = (sn && sn.val()) || { hours: 0, money: 0, flights: 0, log: [] };
+      c.log = c.log || [];
+      $('logbook-career').innerHTML = careerSummaryHtml(c);
+      $('logbook-table').innerHTML = logbookTableHtml(c, state.myCode === ADMIN_CODE ? code : null);
+      wireLogDeletes(code);
+    }).catch(() => { $('logbook-career').innerHTML = '<p class="lobby-empty">Could not load this logbook.</p>'; });
   }
   function showLogbookScreen() {
     const c = myCareer();
     $('logbook-title').textContent = 'Logbook — ' + initials(state.myName);
     $('logbook-career').innerHTML = careerSummaryHtml(c);
-    $('logbook-table').innerHTML = logbookTableHtml(c);
+    $('logbook-table').innerHTML = logbookTableHtml(c, state.myCode === ADMIN_CODE ? state.myCode : null);
+    wireLogDeletes(state.myCode);
+    toggleLogbookOwnButtons(true);
     updateBrandLines();
     setActiveTab('logbook');
     show('logbook');
