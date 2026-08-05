@@ -603,6 +603,9 @@ body.light .app-icon{box-shadow:0 6px 14px rgba(40,50,70,0.28), inset 0 1px 0 rg
   display:flex;flex-direction:row;align-items:center;gap:10px;
 }
 .pane-id{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pane-tools{margin-left:auto;justify-content:flex-end}
+.pane-tools .pane-pad-btn{margin-left:0;font-size:11px;padding:7px 13px;border-radius:6px}
+.pane-tools .pane-ic{font-size:11px !important;padding:7px 13px !important;border-radius:6px !important}
 .pane-label{font-size:10px;color:var(--text-muted);
   letter-spacing:0.16em;text-transform:uppercase;font-weight:600}
 .pane-name{font-size:15px;font-weight:600;color:var(--accent)}
@@ -1116,10 +1119,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v4.28</div>
+<div class="ver-float app-version">v4.29</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.28</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.29</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1771,7 +1774,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.28</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.29</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -3342,8 +3345,9 @@ body.light .flight-number .flight-route{color:#15171d}
       const live = !!intercom.call;
       const label = live && on ? 'INTERCOM LIVE' : (on ? 'INTERCOM ON' : 'INTERCOM OFF');
       ic.textContent = label + (mine && intercom.muted ? ' \u00b7 MUTED' : '');
-      ic.style.color = live && on ? 'var(--good)' : (on ? '#c9942e' : 'var(--text-muted)');
-      ic.style.borderColor = live && on ? 'var(--good)' : (on ? '#c9942e' : 'var(--border-strong)');
+      if (live && on) { ic.style.color = '#0d1512'; ic.style.background = 'var(--good)'; ic.style.borderColor = 'var(--good)'; }
+      else if (on) { ic.style.color = '#171006'; ic.style.background = '#c9942e'; ic.style.borderColor = '#c9942e'; }
+      else { ic.style.color = '#7fb2d9'; ic.style.background = 'rgba(91,159,196,0.12)'; ic.style.borderColor = '#4e6a85'; }
       ic.style.cursor = mine ? 'pointer' : 'default';
       ic.title = mine ? 'Your intercom \u2014 click to switch it ' + (intercom.on ? 'off' : 'on') : "Your co-pilot's intercom state";
     });
@@ -3862,6 +3866,7 @@ body.light .flight-number .flight-route{color:#15171d}
     $('aircraft-tag').textContent = state.checklist.aircraft + (state.solo ? ' · Single pilot' : ' · Dual crew');
     renderFlightNumber();
     renderChecklist();
+    updateIntercomBtn(); // panes exist now — light up the seat chips
     // Open on the first section that still has work in it
     state.viewSection = firstIncompleteSection();
     setViewSection(state.viewSection, true);
@@ -4033,18 +4038,11 @@ body.light .flight-number .flight-route{color:#15171d}
     money.className = 'pane-money';
     money.dataset.moneyRole = role;
     id.appendChild(money);
-    const ic = document.createElement('button');
-    ic.type = 'button';
-    ic.className = 'pane-ic';
-    ic.dataset.icRole = role;
-    ic.style.cssText = 'display:none;font-size:10px;font-weight:800;letter-spacing:0.08em;padding:3px 9px;border-radius:999px;border:1px solid var(--border-strong);background:none;color:var(--text-muted);cursor:pointer;margin-left:8px;white-space:nowrap';
-    ic.addEventListener('click', () => { if (ic.dataset.icRole === state.myRole) intercomToggle(); });
-    id.appendChild(ic);
     header.appendChild(id);
     // seat controls live under the pilot's name — OFP, Cards, Pad for THIS seat
     const tools = document.createElement('div');
     tools.className = 'pane-tools';
-    tools.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap';
+    tools.style.cssText = 'display:flex;gap:7px;align-items:center;flex-wrap:wrap';
     const mkBtn = (label, title, fn) => {
       const b3 = document.createElement('button');
       b3.type = 'button';
@@ -4064,6 +4062,13 @@ body.light .flight-number .flight-route{color:#15171d}
     mkBtn('Cards', 'All briefings, checklists & callouts', openCardsMenu);
     const padBtn = mkBtn(role + ' Pad', 'Open ' + (ROLE_NAMES[role] || role) + "'s scratchpad \u2014 visible to both pilots, only " + role + ' can write', () => togglePad(role));
     padBtn.dataset.padBtn = role;
+    const ic = document.createElement('button');
+    ic.type = 'button';
+    ic.className = 'pane-ic';
+    ic.dataset.icRole = role;
+    ic.style.cssText = 'display:none;font-size:10px;font-weight:800;letter-spacing:0.08em;padding:4px 10px;border-radius:999px;border:1px solid;cursor:pointer;white-space:nowrap';
+    ic.addEventListener('click', () => { if (ic.dataset.icRole === state.myRole) intercomToggle(); });
+    tools.appendChild(ic);
     header.appendChild(tools);
     pane.appendChild(header);
     const scroll = document.createElement('div');
