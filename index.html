@@ -1116,10 +1116,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v4.24</div>
+<div class="ver-float app-version">v4.26</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.24</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.26</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1762,7 +1762,8 @@ body.light .flight-number .flight-route{color:#15171d}
     </div>
     <div class="topbar-right">
       <button class="detail-toggle" id="btn-compact" title="Compact = one row per task · Detail = every switch">Detail: off</button>
-      <button class="btn link" id="btn-intercom" style="display:none" title="Cockpit voice — live only when BOTH pilots switch it on">🎙 Intercom: Off</button>
+      <button class="btn link" id="btn-intercom" style="display:none" title="COCKPIT INTERCOM SYSTEM — voice goes live only when BOTH pilots switch it on">🎙 INTERCOM OFF</button>
+      <button class="btn link" id="btn-intercom-mute" style="display:none" title="Mute / unmute your mic — you stay connected">🔇 MUTE</button>
       <button class="btn link" id="btn-tabs-out" title="Browse the app — your flight stays active">Tabs</button>
       <button class="btn link" id="btn-ofp" title="Shared OFP — synced page and ink">OFP</button>
       <button class="btn link" id="btn-cards" title="All briefings, checklists & callouts">Cards</button>
@@ -1773,7 +1774,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.24</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.26</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -3313,20 +3314,33 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function peerIdFor(code) { return 'cockpit-checklist-' + code; }
   // ---- INTERCOM — cockpit voice. OFF by default; live ONLY when BOTH pilots switch it on. ----
-  const intercom = { on: false, remoteOn: false, call: null, stream: null, ctx: null, audioEl: null, noise: null };
+  const intercom = { on: false, remoteOn: false, muted: false, call: null, stream: null, ctx: null, audioEl: null, noise: null };
   function intercomAvailable() {
-    return !state.solo && state.checklist && state.conns.length > 0 &&
+    return !state.solo && state.checklist &&
       state.peer && typeof state.peer.call === 'function' &&
       navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
   }
   function updateIntercomBtn() {
     const b2 = $('btn-intercom');
+    const mb = $('btn-intercom-mute');
     if (!b2) return;
-    if (!state.checklist || state.solo) { b2.style.display = 'none'; return; }
+    if (!state.checklist || state.solo) { b2.style.display = 'none'; if (mb) mb.style.display = 'none'; return; } // PM seat locked — no one to talk to
     b2.style.display = '';
-    if (!intercom.on) { b2.textContent = '\ud83c\udf99 Intercom: Off'; b2.style.color = ''; b2.classList.remove('toggled'); }
-    else if (intercom.call) { b2.textContent = '\ud83c\udf99 Intercom: LIVE'; b2.style.color = 'var(--good)'; b2.classList.add('toggled'); }
-    else { b2.textContent = '\ud83c\udf99 Intercom: Waiting for co-pilot\u2026'; b2.style.color = '#c9942e'; b2.classList.add('toggled'); }
+    if (!intercom.on) { b2.textContent = '\ud83c\udf99 INTERCOM OFF'; b2.style.color = ''; b2.classList.remove('toggled'); }
+    else if (intercom.call) { b2.textContent = '\ud83c\udf99 INTERCOM LIVE'; b2.style.color = 'var(--good)'; b2.classList.add('toggled'); }
+    else { b2.textContent = '\ud83c\udf99 INTERCOM ON \u2014 AWAITING CO-PILOT'; b2.style.color = '#c9942e'; b2.classList.add('toggled'); }
+    if (mb) {
+      mb.style.display = intercom.on ? '' : 'none';
+      mb.textContent = intercom.muted ? '\ud83d\udd0a UNMUTE' : '\ud83d\udd07 MUTE';
+      mb.style.color = intercom.muted ? '#e5484d' : '';
+    }
+  }
+  function intercomMuteToggle() {
+    if (!intercom.on || !intercom.stream) return;
+    intercom.muted = !intercom.muted;
+    try { intercom.stream.getAudioTracks().forEach(t => { t.enabled = !intercom.muted; }); } catch (e) {}
+    toast(intercom.muted ? 'Mic muted \u2014 intercom stays connected' : 'Mic live');
+    updateIntercomBtn();
   }
   function radioEffectPlay(remoteStream) {
     // the aircraft-radio sound: narrowband voice + compression + a whisper of static
@@ -3388,19 +3402,22 @@ body.light .flight-number .flight-route{color:#15171d}
   function intercomToggle() {
     if (intercom.on) {
       intercom.on = false;
+      intercom.muted = false;
       broadcast({ type: 'intercom', on: false });
       intercomAudioTeardown(true);
       updateIntercomBtn();
       toast('Intercom off');
       return;
     }
-    if (!intercomAvailable()) { toast(state.solo ? 'Intercom needs a co-pilot' : 'Intercom needs a connected co-pilot and mic access'); return; }
+    if (!intercomAvailable()) { toast(state.solo ? 'Single-pilot deck \u2014 the PM seat is locked, no one to talk to' : 'Intercom needs mic access'); return; }
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(stream => {
       intercom.stream = stream;
       intercom.on = true;
       broadcast({ type: 'intercom', on: true });
       updateIntercomBtn();
-      toast(intercom.remoteOn ? 'Intercom connecting\u2026' : 'Intercom on \u2014 waiting for your co-pilot to switch theirs on');
+      toast(intercom.remoteOn ? 'Intercom connecting\u2026' :
+        (state.conns.length ? 'Intercom on \u2014 waiting for your co-pilot to switch theirs on'
+                            : 'Intercom armed \u2014 goes live once a co-pilot joins and switches theirs on'));
       intercomMaybeStart();
     }).catch(() => toast('Mic permission denied \u2014 intercom needs your microphone'));
   }
@@ -3418,9 +3435,32 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function intercomFullStop() {
     if (intercom.on) broadcast({ type: 'intercom', on: false });
-    intercom.on = false; intercom.remoteOn = false;
+    intercom.on = false; intercom.remoteOn = false; intercom.muted = false; intercom.asked = false;
     intercomAudioTeardown(true);
     updateIntercomBtn();
+  }
+  function intercomPreflightAsk() {
+    if (intercom.asked || intercom.on || state.solo || state.observer || !state.checklist) return;
+    if (!intercomAvailable()) return;
+    intercom.asked = true;
+    let m = $('intercom-ask');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'intercom-ask';
+      m.style.cssText = 'position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;background:rgba(8,10,14,0.6)';
+      m.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;max-width:440px;width:90%;padding:26px 28px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,0.55)">' +
+        '<div style="font-size:34px;margin-bottom:8px">\ud83c\udf99</div>' +
+        '<h3 style="margin:0 0 8px;font-size:17px;letter-spacing:0.05em">COCKPIT INTERCOM SYSTEM</h3>' +
+        '<p style="margin:0 0 6px;font-size:14px;color:var(--text-muted);line-height:1.6">Do you want to be on the intercom for this flight? Voice goes live only when both pilots are on.</p>' +
+        '<p style="margin:0 0 18px;font-size:12px;color:var(--text-muted)">You can always change this with the INTERCOM button up top.</p>' +
+        '<div style="display:flex;gap:10px;justify-content:center">' +
+        '<button type="button" class="btn primary" id="ia-yes" style="min-width:130px">Yes \u2014 put me on</button>' +
+        '<button type="button" class="btn" id="ia-no" style="min-width:110px">No thanks</button></div></div>';
+      document.body.appendChild(m);
+      m.querySelector('#ia-yes').addEventListener('click', () => { m.style.display = 'none'; if (!intercom.on) intercomToggle(); });
+      m.querySelector('#ia-no').addEventListener('click', () => { m.style.display = 'none'; toast('Intercom stays off \u2014 the button up top turns it on any time'); });
+    }
+    m.style.display = 'flex';
   }
   function createPeerWithRetry(id, isHost, tries=0) {
     const peer = new Peer(id, PEER_OPTS);
@@ -3496,6 +3536,7 @@ body.light .flight-number .flight-route{color:#15171d}
     }
     state.conns.push(conn);
     setTimeout(updateIntercomBtn, 50);
+    if (intercom.on) setTimeout(() => send(conn, { type: 'intercom', on: true }), 700);
     conn.on('open', () => {
       if (outgoing) {
         send(conn, { type: 'hello', from: state.myKey });
@@ -3795,6 +3836,8 @@ body.light .flight-number .flight-route{color:#15171d}
     }
     show('room');
     updateMyFlightTab();
+    updateIntercomBtn();
+    setTimeout(intercomPreflightAsk, 700); // like a real crew: intercom question before the flows start
     screens.room.classList.add('dual');
     findEngineStartId();
     updateClocks();
@@ -5290,6 +5333,7 @@ body.light .flight-number .flight-route{color:#15171d}
     backToBase();
   });
   $('btn-intercom').addEventListener('click', intercomToggle);
+  $('btn-intercom-mute').addEventListener('click', intercomMuteToggle);
   $('btn-tabs-out').addEventListener('click', () => { openLobby(); });
   $('flight-number').addEventListener('click', editFlightNumber);
   $('btn-change-role').addEventListener('click', openRoleModal);
