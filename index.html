@@ -164,7 +164,7 @@ button{font-family:inherit;color:inherit}
 .lobby-empty{color:var(--text-dim);font-size:12px;font-style:italic;padding:12px 4px}
 .lobby-paused{opacity:0.7}
 /* ---- global size pass: content fills the page (within reason) ---- */
-.brand-line .lvl,#rank-top .lvl{font-size:15px;padding:6px 16px;border-radius:8px;letter-spacing:0.08em}
+.brand-line .lvl,#rank-top .lvl,.home-brand .lvl{font-size:15px !important;padding:6px 16px !important;border-radius:8px;letter-spacing:0.08em;line-height:1.2}
 .brand-line .stripes,#rank-top .stripes{padding:5px 8px;border-radius:6px}
 .brand-line .stripes i,#rank-top .stripes i{width:4px;height:17px}
 .setup-card h2{font-size:24px}
@@ -1072,14 +1072,13 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.00</div>
+<div class="ver-float app-version">v4.01</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.00</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.01</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
-      <button class="btn link" id="btn-support">Support</button>
       <button class="btn link theme-toggle" id="btn-theme" title="Toggle light / dark">Theme</button>
     </div>
   </div>
@@ -1124,6 +1123,7 @@ body.light .flight-number .flight-route{color:#15171d}
           <span class="field-label">Your initials<span class="req">*</span></span>
           <input id="signup-name" class="input mono" type="text" maxlength="3"
             autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="e.g. SM" />
+          <span id="initials-hint" class="muted" style="font-size:11px;display:block;margin-top:5px;min-height:13px"></span>
         </label>
         <div style="border-top:1px solid var(--border);margin:10px 0;padding-top:10px">
           <span class="muted" style="font-size:12px">Flew here before accounts existed? Claim your old pilot ID (optional):</span>
@@ -1139,42 +1139,6 @@ body.light .flight-number .flight-route{color:#15171d}
           <button type="submit" class="btn primary">Create Account</button>
         </div>
       </form>
-    </div>
-    <div id="support-box" class="setup-card hidden" style="margin-top:14px">
-      <h2 style="font-size:16px;margin:0 0 4px">Support</h2>
-      <p class="setup-sub">Forgot your pilot ID? Send SM a message. You'll get a ticket code — check back here for the reply.</p>
-      <form id="support-form">
-        <label class="field">
-          <span class="field-label">Who are you?<span class="req">*</span></span>
-          <input id="support-from" class="input mono" type="text" maxlength="6"
-            autocomplete="off" autocapitalize="characters" placeholder="your initials, e.g. KT" />
-        </label>
-        <label class="field">
-          <span class="field-label">Your support word</span>
-          <input id="support-word" class="input mono" type="text" maxlength="20"
-            autocomplete="off" spellcheck="false" placeholder="the word you chose at login" />
-          <span style="font-size:11px;color:#e5484d;font-weight:700;display:block;margin-top:4px">
-            Correct word = your pilot ID is sent back automatically. No word or wrong word = support cannot
-            identify you properly — you'll have to DM SM on Discord instead.</span>
-        </label>
-        <label class="field">
-          <span class="field-label">Message<span class="req">*</span></span>
-          <input id="support-msg" class="input" type="text" maxlength="140"
-            autocomplete="off" placeholder="I forgot my pilot ID" />
-        </label>
-        <div class="setup-actions">
-          <span></span>
-          <button type="submit" class="btn primary">Send to SM</button>
-        </div>
-      </form>
-      <div id="support-sent" class="hidden" style="font-size:13px;margin-top:8px"></div>
-      <div id="support-mine" style="margin-top:10px"></div>
-      <div class="setup-actions" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
-        <input id="support-ticket" class="input mono" type="text" maxlength="8"
-          placeholder="ticket code" style="max-width:150px" autocapitalize="characters" />
-        <button type="button" class="btn" id="btn-support-check">Check for a reply</button>
-      </div>
-      <div id="support-reply" class="hidden" style="font-size:13px;margin-top:8px"></div>
     </div>
   </div>
 </div>
@@ -1467,6 +1431,37 @@ body.light .flight-number .flight-route{color:#15171d}
     </div>
   </div>
 </div>
+<!-- Support tab: your direct line to SM -->
+<div id="screen-support" class="hidden">
+  <div class="subnav">
+    <button class="btn link" id="btn-support-back">&larr; Back</button>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
+    <span></span>
+  </div>
+  <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
+    <button type="button" data-tab="newflight">New Flight</button>
+    <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Chat</button>
+    <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="logbook">Logbook</button>
+    <button type="button" data-tab="stats">My Career</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
+    <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+  </nav>
+
+  <div class="center-stack">
+    <div class="setup-card lobby-card" style="max-width:760px">
+      <h2>Support</h2>
+      <p class="setup-sub">Your direct line to SM — bug reports, flagged flights, anything. You're identified by your account, so just type.</p>
+      <div id="support-body"><p class="lobby-empty">Loading…</p></div>
+    </div>
+  </div>
+</div>
 <!-- SCREEN 1c: PM — enter cockpit code                           -->
 <!-- ============================================================ -->
 <div id="screen-join" class="hidden">
@@ -1674,7 +1669,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.00</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.01</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2062,6 +2057,7 @@ body.light .flight-number .flight-route{color:#15171d}
     roadmap: $('screen-roadmap'),
     stats: $('screen-stats'),
     chat: $('screen-chat'),
+    support: $('screen-support'),
     logbook: $('screen-logbook'),
     roster: $('screen-roster'),
     join: $('screen-join'),
@@ -2100,6 +2096,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateInboxTab();
     checkAdminInbox(true);
     crewFetch(() => chatFetch(threads => updateChatBadge(threads)));
+    updateSupportBadge();
     fetchAllHours();
     setTimeout(checkFirstAwards, 2500); // once the cloud career has landed
   }
@@ -2200,18 +2197,11 @@ body.light .flight-number .flight-route{color:#15171d}
   $('login-email').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
   $('login-pass').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
   // (one-click login now comes from the Firebase Auth session itself)
-  // ---- support chat: forgot-my-ID tickets go to SM's account ----
-  const TICK_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  $('btn-support').addEventListener('click', () => {
-    $('support-box').classList.toggle('hidden');
-    if (!$('support-box').classList.contains('hidden')) { fetchAllHours(() => renderMyTickets()); renderMyTickets(); }
-  });
-  function myTickets() {
-    try { return JSON.parse(localStorage.getItem('fdeck-my-tickets') || '[]'); } catch (e) { return []; }
-  }
-  function saveMyTickets(m) {
-    try { localStorage.setItem('fdeck-my-tickets', JSON.stringify(m.slice(-20))); } catch (e) {}
-  }
+  // =====================================================================
+  // SUPPORT — account-based. One chat thread per pilot, keyed by their
+  // flight ID. No initials, no words, no ticket codes: your login IS your
+  // identity. SM answers from the Inbox.
+  // =====================================================================
   function ticketMsgs(v) {
     if (!v) return [];
     if (Array.isArray(v.msgs)) return v.msgs;
@@ -2229,23 +2219,8 @@ body.light .flight-number .flight-route{color:#15171d}
         '<div class="chat-bubble">' + escapeHTML(m.text || '') + '</div>' +
         '<div class="chat-meta">' + escapeHTML(m.who === 'support' ? 'CrewDeck Support'
           : (m.who === 'SM' ? 'SM' : (initials(v.from) || 'pilot'))) +
-        (m.who === 'SM' ? stripesByCode(ADMIN_CODE) : (m.who === 'pilot' ? stripesByName(v.from) : '')) +
         (m.ts ? ' · ' + escapeHTML(agoPhrase(Date.now() - m.ts)) : '') + '</div></div>';
     }).join('') || '<p class="lobby-empty">No messages yet.</p>';
-  }
-  // find the pilot whose initials + support word match (the fast lane)
-  function lookupByWord(inits, word, cb) {
-    fdb.ref('pilots').get().then(sn => {
-      const all = (sn && sn.val()) || {};
-      const codes = Object.keys(all).filter(c => initials(all[c] && all[c].name) === inits);
-      if (!codes.length || !word) { cb(null); return; }
-      Promise.all(codes.map(c =>
-        fdb.ref('careers/' + c + '/supportWord').get().then(s2 => ({ c: c, w: s2 && s2.val() })).catch(() => ({ c: c, w: null }))
-      )).then(rows => {
-        const hit = rows.find(r => r.w && String(r.w).trim().toLowerCase() === word.toLowerCase());
-        cb(hit ? hit.c : null);
-      });
-    }).catch(() => cb(null));
   }
   function ticketAppend(tid, who, text, cb) {
     if (!fdb) { toast('Needs internet'); return; }
@@ -2254,151 +2229,114 @@ body.light .flight-number .flight-route{color:#15171d}
       const msgs = ticketMsgs(v);
       msgs.push({ ts: Date.now(), who: who, text: text });
       fdb.ref('careers/_support/' + tid).set({
-        ts: v.ts || Date.now(), from: v.from || '', msgs: msgs,
-        viewedTs: v.viewedTs || 0,
+        ts: v.ts || Date.now(), from: v.from || '',
+        code: v.code || (/^\d{4}$/.test(tid) ? tid : ''),
+        msgs: msgs, viewedTs: v.viewedTs || 0,
       }).then(() => cb && cb());
     }).catch(() => toast('Could not send — try again'));
   }
-  function updateSupportBadge() {
-    const btn = $('btn-support');
-    if (!btn) return;
-    const mine = myTickets();
-    if (!mine.length || !fdb) { btn.textContent = 'Support'; btn.style.color = ''; return; }
-    Promise.all(mine.slice(-8).map(tk =>
-      fdb.ref('careers/_support/' + tk.id).get().then(sn => ({ tk, v: sn && sn.val() })).catch(() => ({ tk, v: null }))
-    )).then(rows => {
-      const unread = rows.filter(r => {
-        const last = ticketLast(r.v);
-        return fromTeam(last) && (last.ts || 0) > (r.tk.seenTs || 0);
-      }).length;
-      btn.textContent = unread ? 'Support (' + unread + ')' : 'Support';
-      btn.style.color = unread ? 'var(--accent)' : '';
-    });
+  function showSupportScreen() {
+    if (!state.myName) { show('home'); return; }
+    if (state.myCode === ADMIN_CODE) { showInboxScreen(); return; } // SM's support IS the inbox
+    setActiveTab('support');
+    show('support');
+    updateInboxTab();
+    renderMySupport();
   }
-  setTimeout(updateSupportBadge, 1200); // once the Firebase handle is up
-  let openThreadId = null; // which of my tickets is expanded into a chat
-  function renderMyTickets() {
-    const box = $('support-mine');
+  function renderMySupport() {
+    const box = $('support-body');
     if (!box) return;
-    const mine = myTickets();
-    if (!mine.length) { box.innerHTML = ''; return; }
-    if (!fdb) { box.innerHTML = '<p class="lobby-empty">Your tickets need internet to check.</p>'; return; }
-    box.innerHTML = '<p class="lobby-h">Your Tickets</p><p class="lobby-empty">Checking…</p>';
-    Promise.all(mine.slice(-8).reverse().map(tk =>
-      fdb.ref('careers/_support/' + tk.id).get()
-        .then(sn => ({ tk: tk, v: sn && sn.val() })).catch(() => ({ tk: tk, v: undefined }))
-    )).then(rows => {
-      box.innerHTML = '<p class="lobby-h">Your Tickets</p>' + rows.map(r => {
-        const last = ticketLast(r.v);
-        const gone = r.v === undefined ? '?' : (!r.v ? 'CLOSED' : null);
-        const acked = fromTeam(last) && ((r.v.viewedTs || 0) >= (last.ts || 0));
-        const needAck = fromTeam(last) && !acked;
-        const st = gone || (needAck ? 'SM REPLIED' : (acked ? 'VIEWED ✓' : 'WAITING FOR SM'));
-        const isOpen = openThreadId === r.tk.id && !gone;
-        return '<div class="chat-thread">' +
-          '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;cursor:pointer" data-thread="' + escapeHTML(r.tk.id) + '">' +
-            '<span style="font-size:12px"><span class="mono">' + escapeHTML(r.tk.id) + '</span> · ' +
-              escapeHTML((r.tk.msg || '').slice(0, 40)) + '</span>' +
-            '<span class="lobby-flight-phase' + (st === 'SM REPLIED' ? '' : ' phase-muted') + '">' + st +
-              (isOpen ? '' : ' · OPEN CHAT') + '</span></div>' +
-          (isOpen
-            ? '<div style="margin-top:8px">' + chatHtml(r.v, 'pilot') + '</div>' +
-              (needAck
-                ? '<button type="button" class="btn primary" style="width:100%;margin-top:8px;border-color:var(--accent)" data-chat-ack="' + escapeHTML(r.tk.id) + '" data-ack-ts="' + (last.ts || 0) + '">ACKNOWLEDGE — I HAVE READ SM\u2019S REPLY</button>'
-                : '') +
-              '<div class="chat-send"><input class="input" maxlength="200" placeholder="Write a message…" data-chat-input="' + escapeHTML(r.tk.id) + '" />' +
-              '<button type="button" class="btn primary" data-chat-send="' + escapeHTML(r.tk.id) + '">Send</button></div>'
-            : '') +
-          '</div>';
-      }).join('');
-      box.querySelectorAll('[data-chat-ack]').forEach(b2 => b2.addEventListener('click', () => {
-        fdb.ref('careers/_support/' + b2.dataset.chatAck + '/viewedTs').set(parseInt(b2.dataset.ackTs, 10) || Date.now())
-          .then(() => { toast('Acknowledged — SM can see you viewed it'); renderMyTickets(); updateSupportBadge(); });
-      }));
-      // opening a thread marks it read
-      box.querySelectorAll('[data-thread]').forEach(el => el.addEventListener('click', () => {
-        openThreadId = openThreadId === el.dataset.thread ? null : el.dataset.thread;
-        const m = myTickets();
-        const hit = m.find(x => x.id === openThreadId);
-        if (hit) { hit.seenTs = Date.now(); saveMyTickets(m); }
-        renderMyTickets();
-        updateSupportBadge();
-      }));
-      box.querySelectorAll('[data-chat-send]').forEach(b2 => b2.addEventListener('click', () => {
-        const inp = box.querySelector('[data-chat-input="' + b2.dataset.chatSend + '"]');
-        const txt = (inp.value || '').trim();
+    if (!fdb) { box.innerHTML = '<p class="lobby-empty">Support needs internet.</p>'; return; }
+    fdb.ref('careers/_support/' + state.myCode).get().then(sn => {
+      if (screens.support.classList.contains('hidden')) return;
+      const v = (sn && sn.val()) || {};
+      const last = ticketLast(v);
+      const needAck = fromTeam(last) && ((v.viewedTs || 0) < (last.ts || 0));
+      box.innerHTML =
+        '<div class="chat-thread">' + chatHtml(Object.assign({ from: state.myName }, v), 'pilot') + '</div>' +
+        (needAck
+          ? '<button type="button" class="btn primary" id="sup-ack" style="width:100%;margin:8px 0;border-color:var(--accent)">ACKNOWLEDGE \u2014 I HAVE READ SM\u2019S REPLY</button>'
+          : '') +
+        '<div class="chat-send"><input class="input" id="sup-input" maxlength="240" placeholder="Message SM\u2026" />' +
+        '<button type="button" class="btn primary" id="sup-send">Send</button></div>';
+      const doSend = () => {
+        const txt = ($('sup-input').value || '').trim();
         if (!txt) return;
-        ticketAppend(b2.dataset.chatSend, 'pilot', txt, () => renderMyTickets());
-      }));
-      box.querySelectorAll('[data-chat-input]').forEach(inp => inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); const btn = box.querySelector('[data-chat-send="' + inp.dataset.chatInput + '"]'); if (btn) btn.click(); }
-      }));
-    });
+        ticketAppend(state.myCode, 'pilot', txt, () => renderMySupport());
+      };
+      $('sup-send').addEventListener('click', doSend);
+      $('sup-input').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doSend(); } });
+      const ack = $('sup-ack');
+      if (ack) ack.addEventListener('click', () => {
+        fdb.ref('careers/_support/' + state.myCode + '/viewedTs').set(last.ts || Date.now())
+          .then(() => { toast('Acknowledged'); renderMySupport(); updateSupportBadge(); });
+      });
+    }).catch(() => { box.innerHTML = '<p class="lobby-empty">Could not load support.</p>'; });
   }
-  $('support-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const from = ($('support-from').value || '').trim().toUpperCase();
-    const msg = ($('support-msg').value || '').trim();
-    if (!/^[A-Z]{2,3}[0-9]?$/.test(from)) { toast('Your initials are required — SM finds your ID on the roster by them'); $('support-from').focus(); return; }
-    if (!msg) { toast('Write a short message'); $('support-msg').focus(); return; }
-    if (!fdb) { toast('Support needs internet — try again once online'); return; }
-    let tid = 'T';
-    const a2 = new Uint32Array(4); crypto.getRandomValues(a2);
-    for (let i = 0; i < 4; i++) tid += TICK_ALPHA[a2[i] % TICK_ALPHA.length];
-    const word = ($('support-word').value || '').trim();
-    const finishTicket = (autoMsg) => {
-      const msgs = [{ ts: Date.now(), who: 'pilot', text: msg + (word ? ' [support word given]' : '') }];
-      if (autoMsg) msgs.push({ ts: Date.now() + 1, who: 'support', text: autoMsg });
-      return fdb.ref('careers/_support/' + tid).set({ ts: Date.now(), from: from, msgs: msgs });
-    };
-    new Promise(res => { word ? lookupByWord(from, word, res) : res(null); }).then(codeHit => {
-      const autoMsg = word
-        ? (codeHit
-          ? 'Automated reply from CrewDeck Support — support word verified. Your pilot ID is ' + codeHit + '. Welcome back, ' + from + '!'
-          : 'Automated reply from CrewDeck Support — that support word does not match our records for ' + from + '. SM cannot identify you properly this way; he will review manually, or DM him on Discord.')
-        : null;
-      return finishTicket(autoMsg);
-    }).then(() => {
-      $('support-sent').classList.remove('hidden');
-      $('support-sent').innerHTML = 'Sent to SM. Your ticket code is <strong class="mono">' + tid +
-        '</strong> — come back here and check it for the reply.';
-      $('support-ticket').value = tid;
-      $('support-msg').value = '';
-      try {
-        const mine = JSON.parse(localStorage.getItem('fdeck-my-tickets') || '[]');
-        mine.push({ id: tid, ts: Date.now(), from: from, msg: msg });
-        localStorage.setItem('fdeck-my-tickets', JSON.stringify(mine.slice(-20)));
-      } catch (e2) {}
-      renderMyTickets();
-      updateSupportBadge();
-    }).catch(() => toast('Could not send — try again'));
-  });
-  $('btn-support-check').addEventListener('click', () => {
-    const tid = ($('support-ticket').value || '').trim().toUpperCase();
-    if (!tid) { $('support-ticket').focus(); return; }
-    if (!fdb) { toast('Needs internet'); return; }
-    fdb.ref('careers/_support/' + tid).get().then(snap => {
-      const v = snap && snap.val();
-      const el = $('support-reply');
-      el.classList.remove('hidden');
-      if (!v) { el.textContent = 'No ticket with that code.'; return; }
-      // found on this device via the code — adopt it into "Your Tickets"
-      const mine = myTickets();
-      if (!mine.some(x => x.id === tid)) {
-        const first = ticketMsgs(v)[0];
-        mine.push({ id: tid, ts: v.ts || Date.now(), from: v.from || '', msg: (first && first.text) || '', seenTs: Date.now() });
-        saveMyTickets(mine);
-      }
-      el.innerHTML = '<div class="chat-thread">' + chatHtml(v, 'pilot') + '</div>';
-      openThreadId = tid;
-      renderMyTickets();
-    }).catch(() => toast('Could not check — try again'));
-  });
+  function updateSupportBadge() {
+    if (!fdb || !state.myCode || state.myCode === ADMIN_CODE) return;
+    fdb.ref('careers/_support/' + state.myCode).get().then(sn => {
+      const v = sn && sn.val();
+      const last = ticketLast(v);
+      const unread = fromTeam(last) && ((v.viewedTs || 0) < (last.ts || 0));
+      document.querySelectorAll('.app-tabs button[data-tab="support"]').forEach(b2 => {
+        b2.innerHTML = 'Support' + (unread ? '<span class="tab-badge">1</span>' : '');
+      });
+    }).catch(() => {});
+  }
+
   // ---- account creation: pick a free 4-digit pilot ID in the cloud roster ----
   $('btn-signup-toggle').addEventListener('click', () => {
     $('signup-form').classList.toggle('hidden');
     if (!$('signup-form').classList.contains('hidden')) setTimeout(() => $('signup-name').focus(), 50);
   });
+  let takenInitials = null;
+  $('signup-name').addEventListener('input', () => {
+    const hint = $('initials-hint');
+    const want = ($('signup-name').value || '').trim().toUpperCase();
+    if (!/^[A-Z]{2,3}$/.test(want)) { hint.textContent = ''; return; }
+    const check = () => {
+      hint.textContent = takenInitials[want]
+        ? want + ' is taken — you would get a close variant like ' + want + '2'
+        : want + ' is available';
+      hint.style.color = takenInitials[want] ? '#c9942e' : 'var(--good)';
+    };
+    if (takenInitials) { check(); return; }
+    if (!fdb) return;
+    fdb.ref('pilots').get().then(sn => {
+      const all = (sn && sn.val()) || {};
+      takenInitials = {};
+      for (const k of Object.keys(all)) takenInitials[initials(all[k] && all[k].name)] = true;
+      check();
+    }).catch(() => {});
+  });
+  function changeMyInitials() {
+    const want = (prompt('New initials (2–3 letters):', initials(state.myName)) || '').trim().toUpperCase();
+    if (!want) return;
+    if (!/^[A-Z]{2,3}$/.test(want)) { toast('Initials are 2 or 3 letters'); return; }
+    if (!fdb) { toast('Needs internet'); return; }
+    fdb.ref('pilots').get().then(sn => {
+      const all = (sn && sn.val()) || {};
+      for (const k of Object.keys(all)) {
+        if (k !== state.myCode && initials(all[k] && all[k].name) === want) { toast(want + ' is taken by another pilot'); return; }
+      }
+      const mine = all[state.myCode] || {};
+      const rec = { name: want };
+      if (mine.uid) rec.uid = mine.uid;
+      else if (fauth && fauth.currentUser) rec.uid = fauth.currentUser.uid;
+      fdb.ref('pilots/' + state.myCode).set(rec).then(() => {
+        state.myName = want;
+        try {
+          const cache = JSON.parse(localStorage.getItem('fdeck-pilots-cache') || '{}');
+          cache[state.myCode] = { name: want };
+          localStorage.setItem('fdeck-pilots-cache', JSON.stringify(cache));
+        } catch (e) {}
+        updateBrandLines();
+        toast('You are now ' + want);
+        showStatsScreen();
+      });
+    }).catch(() => toast('Could not check initials — try again'));
+  }
   $('signup-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const email = ($('signup-email').value || '').trim();
@@ -2529,7 +2467,8 @@ body.light .flight-number .flight-route{color:#15171d}
     '<p><strong>You log in with your email and password.</strong> Forgot the password? Hit “Forgot password?” on the login screen — a reset link goes to your email. ' +
     'Your 4-digit flight ID is how the roster, decks and logbook know you.</p>' +
     '<p><strong>Chat is crew-only</strong> — find pilots on the Roster, hit + Crew, and once they accept you can DM each other. ' +
-    'And the <strong>PIC approves</strong> every co-pilot who asks to join their flight deck.</p>';
+    'And the <strong>PIC approves</strong> every co-pilot who asks to join their flight deck.</p>' +
+    '<p><strong>Need help?</strong> The Support tab is a direct chat with SM — your account identifies you, just type.</p>';
   function guideMeta() {
     try { return JSON.parse(localStorage.getItem('fdeck-guide-' + state.myCode)) || {}; } catch (e) { return {}; }
   }
@@ -2761,6 +2700,14 @@ body.light .flight-number .flight-route{color:#15171d}
     $('stats-body').innerHTML = statsHtml();
     const mr = $('mini-rm'); if (mr) mr.addEventListener('click', showRoadmapScreen);
     const lr = $('link-roadmap'); if (lr) lr.addEventListener('click', showRoadmapScreen);
+    const sb2 = $('stats-body');
+    const ci = document.createElement('div');
+    ci.className = 'setup-actions';
+    ci.style.marginTop = '14px';
+    ci.innerHTML = '<span class="muted" style="font-size:12px">Flying as ' + escapeHTML(initials(state.myName)) + ' · ID ' + escapeHTML(state.myCode || '') + '</span>' +
+      '<button type="button" class="btn" id="btn-change-initials">Change Initials</button>';
+    sb2.appendChild(ci);
+    $('btn-change-initials').addEventListener('click', changeMyInitials);
     renderMyAwards();
   }
   $('guide-close').addEventListener('click', () => { $('guide-modal').hidden = true; });
@@ -2825,6 +2772,7 @@ body.light .flight-number .flight-route{color:#15171d}
     show('inbox');
     updateInboxTab();
     const ie3 = $('inbox-empty'); if (ie3) ie3.style.display = '';
+    fetchEmails(() => renderSupport());
     renderReviews();
     renderSupport();
     checkAdminInbox(false);
@@ -4509,8 +4457,9 @@ body.light .flight-number .flight-route{color:#15171d}
     } catch (e) {}
     const admin = state.myCode === ADMIN_CODE; // SM sees everyone's pilot IDs
     const th = (k, label) => '<th class="rs' + (lbSort === k ? ' on' : '') + '" data-rs="' + k + '">' + label + '</th>';
-    let html = '<table class="lb-table"><tr><th>Seniority</th><th style="text-align:center">Pilot</th>' + (admin ? '<th>ID</th><th>Word</th>' : '') +
-      '<th>Crew</th>' + th('level', 'Level') + th('hours', 'Hours') + th('money', 'Earnings') + th('flights', 'Flights') + '</tr>';
+    let html = '<table class="lb-table"><tr><th>Seniority</th><th style="text-align:center">Pilot</th><th>Crew</th>' +
+      (admin ? '<th>ID</th><th>Word</th>' : '') +
+      th('level', 'Level') + th('hours', 'Hours') + th('money', 'Earnings') + th('flights', 'Flights') + '</tr>';
     rows.forEach((r, i) => {
       const lv = levelFor(r.hours);
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
@@ -4524,6 +4473,7 @@ body.light .flight-number .flight-route{color:#15171d}
               ? '<span style="font-size:11px;color:var(--text-muted)">PENDING</span>'
               : '<button type="button" class="btn" data-crew-add="' + escapeHTML(r.code) + '" style="font-size:11px;padding:3px 10px">+ Crew</button>')) + '</td>' +
         (admin ? '<td class="mono">' + escapeHTML(r.code) +
+          (emailByCode[r.code] ? '<br><span style="font-size:10px;color:var(--text-muted);letter-spacing:0">' + escapeHTML(emailByCode[r.code]) + '</span>' : '') +
           (r.code !== state.myCode
             ? ' <button type="button" class="btn link" data-msg-code="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px">✉</button>' +
               '<button type="button" class="btn link" data-del-pilot="' + escapeHTML(r.code) + '" title="Delete this pilot" style="font-size:11px;padding:0 4px;color:#e5484d">✕</button>'
@@ -4585,7 +4535,8 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function showRosterScreen() {
     lobbyStart();
-    crewFetch(() => { if (lbData) renderLeaderboard(lbData[0], lbData[1]); }); // full page, used from the lobby
+    crewFetch(() => { if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
+    fetchEmails(() => { if (lbData) renderLeaderboard(lbData[0], lbData[1]); }); // full page, used from the lobby
     lbTargetId = 'roster-body';
     $('roster-body').innerHTML = '<div class="lobby-empty">Loading the roster…</div>';
     updateBrandLines();
@@ -4619,12 +4570,7 @@ body.light .flight-number .flight-route{color:#15171d}
         }
         return;
       }
-      if (t === 'support') {
-        show('home');
-        $('support-box').classList.remove('hidden');
-        renderMyTickets();
-        return;
-      }
+      if (t === 'support') { showSupportScreen(); return; }
       if (t === 'flight') { if (state.code && state.checklist) show('room'); }
       else if (t === 'newflight') {
         if (!state.myName) { show('home'); return; }
@@ -4646,6 +4592,7 @@ body.light .flight-number .flight-route{color:#15171d}
   $('btn-inbox-back').addEventListener('click', backToBase);
   $('btn-guide-back').addEventListener('click', backToBase);
   $('btn-chat-back').addEventListener('click', backToBase);
+  $('btn-support-back').addEventListener('click', backToBase);
   $('btn-roadmap-back').addEventListener('click', backToBase);
   $('btn-stats-back').addEventListener('click', backToBase);
   $('btn-leaderboard2').addEventListener('click', openLeaderboard);
@@ -5443,7 +5390,7 @@ body.light .flight-number .flight-route{color:#15171d}
   // them as legit or discard them. Discarded flights are KEPT so they can
   // be retained (restored & credited) later.
   // =====================================================================
-  const ADMIN_CODE = '7789';
+  const ADMIN_CODE = '2974'; // SM — saarang20@gmail.com's account
   function submitForReview(entry, reason) {
     const rev = { code: state.myCode, name: state.myName || '', status: 'pending',
                   reason: reason, ete: state.eteMin || 0, ts: Date.now(), entry: entry };
@@ -5813,15 +5760,18 @@ body.light .flight-number .flight-route{color:#15171d}
       let html = '<p class="lobby-h">Support Inbox</p>';
       ids.forEach(tid => {
         const m = all[tid] || {};
-        const who = String(m.from || '').trim().toUpperCase();
-        const matches = Object.keys(pilots).filter(c => initials(pilots[c] && pilots[c].name) === who);
+        const isCode = /^\d{4}$/.test(tid);
+        const who = isCode
+          ? initials((pilots[tid] && pilots[tid].name) || tid)
+          : String(m.from || '').trim().toUpperCase();
         const last = ticketLast(m);
         const needsReply = !fromTeam(last);
         const viewed = fromTeam(last) && ((m.viewedTs || 0) >= (last.ts || 0));
         html += '<div class="chat-thread"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center">' +
-          '<span><strong>' + escapeHTML(who || '?') + '</strong>' + stripesByName(who) + ' <span class="mono" style="font-size:11px;color:var(--text-muted)">' + escapeHTML(tid) + '</span>' +
-          '<span style="font-size:11px;color:var(--text-muted)"> · ' +
-          (matches.length ? 'roster: ' + matches.map(c => escapeHTML(initials(pilots[c].name)) + ' → ID ' + escapeHTML(c)).join(', ') : 'no roster match') +
+          '<span><strong>' + escapeHTML(who || '?') + '</strong>' + (isCode ? stripesByCode(tid) : stripesByName(who)) +
+          ' <span class="mono" style="font-size:11px;color:var(--text-muted)">' + escapeHTML(isCode ? 'ID ' + tid : tid) + '</span>' +
+          '<span style="font-size:11px;color:var(--text-muted);letter-spacing:0">' +
+          (isCode && emailByCode[tid] ? ' · ' + escapeHTML(emailByCode[tid]) : (isCode ? '' : ' · legacy ticket')) +
           '</span></span>' +
           '<span class="lobby-flight-phase' + (needsReply ? '' : ' phase-muted') + '"' +
             (viewed ? ' style="color:#2fd07a;border-color:#2fd07a"' : '') + '>' +
@@ -6261,6 +6211,17 @@ body.light .flight-number .flight-route{color:#15171d}
     }).catch(() => {});
   }
   const RANK_ABBR = ['JFO', 'FO', 'SFO', 'JC', 'SC', 'PC'];
+  let emailByCode = {}; // admin only: code -> account email
+  function fetchEmails(cb) {
+    if (!fdb || state.myCode !== ADMIN_CODE) { cb && cb(); return; }
+    fdb.ref('users').get().then(sn => {
+      const v = (sn && sn.val()) || {};
+      for (const uid of Object.keys(v)) {
+        if (v[uid] && v[uid].code) emailByCode[v[uid].code] = v[uid].email || '';
+      }
+      cb && cb();
+    }).catch(() => cb && cb());
+  }
   let hoursCache = {}; // code -> hours, filled by any careers fetch
   function noteHours(code, h) { if (code && code[0] !== '_') hoursCache[code] = h || 0; }
   function fetchAllHours(cb) {
