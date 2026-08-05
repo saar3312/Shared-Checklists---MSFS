@@ -319,6 +319,10 @@ body.light .stripes{background:#2c313c}
 .chat-send{display:flex;gap:8px;margin-top:10px}
 .chat-send .input{flex:1 1 auto}
 .chat-thread{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:8px 0}
+/* message logs scroll inside their own box so the page header/tabs never scroll away */
+.chat-scroll{max-height:52vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.chat-scroll::-webkit-scrollbar{width:8px}
+.chat-scroll::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:4px}
 .ver-float{position:fixed;right:10px;bottom:8px;font-size:10px;color:var(--text-muted);
   z-index:999;opacity:0.85;pointer-events:none;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .lobby-paused .lobby-flight-phase{color:var(--text-muted);border-color:var(--text-muted)}
@@ -1119,10 +1123,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.05</div>
+<div class="ver-float app-version">v1.06</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.05</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.06</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1765,7 +1769,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.05</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.06</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2157,6 +2161,28 @@ body.light .flight-number .flight-route{color:#15171d}
     }
     m.style.display = 'flex';
   }
+  const DENY_COOLDOWN_MS = 20 * 60000;
+  const deniedNames = {}; // host memory: initials -> when the PIC said NO
+  function rememberDenied(name) { deniedNames[initials(name || '')] = Date.now(); }
+  function deniedRecently(name) {
+    const t = deniedNames[initials(name || '')];
+    return !!t && (Date.now() - t) < DENY_COOLDOWN_MS;
+  }
+  function deniedDeckStore() {
+    try { return JSON.parse(localStorage.getItem('fdeck-denied-decks') || '{}'); } catch (e) { return {}; }
+  }
+  function rememberDeniedDeck(code) {
+    if (!code) return;
+    const m = deniedDeckStore();
+    m[code] = Date.now();
+    try { localStorage.setItem('fdeck-denied-decks', JSON.stringify(m)); } catch (e) {}
+  }
+  function deniedDeckMinutesLeft(code) {
+    const t = deniedDeckStore()[code];
+    if (!t) return 0;
+    const left = DENY_COOLDOWN_MS - (Date.now() - t);
+    return left > 0 ? Math.ceil(left / 60000) : 0;
+  }
   function askJoinApproval(name, role, hours, cb) {
     let m = $('join-approve');
     if (m) m.remove(); // a newer request replaces a stale popup
@@ -2180,7 +2206,10 @@ body.light .flight-number .flight-route{color:#15171d}
     const m = $('door-lock');
     if (m && m.style.display !== 'none') {
       m.style.display = 'none';
-      if (state.myRole) toast('Door open \u2014 welcome aboard');
+      if (state.myRole) {
+        toast('Door open \u2014 welcome aboard');
+        setTimeout(intercomPreflightAsk, 900); // accepted — NOW the intercom question makes sense
+      }
     }
   }
   const screens = {
@@ -2266,6 +2295,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateInboxTab();
     checkAdminInbox(true);
     crewFetch(() => chatFetch(threads => updateChatBadge(threads)));
+    startLiveWatches();
     updateSupportBadge();
     fetchAllHours();
     setTimeout(checkFirstAwards, 2500); // once the cloud career has landed
@@ -2475,13 +2505,18 @@ body.light .flight-number .flight-route{color:#15171d}
       const v = (sn && sn.val()) || {};
       const last = ticketLast(v);
       const needAck = fromTeam(last) && ((v.viewedTs || 0) < (last.ts || 0));
+      const prevSc = document.getElementById('sup-scroll');
+      const keepPos = (prevSc && (prevSc.scrollHeight - prevSc.scrollTop - prevSc.clientHeight) > 60)
+        ? prevSc.scrollTop : null;
       box.innerHTML =
-        '<div class="chat-thread">' + chatHtml(Object.assign({ from: state.myName }, v), 'pilot') + '</div>' +
+        '<div class="chat-thread chat-scroll" id="sup-scroll">' + chatHtml(Object.assign({ from: state.myName }, v), 'pilot') + '</div>' +
         (needAck
           ? '<button type="button" class="btn primary" id="sup-ack" style="width:100%;margin:8px 0;border-color:var(--accent)">ACKNOWLEDGE \u2014 I HAVE READ SM\u2019S REPLY</button>'
           : '') +
         '<div class="chat-send"><input class="input" id="sup-input" maxlength="240" placeholder="Message SM\u2026" />' +
         '<button type="button" class="btn primary" id="sup-send">Send</button></div>';
+      const sc2 = document.getElementById('sup-scroll');
+      if (sc2) sc2.scrollTop = keepPos != null ? keepPos : sc2.scrollHeight;
       const doSend = () => {
         const txt = ($('sup-input').value || '').trim();
         if (!txt) return;
@@ -3291,6 +3326,12 @@ body.light .flight-number .flight-route{color:#15171d}
     $('btn-retry').classList.remove('hidden');
   }
   function joinRoom(code) {
+    const wait = deniedDeckMinutesLeft(code);
+    if (wait > 0 && !state.observer) {
+      showDecksScreen();
+      toast('The PIC turned you away from this deck \u2014 you can try again in ' + wait + ' min.');
+      return;
+    }
     state.role = 'guest';
     state.code = code;
     state.myKey = null;
@@ -3704,6 +3745,17 @@ body.light .flight-number .flight-route{color:#15171d}
           const prevHolder = state.roles[msg.role];
           const prevName = prevHolder && state.members[prevHolder] && state.members[prevHolder].name;
           const isRejoin = prevName && prevName === msg.name;
+          if (!isRejoin && conn.peer !== state.myKey && state.pushAt) {
+            // push has begun — the flight deck door is locked to newcomers
+            send(conn, { type: 'join_denied', reason: 'locked' });
+            setTimeout(() => { try { conn.close(); } catch (e) {} }, 400);
+            break;
+          }
+          if (!isRejoin && conn.peer !== state.myKey && deniedRecently(msg.name)) {
+            send(conn, { type: 'join_denied', reason: 'cooldown' });
+            setTimeout(() => { try { conn.close(); } catch (e) {} }, 400);
+            break;
+          }
           const proceed = () => {
             const ok = claimRole(conn.peer, msg.name, msg.role, msg.hours);
             if (!ok) {
@@ -3716,8 +3768,11 @@ body.light .flight-number .flight-route{color:#15171d}
           };
           if (isRejoin || conn.peer === state.myKey) { proceed(); break; }
           askJoinApproval(msg.name, msg.role, msg.hours || 0, (allowed) => {
-            if (allowed) { proceed(); }
-            else {
+            if (allowed) {
+              proceed();
+              setTimeout(intercomPreflightAsk, 900); // crew formed — ask the PIC about the intercom too
+            } else {
+              rememberDenied(msg.name); // this pilot stays outside for 20 minutes
               send(conn, { type: 'join_denied' });
               setTimeout(() => { try { conn.close(); } catch (e) {} }, 400);
             }
@@ -3726,7 +3781,16 @@ body.light .flight-number .flight-route{color:#15171d}
         break;
       case 'join_denied': {
         hideDoorLock();
-        const deniedMsg = 'The PIC did not approve you onto this flight deck. Find another crew below \u2014 plenty of open seats.';
+        let deniedMsg;
+        if (msg.reason === 'locked') {
+          deniedMsg = 'This flight has already pushed back \u2014 the flight deck door is locked. Catch them on the next leg!';
+        } else if (msg.reason === 'cooldown') {
+          deniedMsg = 'The PIC turned you away from this deck less than 20 minutes ago \u2014 find another crew for now.';
+          rememberDeniedDeck(state.code);
+        } else {
+          deniedMsg = 'The PIC did not approve you onto this flight deck. Find another crew below \u2014 plenty of open seats. You can ask this deck again in 20 minutes.';
+          rememberDeniedDeck(state.code);
+        }
         if (!screens.room.classList.contains('hidden')) {
           teardown();
           showDecksScreen();
@@ -3892,7 +3956,7 @@ body.light .flight-number .flight-route{color:#15171d}
     show('room');
     updateMyFlightTab();
     updateIntercomBtn();
-    setTimeout(intercomPreflightAsk, 700); // like a real crew: intercom question before the flows start
+    // (the intercom question comes when a PM is actually accepted — not while flying alone or waiting at the door)
     screens.room.classList.add('dual');
     findEngineStartId();
     updateClocks();
@@ -6167,6 +6231,32 @@ body.light .flight-number .flight-route{color:#15171d}
     fetchAllHours(() => renderChat());
     renderChat();
   }
+  let liveWatchesOn = false;
+  function startLiveWatches() {
+    // realtime: message and crew-request badges light up the moment something lands — no refresh needed
+    if (liveWatchesOn || !fdb || !state.myCode) return;
+    liveWatchesOn = true;
+    const typingSomewhere = () => {
+      const inp = $('chat-input');
+      return !!(inp && (inp.value || document.activeElement === inp));
+    };
+    fdb.ref('careers/_chats').on('value', sn => {
+      const all = (sn && sn.val()) || {};
+      const mine = {};
+      for (const k of Object.keys(all)) if (k.split('_').indexOf(state.myCode) >= 0) mine[k] = all[k];
+      chatCache = mine;
+      updateChatBadge(mine);
+      if (!screens.chat.classList.contains('hidden') && !typingSomewhere()) renderChat();
+    });
+    fdb.ref('careers/_crew').on('value', sn => {
+      const all = (sn && sn.val()) || {};
+      const mine = {};
+      for (const k of Object.keys(all)) if (k.split('_').indexOf(state.myCode) >= 0) mine[k] = all[k];
+      crewCache = mine;
+      updateChatBadge(chatCache);
+      if (screens.crew && !screens.crew.classList.contains('hidden')) renderCrew();
+    });
+  }
   function chatFetch(cb) {
     if (!fdb) { cb({}); return; }
     fdb.ref('careers/_chats').get().then(sn => {
@@ -6223,11 +6313,17 @@ body.light .flight-number .flight-route{color:#15171d}
         const t2 = threads[tid] || { msgs: [] };
         const nm = initials((pilots[chatWith] && pilots[chatWith].name) || chatWith);
         $('chat-title').innerHTML = 'Messages — ' + wingedByCode(chatWith) + crewBadgeHtml(chatWith);
-        // mark seen — and clear the badge RIGHT NOW, not on the next background refresh
-        const nowSeen = Date.now();
-        try { fdb.ref('careers/_chats/' + tid + '/seen/' + state.myCode).set(nowSeen); } catch (e) {}
-        if (!t2.seen) t2.seen = {};
-        t2.seen[state.myCode] = nowSeen;
+        // mark seen — and clear the badge RIGHT NOW. Only write when something is actually
+        // unseen: an unconditional write would re-trigger the live watch in an endless loop.
+        const msgsAll = t2.msgs || [];
+        const lastTs = msgsAll.length ? (msgsAll[msgsAll.length - 1].ts || 0) : 0;
+        const prevSeen = (t2.seen && t2.seen[state.myCode]) || 0;
+        if (prevSeen < lastTs) {
+          const nowSeen = Date.now();
+          try { fdb.ref('careers/_chats/' + tid + '/seen/' + state.myCode).set(nowSeen); } catch (e) {}
+          if (!t2.seen) t2.seen = {};
+          t2.seen[state.myCode] = nowSeen;
+        }
         threads[tid] = t2;
         chatCache[tid] = t2;
         updateChatBadge(threads);
@@ -6247,11 +6343,18 @@ body.light .flight-number .flight-route{color:#15171d}
             stripesByCode(mine ? state.myCode : chatWith) +
             (m.ts ? ' · ' + escapeHTML(agoPhrase(Date.now() - m.ts)) : '') + '</div>' + readLine + '</div>';
         }).join('') || '<p class="lobby-empty">No messages yet — say hi.</p>';
+        // remember whether the reader had scrolled up before this re-render — if so,
+        // keep their spot instead of yanking them to the newest message
+        const prevSc = document.getElementById('chat-scroll');
+        const keepPos = (prevSc && (prevSc.scrollHeight - prevSc.scrollTop - prevSc.clientHeight) > 60)
+          ? prevSc.scrollTop : null;
         box.innerHTML =
           '<button type="button" class="btn link" id="chat-to-list">&larr; All chats</button>' +
-          '<div class="chat-thread" style="margin-top:8px">' + bubbles + '</div>' +
+          '<div class="chat-thread chat-scroll" id="chat-scroll" style="margin-top:8px">' + bubbles + '</div>' +
           '<div class="chat-send"><input class="input" id="chat-input" maxlength="200" placeholder="Message ' + escapeHTML(nm) + '…" />' +
           '<button type="button" class="btn primary" id="chat-send-btn">Send</button></div>';
+        const sc = document.getElementById('chat-scroll');
+        if (sc) sc.scrollTop = keepPos != null ? keepPos : sc.scrollHeight;
         $('chat-to-list').addEventListener('click', () => { chatWith = null; renderChat(); });
         const doSend = () => {
           const inp = $('chat-input');
@@ -6369,7 +6472,7 @@ body.light .flight-number .flight-route{color:#15171d}
           '<span class="lobby-flight-phase' + (needsReply ? '' : ' phase-muted') + '"' +
             (viewed ? ' style="color:#2fd07a;border-color:#2fd07a"' : '') + '>' +
             (needsReply ? 'NEEDS REPLY' : (viewed ? 'VIEWED ✓ — SAFE TO DELETE' : 'REPLIED — NOT VIEWED YET')) + '</span></div>' +
-          '<div style="margin-top:8px">' + chatHtml(m, 'SM') + '</div>' +
+          '<div class="chat-scroll" style="margin-top:8px;max-height:36vh" data-sup-scroll="' + tid + '">' + chatHtml(m, 'SM') + '</div>' +
           '<div class="chat-send"><input class="input" maxlength="200" placeholder="Reply to ' + escapeHTML(who) + '…" data-sup-chat-input="' + tid + '" />' +
           '<button type="button" class="btn primary" data-sup-chat-send="' + tid + '">Send</button>' +
           '<button type="button" class="btn link" data-sup-del="' + tid + '">Delete</button></div>' +
@@ -6377,6 +6480,7 @@ body.light .flight-number .flight-route{color:#15171d}
       });
       box.innerHTML = html;
       box.style.display = '';
+      box.querySelectorAll('[data-sup-scroll]').forEach(el => { el.scrollTop = el.scrollHeight; });
       const ie2 = $('inbox-empty'); if (ie2) ie2.style.display = 'none';
       box.querySelectorAll('[data-sup-chat-send]').forEach(b2 =>
         b2.addEventListener('click', () => {
@@ -7043,6 +7147,9 @@ body.light .flight-number .flight-route{color:#15171d}
         } else if (soloLocked) {
           inner = '<div class="seat-tag">' + r + '</div>' +
             '<div class="deck2-name" style="color:var(--text-muted);font-size:13px">SINGLE PILOT — LOCKED</div>';
+        } else if (f.pushAt && !f._test) {
+          inner = '<div class="seat-tag">' + (r === 'PIC' ? 'PIC — Pilot in Command' : 'PM — Pilot Monitoring') + '</div>' +
+            '<div class="deck2-name" style="color:var(--text-muted);font-size:13px">DOOR LOCKED — PUSH BEGUN</div>';
         } else {
           const est = f.eteMin ? estPay(f.slug, r, myCareer().hours, f.eteMin + 20) : 0;
           inner = '<div class="seat-tag">' + (r === 'PIC' ? 'PIC — Pilot in Command' : 'PM — Pilot Monitoring') + '</div>' +
@@ -7124,6 +7231,7 @@ body.light .flight-number .flight-route{color:#15171d}
     ids: () => ({ engineStartId, gearUpId, gearDownId }),
     secItems: () => sectionItemIds,
     refresh: () => { updatePushChip(); },
+    renderChat: () => renderChat(),
   };
   // ---- theme handling (light / dark, persisted) ----
   const THEME_KEY = 'cockpit-checklist-theme';
