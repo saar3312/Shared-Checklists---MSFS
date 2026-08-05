@@ -147,6 +147,12 @@ button{font-family:inherit;color:inherit}
   #screen-lobby #welcome-line{font-size:23px}
   #screen-lobby .lobby-create{flex-direction:column}
 }
+.crew-badge{
+  display:inline-flex;align-items:center;font-size:9px;font-weight:800;
+  letter-spacing:0.1em;padding:2px 7px;border-radius:999px;margin-left:7px;
+  border:1px solid var(--good);color:var(--good);vertical-align:middle;cursor:help;
+  text-transform:uppercase;white-space:nowrap;
+}
 .lobby-h{
   font-size:10px;font-weight:700;color:var(--text-muted);
   text-transform:uppercase;letter-spacing:0.14em;margin:0 0 8px;
@@ -1092,10 +1098,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.13</div>
+<div class="ver-float app-version">v4.15</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.13</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.15</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1304,6 +1310,7 @@ body.light .flight-number .flight-route{color:#15171d}
   <div class="center-stack">
     <div class="setup-card lobby-card">
       <h2>Active Flight Decks</h2>
+      <div id="test-flight-ctl" style="display:none"></div>
       <div id="lobby-resume" style="display:none"></div>
       <p class="lobby-h">All Decks</p>
       <div class="lobby-list" id="lobby-list"><div class="lobby-empty">Looking for active flight decks…</div></div>
@@ -1742,7 +1749,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.13</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.15</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2878,6 +2885,66 @@ body.light .flight-number .flight-route{color:#15171d}
       }
     });
   }
+  let testFlight = null; // SM-only: a fake live deck to preview the board
+  function defaultTestFlight() {
+    return {
+      code: 'TEST', slug: 'b777_2p', aircraft: 'Boeing 777',
+      flight: 'CDK001 · TEST', dep: 'KJFK', arr: 'EGLL', solo: false,
+      eteMin: 415, roles: { PIC: 'SM', PM: 'KW' },
+      hoursBy: { PIC: myCareer().hours || 0, PM: 42 },
+      pushAt: Date.now() - 45 * 60000, engOffAt: 0,
+      phase: 'CRUISE', prog: 55, ts: Date.now(), _test: true,
+    };
+  }
+  const TEST_PHASES = ['PREFLIGHT', 'PUSHBACK', 'ENGINE START', 'TAKEOFF', 'CLIMB', 'CRUISE', 'DESCENT', 'LANDING', 'FLIGHT COMPLETE'];
+  function renderTestFlightCtl() {
+    const box = $('test-flight-ctl');
+    if (!box) return;
+    if (!isAdminView()) { box.style.display = 'none'; box.innerHTML = ''; testFlight = null; return; }
+    box.style.display = '';
+    if (!testFlight) {
+      box.innerHTML = '<div style="text-align:right;margin:0 0 10px">' +
+        '<button type="button" class="btn" id="btn-test-flight" style="font-size:12px">View Test Flight</button></div>';
+      $('btn-test-flight').addEventListener('click', () => { testFlight = defaultTestFlight(); renderTestFlightCtl(); renderLobbyList(); });
+      return;
+    }
+    const mins = Math.round((Date.now() - testFlight.pushAt) / 60000);
+    box.innerHTML =
+      '<div class="lobby-flight" style="border-style:dashed;margin:0 0 12px;padding:14px 18px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+      '<span class="lobby-h" style="margin:0">TEST FLIGHT CONTROLS — only you see this deck</span>' +
+      '<button type="button" class="btn link" id="tf-off" style="font-size:12px;color:#e5484d">Hide Test Flight</button></div>' +
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">' +
+      '<label class="field" style="margin:0"><span class="field-label">Phase</span>' +
+        '<select id="tf-phase" class="input" style="min-width:150px">' +
+        TEST_PHASES.map(ph => '<option' + (ph === testFlight.phase ? ' selected' : '') + '>' + ph + '</option>').join('') +
+        '</select></label>' +
+      '<label class="field" style="margin:0;max-width:130px"><span class="field-label">Mins since push</span>' +
+        '<input id="tf-mins" class="input mono" type="number" min="0" max="1200" value="' + mins + '" /></label>' +
+      '<label class="field" style="margin:0;max-width:110px"><span class="field-label">Checklist %</span>' +
+        '<input id="tf-prog" class="input mono" type="number" min="0" max="100" value="' + (testFlight.prog || 0) + '" /></label>' +
+      '<label class="field" style="margin:0;max-width:110px"><span class="field-label">ETE (min)</span>' +
+        '<input id="tf-ete" class="input mono" type="number" min="0" max="1200" value="' + (testFlight.eteMin || 0) + '" /></label>' +
+      '<label class="field" style="margin:0"><span class="field-label">PM seat</span>' +
+        '<select id="tf-pm" class="input"><option value="KW"' + (testFlight.roles.PM ? ' selected' : '') + '>Filled (KW)</option>' +
+        '<option value=""' + (!testFlight.roles.PM ? ' selected' : '') + '>Open seat</option></select></label>' +
+      '<label class="field" style="margin:0"><span class="field-label">Engines</span>' +
+        '<select id="tf-eng" class="input"><option value="run"' + (!testFlight.engOffAt ? ' selected' : '') + '>Running — pay ticking</option>' +
+        '<option value="off"' + (testFlight.engOffAt ? ' selected' : '') + '>Off — clock stopped</option></select></label>' +
+      '</div></div>';
+    const apply = () => {
+      testFlight.phase = $('tf-phase').value;
+      testFlight.pushAt = Date.now() - Math.max(0, parseInt($('tf-mins').value, 10) || 0) * 60000;
+      testFlight.prog = Math.min(100, Math.max(0, parseInt($('tf-prog').value, 10) || 0));
+      testFlight.eteMin = Math.max(0, parseInt($('tf-ete').value, 10) || 0);
+      testFlight.roles.PM = $('tf-pm').value || null;
+      testFlight.engOffAt = $('tf-eng').value === 'off' ? Date.now() : 0;
+      renderLobbyList();
+    };
+    ['tf-phase', 'tf-mins', 'tf-prog', 'tf-ete', 'tf-pm', 'tf-eng'].forEach(id =>
+      $(id).addEventListener('input', apply));
+    $('tf-off').addEventListener('click', () => { testFlight = null; renderTestFlightCtl(); renderLobbyList(); });
+  }
   function showDecksScreen() {
     if (!state.myName) { show('home'); return; }
     if (!state.checklist) lobbyGlobal = true;
@@ -2886,6 +2953,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateInboxTab();
     lobbyStart();
     lobbyFetchPaused();
+    renderTestFlightCtl();
     renderLobbyList();
     renderLobbyResume();
   }
@@ -4486,7 +4554,7 @@ body.light .flight-number .flight-route{color:#15171d}
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
         '<td class="lb-rank">' + (i + 1) + '</td>' +
         '<td class="pc" data-viewlog="' + escapeHTML(r.code) + '" style="cursor:pointer" title="Open logbook"><span class="pilot-wrap">' + (online.has(r.name) ? '<span class="dot-on" title="in a flight deck now"></span>' : '') +
-          wingedHtml(escapeHTML(initials(r.name)), r.hours) + '</span></td>' +
+          wingedHtml(escapeHTML(initials(r.name)), r.hours) + crewBadgeHtml(r.code) + '</span></td>' +
         '<td>' + (r.code === state.myCode ? '' :
           (crewStatusWith(r.code) === 'crew'
             ? '<span style="font-size:11px;color:var(--good)">✓ CREW</span> <button type="button" class="btn link" data-crew-rm="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px" title="Remove from crew">✕</button>'
@@ -5604,6 +5672,14 @@ body.light .flight-number .flight-route{color:#15171d}
       cb(mine);
     }).catch(() => cb(crewCache));
   }
+  function crewBadgeHtml(code) {
+    const rec = crewCache[crewPairId(state.myCode, code)];
+    if (!rec || rec.status !== 'crew') return '';
+    const since = rec.ts ? new Date(rec.ts) : null;
+    const tip = 'Your crew' + (since ? ' since ' + since.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '') +
+      ' — you can message each other anytime';
+    return '<span class="crew-badge" title="' + escapeHTML(tip) + '">Crew</span>';
+  }
   function crewStatusWith(code) {
     const rec = crewCache[crewPairId(state.myCode, code)];
     return rec ? rec.status : null; // 'pending' | 'crew' | null
@@ -5751,7 +5827,7 @@ body.light .flight-number .flight-route{color:#15171d}
         const tid = chatThreadId(state.myCode, chatWith);
         const t2 = threads[tid] || { msgs: [] };
         const nm = initials((pilots[chatWith] && pilots[chatWith].name) || chatWith);
-        $('chat-title').innerHTML = 'Messages — ' + wingedByCode(chatWith);
+        $('chat-title').innerHTML = 'Messages — ' + wingedByCode(chatWith) + crewBadgeHtml(chatWith);
         // mark seen
         try { fdb.ref('careers/_chats/' + tid + '/seen/' + state.myCode).set(Date.now()); } catch (e) {}
         const bubbles = (t2.msgs || []).map(m => {
@@ -5826,7 +5902,7 @@ body.light .flight-number .flight-route{color:#15171d}
           const nm = initials((pilots[r.c] && pilots[r.c].name) || r.c);
           return '<div class="chat-thread" style="cursor:pointer" data-chat-open="' + escapeHTML(r.c) + '">' +
             '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center">' +
-            '<span>' + (r.unread ? '<span class="dot-on"></span>' : '') + wingedByCode(r.c) +
+            '<span>' + (r.unread ? '<span class="dot-on"></span>' : '') + wingedByCode(r.c) + crewBadgeHtml(r.c) +
             '<span style="font-size:12px;color:var(--text-muted)"> · ' +
               (r.last ? escapeHTML(((r.last.from === state.myCode ? 'you: ' : '') + r.last.text).slice(0, 46)) : 'Start a chat') + '</span></span>' +
             '<span style="font-size:11px;color:var(--text-muted)">' + (r.ts ? escapeHTML(agoPhrase(Date.now() - r.ts)) : '') + '</span>' +
@@ -6400,7 +6476,8 @@ body.light .flight-number .flight-route{color:#15171d}
   function refreshLiveComp() {
     const list = $('lobby-list');
     if (!list || screens.decks.classList.contains('hidden')) return;
-    const flights = lobby.flights || {};
+    const flights = Object.assign({}, lobby.flights || {});
+    if (testFlight && isAdminView()) flights.TEST = testFlight;
     const upd = (el, isMoney) => {
       const parts = el.dataset.lc ? el.dataset.lc.split(':') : el.dataset.lcm.split(':');
       const f = flights[parts[0]];
@@ -6433,6 +6510,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const list = $('lobby-list');
     if (!list || screens.decks.classList.contains('hidden')) return;
     const flights = lobbyFresh();
+    if (testFlight && isAdminView()) { testFlight.ts = Date.now(); flights.TEST = testFlight; }
     const codes = Object.keys(flights);
     const paused = lobby.paused || {};
     const pilots = localPilotsMap();
