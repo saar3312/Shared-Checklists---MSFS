@@ -57,6 +57,8 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
   font-feature-settings:"ss01","cv11";}
 button{font-family:inherit;color:inherit}
 .hidden{display:none !important}
+html.booting #home-login-card,html.booting #home-welcome-box{display:none !important}
+html.booting #home-auth-wait{display:block !important}
 /* ---------- Buttons (sleek) ---------- */
 .btn{
   background:transparent;color:var(--text);
@@ -183,6 +185,7 @@ button{font-family:inherit;color:inherit}
 .lobby-paused{opacity:0.7}
 /* ---- global size pass: content fills the page (within reason) ---- */
 .brand-line .lvl,#rank-top .lvl,.home-brand .lvl{font-size:15px !important;padding:6px 16px !important;border-radius:8px;letter-spacing:0.08em;line-height:1.2}
+.brand-line .winged strong,#rank-top .winged strong{font-size:15px;letter-spacing:0.08em}
 .brand-line .stripes,#rank-top .stripes{padding:5px 8px;border-radius:6px}
 .brand-line .stripes i,#rank-top .stripes i{width:4px;height:17px}
 .setup-card h2{font-size:24px}
@@ -1065,6 +1068,7 @@ body.light .flight-number .flight-route{color:#15171d}
 </style>
 </head>
 <body>
+<script>try{if(localStorage.getItem('fdeck-expect-auth')==='1')document.documentElement.classList.add('booting');}catch(e){}</script>
 <!-- ============================================================ -->
 <!-- SCREEN 1: Home (start a B777 flight / join with code)        -->
 <!-- ============================================================ -->
@@ -1098,22 +1102,36 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.17</div>
+<div id="account-menu" class="hidden" style="position:fixed;top:54px;right:14px;z-index:400;background:var(--surface);border:1px solid var(--border-strong);border-radius:10px;padding:10px;min-width:250px;box-shadow:0 12px 34px rgba(0,0,0,0.55)">
+  <div id="am-email" class="muted" style="font-size:11px;padding:4px 8px 8px;word-break:break-all"></div>
+  <div id="am-verify" style="display:none;padding:0 8px 8px">
+    <span style="color:#c9942e;font-size:11px;font-weight:800;letter-spacing:0.06em">EMAIL NOT VERIFIED</span>
+    <button type="button" class="btn link" id="am-resend" style="font-size:11px;padding:0 4px">Resend link</button>
+  </div>
+  <button type="button" class="btn" id="am-initials" style="width:100%;margin:3px 0;font-size:13px">Change Initials</button>
+  <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
+  <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
+</div>
+<div class="ver-float app-version">v4.19</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.17</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.19</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
       <button class="btn link theme-toggle" id="btn-theme" title="Toggle light / dark">Theme</button>
     </div>
   </div>
-  <div class="home-welcome">
+  <div class="home-welcome" id="home-welcome-box">
     <h1>Welcome to CrewDeck EFB</h1>
     <p>Log in with your email to begin.</p>
   </div>
   <div class="center-stack">
-    <div class="setup-card">
+    <div id="home-auth-wait" class="hidden" style="text-align:center;padding:40px 0">
+      <div class="spinner"></div>
+      <p class="muted" style="font-size:14px;margin:0">Signing you in…</p>
+    </div>
+    <div class="setup-card" id="home-login-card">
       <form id="login-form">
         <label class="field">
           <span class="field-label">Email<span class="req">*</span></span>
@@ -1131,6 +1149,7 @@ body.light .flight-number .flight-route{color:#15171d}
           <button type="submit" class="btn primary">Log In</button>
         </div>
       </form>
+      <p class="muted" style="font-size:11px;margin:14px 0 0;text-align:center">Your email is used only for signing in, password resets and verification — nothing else, ever.</p>
       <div class="setup-actions" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
         <span class="muted" style="font-size:12px" id="signup-np-label">New pilot?</span>
         <button type="button" class="btn link" id="btn-signup-toggle">Create an account</button>
@@ -1192,7 +1211,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
   <div class="home-welcome">
     <h1 id="pickac-line">Select Your Aircraft</h1>
@@ -1263,7 +1282,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
 
   <div class="center-stack">
@@ -1305,7 +1324,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1339,7 +1358,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1373,7 +1392,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1404,7 +1423,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1435,7 +1454,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1466,7 +1485,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1497,7 +1516,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1528,7 +1547,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
 
   <div class="center-stack">
@@ -1589,7 +1608,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
 
   <div class="center-stack" style="align-items:flex-start">
@@ -1623,7 +1642,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
-    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
   </nav>
 
   <div class="center-stack" style="align-items:flex-start">
@@ -1749,7 +1768,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.17</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.19</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2159,9 +2178,36 @@ body.light .flight-number .flight-route{color:#15171d}
     } catch (e) {}
     return pilotByCode(code);
   }
+  function appVersionNum(v) { return parseFloat(String(v || '').replace(/[^0-9.]/g, '')) || 0; }
+  function checkAppVersion() {
+    if (!fdb || !state.myCode) return;
+    const el = document.querySelector('.ver-float');
+    const local = el ? el.textContent.trim() : '';
+    if (!local) return;
+    fdb.ref('meta/version').get().then(sn => {
+      const remote = (sn && sn.val()) || '';
+      if (state.myCode === ADMIN_CODE && appVersionNum(local) > appVersionNum(remote)) {
+        fdb.ref('meta/version').set(local).catch(() => {}); // SM opening a fresh build publishes it for everyone
+        return;
+      }
+      if (appVersionNum(remote) > appVersionNum(local) && !$('ver-banner')) {
+        const bar = document.createElement('div');
+        bar.id = 'ver-banner';
+        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:500;background:var(--accent);color:#14161c;font-size:13px;font-weight:700;padding:9px 16px;text-align:center;letter-spacing:0.04em';
+        bar.innerHTML = 'A new version of CrewDeck EFB (' + escapeHTML(remote) + ') is out — <button id="ver-reload" style="all:unset;text-decoration:underline;cursor:pointer;font-weight:800">refresh to update</button>';
+        document.body.appendChild(bar);
+        document.getElementById('ver-reload').addEventListener('click', () => location.reload());
+      }
+    }).catch(() => {});
+  }
+  setInterval(checkAppVersion, 10 * 60000); // keep long sessions honest too
   function finishLogin(code, name) {
     state.myCode = code;
     state.myName = name;
+    try { localStorage.setItem('fdeck-expect-auth', '1'); } catch (e) {} // next refresh: skip the sign-in flash
+    document.documentElement.classList.remove('booting');
+    const lb = $('btn-login-back');
+    if (lb) lb.style.display = 'none'; // logged in — there is no "back" before the app
     const bn0 = $('newpilot-banner'); if (bn0) bn0.classList.add('hidden');
     syncCareerFromCloud();
     flushReviewOutbox(); // flagged flights parked while offline go up now
@@ -2185,6 +2231,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateSupportBadge();
     fetchAllHours();
     setTimeout(checkFirstAwards, 2500); // once the cloud career has landed
+    checkAppVersion();
   }
   // =====================================================================
   // ACCOUNTS — real email + password auth (Firebase Authentication).
@@ -2292,14 +2339,15 @@ body.light .flight-number .flight-route{color:#15171d}
   if (fauth) {
     let booted = false;
     fauth.onAuthStateChanged(user => {
-      if (signupBusy || booted || !user || state.myCode) return; // signup handler owns profile creation
+      if (!user) { revealLoginForm(); return; } // definitively signed out — show the form
+      if (signupBusy || booted || state.myCode) return; // signup handler owns profile creation
       booted = true;
       resolvePilotForUser(user, (code, nm) => {
         if (!state.myCode) finishLogin(code, nm);
       });
     });
   }
-  $('btn-login-back').addEventListener('click', () => show('home'));
+  $('btn-login-back').addEventListener('click', () => { if (state.myName) { showDecksScreen(); } else show('home'); });
   $('login-email').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
   $('login-pass').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
   // (one-click login now comes from the Firebase Auth session itself)
@@ -2468,6 +2516,7 @@ body.light .flight-number .flight-route{color:#15171d}
     signupBusy = true;
     fauth.createUserWithEmailAndPassword(email, pass).then(cred => {
       const user = cred.user;
+      try { if (user.sendEmailVerification) user.sendEmailVerification(); } catch (e) {} // verify link goes out immediately
       const freshStart = () => createPilotProfile(user, want, (code, mine) => {
         restore();
         finishLogin(code, mine);
@@ -3014,7 +3063,7 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   // ---- PIC flight setup (OFP-first) ----
   $('btn-setup-back').addEventListener('click', () => openLobby());
-  $('btn-setup-cancel').addEventListener('click', () => show('home'));
+  $('btn-setup-cancel').addEventListener('click', () => openLobby()); // exit flight creation -> aircraft lobby, never the sign-in screen
   // OFP chosen right on the setup form: parse it immediately and pre-fill
   // callsign, route, and off-block; gate labels pick up the airports.
   let setupOfp = null; // { wx, temp, ftPhrase, eteMin }
@@ -4674,11 +4723,8 @@ body.light .flight-number .flight-route{color:#15171d}
     b.addEventListener('click', () => {
       const t = b.dataset.tab;
       if (t === 'theme') { toggleTheme(); return; }
-      if (t === 'signout') {
-        if (fauth && state.myCode) {
-          if (!confirm('Sign out of CrewDeck on this browser?')) return;
-          fauth.signOut().then(() => { try { localStorage.removeItem('fdeck-last-tab'); } catch (e) {} location.reload(); });
-        }
+      if (t === 'signout' || t === 'account') {
+        toggleAccountMenu();
         return;
       }
       if (t === 'viewas') {
@@ -5052,7 +5098,7 @@ body.light .flight-number .flight-route{color:#15171d}
         if (!confirm('Leave the flight deck? ' + initials(other.name) + ' keeps the aircraft and continues single pilot.')) return;
         broadcast({ type: 'handover' });
         lobbyUnannounce();
-        setTimeout(() => { teardown(); show('home'); }, 400);
+        setTimeout(() => { teardown(); backToBase(); }, 400);
         return;
       }
       if (state.solo && !flightCommitted && state.ticked.size) {
@@ -5063,12 +5109,12 @@ body.light .flight-number .flight-route{color:#15171d}
       }
       lobbyUnannounce();
       teardown();
-      show('home');
+      backToBase();
       return;
     }
     if (!confirm('Leave this flight deck?')) return;
     teardown();
-    show('home');
+    backToBase();
   });
   $('btn-tabs-out').addEventListener('click', () => { openLobby(); });
   $('flight-number').addEventListener('click', editFlightNumber);
@@ -5097,7 +5143,7 @@ body.light .flight-number .flight-route{color:#15171d}
       () => toast('Copy failed')
     );
   });
-  $('btn-cancel').addEventListener('click', () => { teardown(); show('home'); });
+  $('btn-cancel').addEventListener('click', () => { teardown(); backToBase(); });
   $('btn-retry').addEventListener('click', () => {
     if (!state.code) return;
     $('btn-retry').classList.add('hidden');
@@ -5708,6 +5754,47 @@ body.light .flight-number .flight-route{color:#15171d}
     if (isAdminView() || code === ADMIN_CODE) return true; // support line always open
     return crewStatusWith(code) === 'crew';
   }
+  function doSignOut() {
+    if (!fauth || !state.myCode) return;
+    if (!confirm('Sign out of CrewDeck on this browser?')) return;
+    fauth.signOut().then(() => { try { localStorage.removeItem('fdeck-last-tab'); localStorage.removeItem('fdeck-expect-auth'); } catch (e) {} location.reload(); });
+  }
+  function toggleAccountMenu(force) {
+    const m = $('account-menu');
+    if (!m) return;
+    const open = force !== undefined ? force : m.classList.contains('hidden');
+    if (!open) { m.classList.add('hidden'); return; }
+    const u = fauth && fauth.currentUser;
+    $('am-email').textContent = (u && u.email ? u.email : '') + (state.myCode ? ' · ID ' + state.myCode : '');
+    $('am-verify').style.display = (u && u.email && u.emailVerified === false) ? '' : 'none';
+    m.classList.remove('hidden');
+  }
+  (function wireAccountMenu() {
+    const m = $('account-menu');
+    if (!m) return;
+    $('am-signout').addEventListener('click', () => { toggleAccountMenu(false); doSignOut(); });
+    $('am-initials').addEventListener('click', () => { toggleAccountMenu(false); changeMyInitials(); });
+    $('am-password').addEventListener('click', () => {
+      toggleAccountMenu(false);
+      const u = fauth && fauth.currentUser;
+      if (!u || !u.email) { toast('Log in first'); return; }
+      fauth.sendPasswordResetEmail(u.email)
+        .then(() => toast('Password change link sent to ' + u.email))
+        .catch(() => toast('Could not send the link — try again'));
+    });
+    $('am-resend').addEventListener('click', () => {
+      const u = fauth && fauth.currentUser;
+      if (u && u.sendEmailVerification) u.sendEmailVerification()
+        .then(() => toast('Verification link sent to ' + u.email))
+        .catch(() => toast('Could not send — try again in a minute'));
+    });
+    document.addEventListener('click', (e) => {
+      if (m.classList.contains('hidden')) return;
+      if (m.contains(e.target)) return;
+      if (e.target.closest && e.target.closest('[data-tab="account"]')) return;
+      m.classList.add('hidden');
+    });
+  })();
   function showCrewScreen() {
     if (!state.myName) { show('home'); return; }
     setActiveTab('crew');
@@ -7568,6 +7655,21 @@ body.light .flight-number .flight-route{color:#15171d}
   if (btnThemeRoom) btnThemeRoom.addEventListener('click', toggleTheme);
   // ---- boot ----
   applyStoredTheme();
+  function revealLoginForm() {
+    document.documentElement.classList.remove('booting');
+    const w = $('home-auth-wait'); if (w) w.classList.add('hidden');
+    const c = $('home-login-card'); if (c) c.style.display = '';
+    const hw = $('home-welcome-box'); if (hw) hw.style.display = '';
+  }
+  (() => { // returning session? keep the sign-in form out of sight while auto-login runs
+    let expect = false;
+    try { expect = localStorage.getItem('fdeck-expect-auth') === '1'; } catch (e) {}
+    if (!expect || !window.firebase) return;
+    const w = $('home-auth-wait'); if (w) w.classList.remove('hidden');
+    const c = $('home-login-card'); if (c) c.style.display = 'none';
+    const hw = $('home-welcome-box'); if (hw) hw.style.display = 'none';
+    setTimeout(() => { if (!state.myCode) revealLoginForm(); }, 6000); // fail-safe: never trap anyone on a spinner
+  })();
   show('home');
 })();
 </script>
