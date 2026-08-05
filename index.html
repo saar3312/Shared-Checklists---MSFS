@@ -458,6 +458,10 @@ body.light .app-icon{box-shadow:0 6px 14px rgba(40,50,70,0.28), inset 0 1px 0 rg
   display:flex;align-items:center;justify-content:space-between;
   padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface);
 }
+/* equal flex flanks so the center title is truly centered no matter the side widths */
+.subnav > *:first-child{flex:1 1 0;display:flex;justify-content:flex-start}
+.subnav > *:last-child{flex:1 1 0;display:flex;justify-content:flex-end}
+.subnav > .subnav-title{flex:0 0 auto}
 .subnav-title{font-size:13px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase}
 .subnav-title strong{color:var(--accent);font-weight:600}
 .center-stack{
@@ -1112,10 +1116,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v4.20</div>
+<div class="ver-float app-version">v4.21</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.20</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.21</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1768,7 +1772,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.20</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.21</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2207,7 +2211,7 @@ body.light .flight-number .flight-route{color:#15171d}
     try { localStorage.setItem('fdeck-expect-auth', '1'); } catch (e) {} // next refresh: skip the sign-in flash
     document.documentElement.classList.remove('booting');
     const lb = $('btn-login-back');
-    if (lb) lb.style.display = 'none'; // logged in — there is no "back" before the app
+    if (lb) lb.style.visibility = 'hidden'; // logged in — no "back" before the app (keeps its flex slot so the title stays centered)
     const bn0 = $('newpilot-banner'); if (bn0) bn0.classList.add('hidden');
     syncCareerFromCloud();
     flushReviewOutbox(); // flagged flights parked while offline go up now
