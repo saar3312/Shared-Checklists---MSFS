@@ -25,7 +25,7 @@
   --tap:44px;
   --shade:8,10,14; /* RGB triple used by image-overlay gradients */
 }
-body.light {
+html.light, body.light {
   --bg:#f5f6f9;
   --surface:#ffffff;
   --surface-2:#eef0f4;
@@ -1080,10 +1080,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.09</div>
+<div class="ver-float app-version">v4.10</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.09</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.10</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1165,12 +1165,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1234,12 +1236,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1273,12 +1277,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1304,12 +1310,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1336,12 +1344,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1365,12 +1375,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1394,12 +1406,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1423,12 +1437,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1436,6 +1452,37 @@ body.light .flight-number .flight-route{color:#15171d}
     <div class="setup-card lobby-card">
       <h2 id="chat-title">Messages</h2>
       <div id="chat-body"><p class="lobby-empty">Loading…</p></div>
+    </div>
+  </div>
+</div>
+<!-- Crew tab: your crew list -->
+<div id="screen-crew" class="hidden">
+  <div class="subnav">
+    <button class="btn link" id="btn-crew-back">&larr; Back</button>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
+    <span></span>
+  </div>
+  <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
+    <button type="button" data-tab="newflight">New Flight</button>
+    <button type="button" data-tab="decks">Active Decks</button>
+    <button type="button" data-tab="chat">Messages</button>
+    <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
+    <button type="button" data-tab="logbook">Logbook</button>
+    <button type="button" data-tab="stats">My Career</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
+    <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
+  </nav>
+  <div class="center-stack">
+    <div class="setup-card lobby-card">
+      <h2>My Crew</h2>
+      <div id="crew-body"><p class="lobby-empty">Loading&hellip;</p></div>
     </div>
   </div>
 </div>
@@ -1452,12 +1499,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1511,12 +1560,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1543,12 +1594,14 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="decks">Active Decks</button>
     <button type="button" data-tab="chat">Messages</button>
     <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
     <button type="button" data-tab="logbook">Logbook</button>
     <button type="button" data-tab="stats">My Career</button>
     <button type="button" data-tab="roadmap">Roadmap</button>
     <button type="button" data-tab="guide">Guide</button>
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
     <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
@@ -1676,7 +1729,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.09</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.10</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2063,6 +2116,7 @@ body.light .flight-number .flight-route{color:#15171d}
     roadmap: $('screen-roadmap'),
     stats: $('screen-stats'),
     chat: $('screen-chat'),
+    crew: $('screen-crew'),
     support: $('screen-support'),
     logbook: $('screen-logbook'),
     roster: $('screen-roster'),
@@ -2269,7 +2323,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function showSupportScreen() {
     if (!state.myName) { show('home'); return; }
-    if (state.myCode === ADMIN_CODE) { showInboxScreen(); return; } // SM's support IS the inbox
+    if (isAdminView()) { showInboxScreen(); return; } // SM's support IS the inbox
     setActiveTab('support');
     show('support');
     updateInboxTab();
@@ -2306,7 +2360,7 @@ body.light .flight-number .flight-route{color:#15171d}
     }).catch(() => { box.innerHTML = '<p class="lobby-empty">Could not load support.</p>'; });
   }
   function updateSupportBadge() {
-    if (!fdb || !state.myCode || state.myCode === ADMIN_CODE) return;
+    if (!fdb || !state.myCode || isAdminView()) return;
     fdb.ref('careers/_support/' + state.myCode).get().then(sn => {
       const v = sn && sn.val();
       const last = ticketLast(v);
@@ -2527,7 +2581,7 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!state.myCode) return;
     const proceed = (m) => {
       m.logins = (m.logins || 0) + 1;
-      const due = (m.hiddenAt === undefined || m.hiddenAt === null) || (m.logins - m.hiddenAt >= 10);
+      const due = (m.hiddenAt === undefined || m.hiddenAt === null); // once dismissed, it stays dismissed (Guide tab always has it)
       saveGuideMeta(m);
       if (due) openGuide();
     };
@@ -2758,7 +2812,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const m = guideMeta();
     m.hiddenAt = m.logins || 0;
     saveGuideMeta(m);
-    toast('Got it — hidden for the next 10 logins, then you get one refresher');
+    toast('Got it — the full guide lives in the Guide tab whenever you need it');
   });
   function updateMyFlightTab() {
     const on = !!(state.code && state.checklist);
@@ -2768,11 +2822,15 @@ body.light .flight-number .flight-route{color:#15171d}
     });
   }
   function updateInboxTab() {
-    const isAdmin = state.myCode === ADMIN_CODE;
+    const isAdmin = isAdminView();
     document.querySelectorAll('.app-tabs button[data-tab="inbox"]')
       .forEach(b2 => { b2.style.display = isAdmin ? '' : 'none'; });
     const nav = $('nav-inbox1');
     if (nav) nav.style.display = isAdmin ? '' : 'none';
+    document.querySelectorAll('.app-tabs button[data-tab="viewas"]').forEach(b2 => {
+      b2.style.display = state.myCode === ADMIN_CODE ? '' : 'none';
+      b2.textContent = viewAsPilot ? 'View As SM' : 'View As Pilot';
+    });
   }
   function checkAdminInbox(announce) {
     if (state.myCode !== ADMIN_CODE || !fdb) return;
@@ -2808,7 +2866,7 @@ body.light .flight-number .flight-route{color:#15171d}
     renderLobbyResume();
   }
   function showInboxScreen() {
-    if (state.myCode !== ADMIN_CODE) { backToBase(); return; }
+    if (!isAdminView()) { backToBase(); return; }
     setActiveTab('inbox');
     show('inbox');
     updateInboxTab();
@@ -4394,7 +4452,7 @@ body.light .flight-number .flight-route{color:#15171d}
         if (rr.PM) online.add(rr.PM);
       }
     } catch (e) {}
-    const admin = state.myCode === ADMIN_CODE; // SM sees everyone's pilot IDs
+    const admin = isAdminView(); // SM sees everyone's pilot IDs
     const th = (k, label) => '<th class="rs' + (lbSort === k ? ' on' : '') + '" data-rs="' + k + '">' + label + '</th>';
     let html = '<table class="lb-table"><tr><th>Seniority</th><th style="text-align:center">Pilot</th><th>Crew</th>' +
       (admin ? '<th>ID</th>' : '') +
@@ -4498,7 +4556,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateInboxTab();
     updateMyFlightTab();
   }
-  const RESTORABLE_TABS = ['newflight', 'decks', 'chat', 'roster', 'logbook', 'stats', 'roadmap', 'guide', 'inbox', 'support'];
+  const RESTORABLE_TABS = ['newflight', 'decks', 'chat', 'crew', 'roster', 'logbook', 'stats', 'roadmap', 'guide', 'inbox', 'support'];
   function rememberTab(t) { try { if (RESTORABLE_TABS.includes(t)) localStorage.setItem('fdeck-last-tab', t); } catch (e) {} }
   function gotoTab(t) {
     if (t === 'support') { showSupportScreen(); return; }
@@ -4511,6 +4569,7 @@ body.light .flight-number .flight-route{color:#15171d}
     else if (t === 'decks') showDecksScreen();
     else if (t === 'inbox') showInboxScreen();
     else if (t === 'chat') showChatScreen();
+    else if (t === 'crew') showCrewScreen();
     else if (t === 'guide') showGuideScreen();
     else if (t === 'roadmap') showRoadmapScreen();
     else if (t === 'stats') showStatsScreen();
@@ -4528,11 +4587,20 @@ body.light .flight-number .flight-route{color:#15171d}
         }
         return;
       }
+      if (t === 'viewas') {
+        viewAsPilot = !viewAsPilot;
+        toast(viewAsPilot ? 'Testing mode — you now see the app exactly as a regular pilot does' : 'Back to SM view');
+        updateInboxTab();
+        const cur = document.querySelector('.app-tabs button.active:not(.tab-mini)');
+        gotoTab(cur && cur.dataset.tab && cur.dataset.tab !== 'inbox' ? cur.dataset.tab : 'newflight');
+        return;
+      }
       rememberTab(t);
       gotoTab(t);
     });
   });
   $('btn-roster-back').addEventListener('click', backToBase);
+  $('btn-crew-back').addEventListener('click', backToBase);
   $('btn-decks-back').addEventListener('click', backToBase);
   $('btn-inbox-back').addEventListener('click', backToBase);
   $('btn-guide-back').addEventListener('click', backToBase);
@@ -5336,6 +5404,8 @@ body.light .flight-number .flight-route{color:#15171d}
   // be retained (restored & credited) later.
   // =====================================================================
   const ADMIN_CODE = '2974'; // SM — saarang20@gmail.com's account
+  let viewAsPilot = false; // SM testing mode: browse the app exactly as a regular pilot sees it
+  function isAdminView() { return state.myCode === ADMIN_CODE && !viewAsPilot; }
   function submitForReview(entry, reason) {
     const rev = { code: state.myCode, name: state.myName || '', status: 'pending',
                   reason: reason, ete: state.eteMin || 0, ts: Date.now(), entry: entry };
@@ -5522,15 +5592,68 @@ body.light .flight-number .flight-route{color:#15171d}
       if (crewCache[id]) crewCache[id].status = 'crew';
       toast('Crewed up — you can chat now');
       renderChat();
+      renderCrewIfOpen();
     });
   }
   function crewRemove(id) {
-    fdb.ref('careers/_crew/' + id).remove().then(() => { delete crewCache[id]; renderChat(); if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
+    fdb.ref('careers/_crew/' + id).remove().then(() => { delete crewCache[id]; renderChat(); renderCrewIfOpen(); if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
   }
   function canChatWith(code) {
-    if (state.myCode === ADMIN_CODE || code === ADMIN_CODE) return true; // support line always open
+    if (isAdminView() || code === ADMIN_CODE) return true; // support line always open
     return crewStatusWith(code) === 'crew';
   }
+  function showCrewScreen() {
+    if (!state.myName) { show('home'); return; }
+    setActiveTab('crew');
+    show('crew');
+    updateInboxTab();
+    renderCrew();
+  }
+  function renderCrew() {
+    const box = $('crew-body');
+    if (!box) return;
+    if (!fdb) { box.innerHTML = '<p class="lobby-empty">Crew needs internet.</p>'; return; }
+    crewFetch(() => fetchCloudPilots(pilots => {
+      if (screens.crew.classList.contains('hidden')) return;
+      const crew = [], incoming = [], outgoing = [];
+      for (const id of Object.keys(crewCache)) {
+        const rec = crewCache[id];
+        if (!rec) continue;
+        const other = rec.a === state.myCode ? rec.b : rec.a;
+        if (!pilots[other]) continue; // deleted pilots drop off the list
+        if (rec.status === 'crew') crew.push({ id: id, other: other });
+        else if (rec.status === 'pending' && rec.by !== state.myCode) incoming.push({ id: id, other: other });
+        else if (rec.status === 'pending') outgoing.push({ id: id, other: other });
+      }
+      let html = '';
+      if (incoming.length) {
+        html += '<p class="lobby-h">Crew Requests</p>' + incoming.map(r =>
+          '<div class="chat-thread" style="border-color:var(--accent)"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">' +
+          '<span>' + wingedByCode(r.other) + ' <span style="font-size:13px;color:var(--text-muted)">wants to crew up with you</span></span>' +
+          '<span><button type="button" class="btn primary" data-crew-acc="' + escapeHTML(r.id) + '" style="font-size:12px">Accept</button> ' +
+          '<button type="button" class="btn link" data-crew-dec="' + escapeHTML(r.id) + '" style="font-size:12px">Decline</button></span></div></div>').join('');
+      }
+      html += '<p class="lobby-h"' + (incoming.length ? ' style="margin-top:14px"' : '') + '>My Crew' + (crew.length ? ' (' + crew.length + ')' : '') + '</p>';
+      html += crew.length ? crew.map(r =>
+        '<div class="chat-thread"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">' +
+        '<span>' + wingedByCode(r.other) + '</span>' +
+        '<span><button type="button" class="btn" data-crew-msg="' + escapeHTML(r.other) + '" style="font-size:12px">Message</button> ' +
+        '<button type="button" class="btn link" data-crew-out="' + escapeHTML(r.id) + '" title="Remove from crew" style="font-size:12px;color:#e5484d">Remove</button></span></div></div>').join('')
+        : '<p class="lobby-empty">No crew yet — find pilots on the Roster and hit \u201c+ Crew\u201d. Once they accept, they show up here and you can message each other.</p>';
+      if (outgoing.length) {
+        html += '<p class="lobby-h" style="margin-top:14px">Sent — Waiting On Them</p>' + outgoing.map(r =>
+          '<div class="chat-thread"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">' +
+          '<span>' + wingedByCode(r.other) + ' <span style="font-size:12px;color:var(--text-muted)">request pending</span></span>' +
+          '<button type="button" class="btn link" data-crew-out="' + escapeHTML(r.id) + '" style="font-size:12px">Cancel</button></div></div>').join('');
+      }
+      box.innerHTML = html;
+      box.querySelectorAll('[data-crew-acc]').forEach(el => el.addEventListener('click', () => crewAccept(el.dataset.crewAcc)));
+      box.querySelectorAll('[data-crew-dec]').forEach(el => el.addEventListener('click', () => { if (confirm('Decline this crew request?')) crewRemove(el.dataset.crewDec); }));
+      box.querySelectorAll('[data-crew-out]').forEach(el => el.addEventListener('click', () => crewRemove(el.dataset.crewOut)));
+      box.querySelectorAll('[data-crew-msg]').forEach(el => el.addEventListener('click', () => { chatWith = el.dataset.crewMsg; showChatScreen(); }));
+    }));
+  }
+  function renderCrewIfOpen() { if (screens.crew && !screens.crew.classList.contains('hidden')) renderCrew(); }
   const CHAT_SLOWMODE_MS = 15000;
   const CHAT_HOURLY_CAP = 30;
   let chatWith = null;
@@ -5911,7 +6034,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const c = (sn && sn.val()) || { hours: 0, money: 0, flights: 0, log: [] };
       c.log = c.log || [];
       $('logbook-career').innerHTML = careerSummaryHtml(c);
-      $('logbook-table').innerHTML = logbookTableHtml(c, state.myCode === ADMIN_CODE ? code : null);
+      $('logbook-table').innerHTML = logbookTableHtml(c, isAdminView() ? code : null);
       wireLogDeletes(code);
     }).catch(() => { $('logbook-career').innerHTML = '<p class="lobby-empty">Could not load this logbook.</p>'; });
   }
@@ -5919,7 +6042,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const c = myCareer();
     $('logbook-title').textContent = 'Logbook — ' + initials(state.myName);
     $('logbook-career').innerHTML = careerSummaryHtml(c);
-    $('logbook-table').innerHTML = logbookTableHtml(c, state.myCode === ADMIN_CODE ? state.myCode : null);
+    $('logbook-table').innerHTML = logbookTableHtml(c, isAdminView() ? state.myCode : null);
     wireLogDeletes(state.myCode);
     toggleLogbookOwnButtons(true);
     updateBrandLines();
@@ -6318,13 +6441,13 @@ body.light .flight-number .flight-route{color:#15171d}
               fmtMoney(estPay(sv.slug, 'PIC', sv._hours || 0, Math.max(0, ((sv.engOffAt || Date.now()) - sv.pushAt) / 60000))) +
               '</span><span style="font-size:11px;color:var(--text-muted)"> earned — still counting</span></span>'
             : '') +
-          (state.myCode === ADMIN_CODE
+          (isAdminView()
             ? '<button type="button" class="lobby-seat" data-del-save="' + escapeHTML(pcode) + '">' +
               '<span class="seat-tag">Delete deck</span>Remove ' + escapeHTML(initials(nm)) + "'s paused flight</button>"
             : '') + '</div>';
       list.appendChild(row);
     });
-    if (state.myCode === ADMIN_CODE) {
+    if (isAdminView()) {
       list.querySelectorAll('[data-del-save]').forEach(b2 =>
         b2.addEventListener('click', () => {
           if (!fdb) return;
@@ -6389,7 +6512,7 @@ body.light .flight-number .flight-route{color:#15171d}
       pilots2.appendChild(seatPanel('PIC'));
       pilots2.appendChild(seatPanel('PM'));
       row.appendChild(pilots2);
-      if (state.myCode === ADMIN_CODE) {
+      if (isAdminView()) {
         const vb = document.createElement('button');
         vb.type = 'button';
         vb.className = 'lobby-seat';
@@ -6439,12 +6562,13 @@ body.light .flight-number .flight-route{color:#15171d}
   const THEME_KEY = 'cockpit-checklist-theme';
   function applyStoredTheme() {
     try {
-      if (localStorage.getItem(THEME_KEY) === 'light') document.body.classList.add('light');
+      if (localStorage.getItem(THEME_KEY) === 'light') { document.body.classList.add('light'); document.documentElement.classList.add('light'); }
     } catch (e) {}
     updateThemeButtons();
   }
   function toggleTheme() {
     document.body.classList.toggle('light');
+    document.documentElement.classList.toggle('light', document.body.classList.contains('light'));
     try {
       localStorage.setItem(THEME_KEY,
         document.body.classList.contains('light') ? 'light' : 'dark');
