@@ -1080,10 +1080,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.05</div>
+<div class="ver-float app-version">v4.06</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.05</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.06</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1677,7 +1677,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.05</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.06</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2160,14 +2160,34 @@ body.light .flight-number .flight-route{color:#15171d}
         for (let d = 2; d <= 9 && !mine; d++) if (!taken[wantInitials + d]) mine = wantInitials + d;
         if (!mine) mine = wantInitials + Math.floor(Math.random() * 90 + 10);
       }
-      fdb.ref('pilots/' + code).set({ name: mine, uid: user.uid });
-      fdb.ref('users/' + user.uid).set({ code: code, email: user.email || '' });
-      try {
-        const cache = JSON.parse(localStorage.getItem('fdeck-pilots-cache') || '{}');
-        cache[code] = { name: mine };
-        localStorage.setItem('fdeck-pilots-cache', JSON.stringify(cache));
-      } catch (e) {}
-      cb(code, mine);
+      const iWon = () => {
+        fdb.ref('pilots/' + code).set({ name: mine, uid: user.uid });
+        try {
+          const cache = JSON.parse(localStorage.getItem('fdeck-pilots-cache') || '{}');
+          cache[code] = { name: mine };
+          localStorage.setItem('fdeck-pilots-cache', JSON.stringify(cache));
+        } catch (e) {}
+        cb(code, mine);
+      };
+      const someoneElseWon = () => {
+        // another tab/handler already linked this account to a pilot — reuse THAT one, never create a second
+        fdb.ref('users/' + user.uid).get().then(s2 => {
+          const v2 = (s2 && s2.val()) || {};
+          if (!v2.code) { iWon(); return; }
+          fdb.ref('pilots/' + v2.code).get().then(p2 => {
+            const nm2 = ((p2 && p2.val()) || {}).name || wantInitials;
+            cb(v2.code, nm2);
+          }).catch(() => cb(v2.code, wantInitials));
+        }).catch(() => toast('Could not create your pilot profile — try again'));
+      };
+      const uref = fdb.ref('users/' + user.uid);
+      if (typeof uref.transaction === 'function') {
+        uref.transaction(cur => (cur == null ? { code: code, email: user.email || '' } : undefined))
+          .then(res => { (res && res.committed) ? iWon() : someoneElseWon(); })
+          .catch(() => someoneElseWon());
+      } else {
+        uref.set({ code: code, email: user.email || '' }).then(iWon).catch(() => toast('Could not create your pilot profile — try again'));
+      }
     }).catch(() => toast('Could not create your pilot profile — try again'));
   }
   $('login-form').addEventListener('submit', (e) => {
@@ -5654,7 +5674,12 @@ body.light .flight-number .flight-route{color:#15171d}
     return n;
   }
   function updateChatBadge(threads) {
-    const n = chatUnreadCount(threads || chatCache);
+    let n = chatUnreadCount(threads || chatCache);
+    // incoming crew requests wait in the Chat tab too — badge them so they get seen
+    for (const id of Object.keys(crewCache)) {
+      const rec = crewCache[id];
+      if (rec && rec.status === 'pending' && rec.by !== state.myCode) n++;
+    }
     document.querySelectorAll('.app-tabs button[data-tab="chat"]').forEach(b2 => {
       b2.innerHTML = 'Chat' + (n ? '<span class="tab-badge">' + (n > 9 ? '9+' : n) + '</span>' : '');
     });
