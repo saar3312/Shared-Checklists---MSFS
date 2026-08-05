@@ -1098,10 +1098,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.16</div>
+<div class="ver-float app-version">v4.17</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.16</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.17</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1749,7 +1749,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.16</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.17</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2938,6 +2938,8 @@ body.light .flight-number .flight-route{color:#15171d}
       testFlight.prog = Math.min(100, Math.max(0, parseInt($('tf-prog').value, 10) || 0));
       testFlight.eteMin = Math.max(0, parseInt($('tf-ete').value, 10) || 0);
       testFlight.roles.PM = $('tf-pm').value || null;
+      // like a real flight: FLIGHT COMPLETE means engines off — the pay clock stops
+      if (testFlight.phase === 'FLIGHT COMPLETE') $('tf-eng').value = 'off';
       testFlight.engOffAt = $('tf-eng').value === 'off' ? Date.now() : 0;
       renderLobbyList();
     };
