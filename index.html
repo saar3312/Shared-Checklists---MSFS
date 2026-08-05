@@ -165,8 +165,21 @@ button{font-family:inherit;color:inherit}
 .lobby-paused{opacity:0.7}
 #screen-roadmap .lobby-card{max-width:780px;width:100%}
 #screen-roadmap h2{font-size:26px}
+.stripes{display:inline-flex;gap:2px;align-items:center;margin:0 6px;vertical-align:middle;
+  background:#101318;border:1px solid rgba(255,255,255,0.08);border-radius:4px;padding:3px 5px}
+.stripes i{display:block;width:3px;height:12px;border-radius:1px;background:currentColor}
+body.light .stripes{background:#2c313c}
+.rm-track{display:flex;flex-direction:column}
+.rm-row{display:flex;gap:18px}
+.rm-rail{display:flex;flex-direction:column;align-items:center;width:24px;flex:0 0 auto}
+.rm-node{width:18px;height:18px;border-radius:50%;background:var(--border);flex:0 0 auto;
+  margin-top:34px;border:2px solid var(--bg);transition:background .3s}
+.rm-seg{width:5px;flex:1 1 auto;border-radius:3px;margin:6px 0;min-height:34px}
+.rm-seg-live{animation:rmpulse 1.6s ease-in-out infinite}
+@keyframes rmpulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.55)}}
+.rm-stats{font-size:14px;margin-bottom:2px}
 .rm-step{border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin:12px 0;
-  display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+  display:flex;flex-direction:column;gap:8px;align-items:flex-start;flex:1 1 auto}
 .rm-step .lvl{font-size:15px;padding:5px 14px}
 .rm-me .lvl{font-size:17px}
 .rm-me{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
@@ -978,10 +991,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.61</div>
+<div class="ver-float app-version">v3.62</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.61</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.62</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1488,7 +1501,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.61</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.62</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1654,6 +1667,13 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!n) return '';
     if (!/\s/.test(n) && n.length <= 4) return n.toUpperCase(); // already initials
     return n.split(/\s+/).map(w => (w[0] || '').toUpperCase()).join('').slice(0, 3);
+  }
+  const RANK_COLORS = ['#8a94a3', '#5b9fc4', '#2fa170', '#c9942e', '#8d6cc9', '#40cfd4'];
+  function stripesHtml(idx) {
+    const bars = idx === 0 ? 2 : (idx <= 2 ? 3 : 4); // FO family 3 stripes, Captains 4 (fresh JFO 2)
+    let s2 = '<span class="stripes" title="rank stripes" style="color:' + RANK_COLORS[idx] + '">';
+    for (let i = 0; i < bars; i++) s2 += '<i></i>';
+    return s2 + '</span>';
   }
   function pilotByCode(code) {
     const c = String(code || '').trim();
@@ -2255,12 +2275,12 @@ body.light .flight-number .flight-route{color:#15171d}
     'see the same flows live — every tick syncs between your browsers — and finishing a full flight pays into your career.</p>' +
     '<p class="lobby-h">THE RATING SYSTEM — READ THIS FIRST</p>' +
     '<p><strong>Your rank is your pay grade.</strong> Hours you log promote you, and every rank multiplies every future paycheck:</p>' +
-    '<p><span class="lvl lvl-0">Junior First Officer</span> never flown · ×1.0<br>' +
-    '<span class="lvl lvl-1">First Officer</span> your first flight → 40 h · ×1.1<br>' +
-    '<span class="lvl lvl-2">Senior First Officer</span> 40–100 h · ×1.2<br>' +
-    '<span class="lvl lvl-3">Junior Captain</span> 100–200 h · ×1.5<br>' +
-    '<span class="lvl lvl-4">Senior Captain</span> 200–500 h · ×1.8<br>' +
-    '<span class="lvl lvl-5">Platinum Captain</span> 500 h+ · ×2.2, +0.1× every extra 100 h</p>' +
+    '<p><span class="lvl lvl-0">Junior First Officer</span>' + stripesHtml(0) + ' never flown · ×1.0<br>' +
+    '<span class="lvl lvl-1">First Officer</span>' + stripesHtml(1) + ' your first flight → 40 h · ×1.1<br>' +
+    '<span class="lvl lvl-2">Senior First Officer</span>' + stripesHtml(2) + ' 40–100 h · ×1.2<br>' +
+    '<span class="lvl lvl-3">Junior Captain</span>' + stripesHtml(3) + ' 100–200 h · ×1.5<br>' +
+    '<span class="lvl lvl-4">Senior Captain</span>' + stripesHtml(4) + ' 200–500 h · ×1.8<br>' +
+    '<span class="lvl lvl-5">Platinum Captain</span>' + stripesHtml(5) + ' 500 h+ · ×2.2, +0.1× every extra 100 h</p>' +
     '<p><strong>What a flight pays:</strong> aircraft base rate × your seat (PIC earns 1.5× what PM does) × your rank multiplier, ' +
     'for every real-time minute from pushback to engines-off. Bigger metal pays better — the A220 is the entry rate, the A380 the top. ' +
     'Your exact PIC/PM rate per hour shows under every aircraft on the selection grid.</p>' +
@@ -2328,30 +2348,53 @@ body.light .flight-number .flight-route{color:#15171d}
   function roadmapHtml() {
     const c = myCareer();
     const lv = levelFor(c.hours);
-    let html = '<p style="font-size:13px">Every hour you log climbs this ladder — and your rank multiplies every paycheck.</p>';
+    let html = '<p style="font-size:13px">Every hour you log moves you up the line — your rank multiplies every paycheck.</p>' +
+      '<div class="rm-track">';
     LEVELS.forEach((L, i) => {
+      const reached = i <= lv.idx;
       const me = i === lv.idx;
       const lo = i === 0 ? 0 : LEVELS[i - 1].max;
       const hi = L.max;
+      // how far along the segment BELOW this node you are
+      let segPct = 0;
+      if (i < lv.idx) segPct = 100;
+      else if (me) {
+        if (!isFinite(hi)) segPct = 100;
+        else if (hi <= lo) segPct = 0;
+        else segPct = Math.min(100, Math.round(((c.hours - lo) / (hi - lo)) * 100));
+      }
       const range = i === 0 ? 'never flown' : (isFinite(hi) ? lo + '–' + hi + ' h' : lo + ' h and beyond');
       let prog = '';
       if (me) {
-        if (i === 0) prog = 'Fly (and finish) your first flight to move up.';
+        const statLine = '<div class="rm-stats"><strong>' + c.hours.toFixed(1) + ' h</strong> · ' +
+          '<span class="money">' + fmtMoney(c.money) + '</span> earned · ' + c.flights +
+          (c.flights === 1 ? ' flight' : ' flights') + '</div>';
+        if (i === 0) prog = statLine + 'Fly (and finish) your first flight to move up.';
         else if (isFinite(hi)) {
-          const pct = Math.min(100, Math.max(2, Math.round(((c.hours - lo) / (hi - lo)) * 100)));
-          prog = '<div class="rm-bar"><div class="rm-fill" style="width:' + pct + '%"></div></div>' +
-            c.hours.toFixed(1) + ' h flown — ' + (hi - c.hours).toFixed(1) + ' h to ' + LEVELS[i + 1].name;
+          const pct = Math.min(100, Math.max(2, segPct));
+          prog = statLine + '<div class="rm-bar"><div class="rm-fill" style="width:' + pct + '%"></div></div>' +
+            (hi - c.hours).toFixed(1) + ' h to ' + LEVELS[i + 1].name;
         } else {
-          prog = c.hours.toFixed(1) + ' h flown · ×' + lv.mult.toFixed(1) + ' now — next +0.1× at ' + lv.nextAt + ' h';
+          prog = statLine + '×' + lv.mult.toFixed(1) + ' pay now — next +0.1× at ' + lv.nextAt + ' h';
         }
       }
-      html += '<div class="rm-step' + (me ? ' rm-me' : '') + '">' +
-        '<span class="lvl lvl-' + i + '">' + L.name + '</span>' +
-        '<span class="rm-range">' + range + ' · pay ×' + L.mult.toFixed(1) + (i === LEVELS.length - 1 ? ' and climbing' : '') + '</span>' +
-        (me ? '<span class="rm-you">YOU ARE HERE</span><div class="rm-prog">' + prog + '</div>' : '') +
-        '</div>';
+      html += '<div class="rm-row' + (me ? ' rm-merow' : '') + '">' +
+        '<div class="rm-rail">' +
+          '<span class="rm-node' + (reached ? ' on' : '') + '"' +
+            (reached ? ' style="background:' + RANK_COLORS[i] + ';box-shadow:0 0 ' + (me ? '14px' : '6px') + ' ' + RANK_COLORS[i] + '"' : '') + '></span>' +
+          (i < LEVELS.length - 1
+            ? '<span class="rm-seg' + (me ? ' rm-seg-live' : '') + '" style="background:linear-gradient(to bottom,' +
+              RANK_COLORS[i] + ' ' + segPct + '%,var(--border) ' + segPct + '%)' +
+              (segPct ? ';box-shadow:0 0 8px ' + RANK_COLORS[i] : '') + '"></span>'
+            : '') +
+        '</div>' +
+        '<div class="rm-step' + (me ? ' rm-me' : '') + '">' +
+          '<span><span class="lvl lvl-' + i + '">' + L.name + '</span>' + stripesHtml(i) + '</span>' +
+          '<span class="rm-range">' + range + ' · pay ×' + L.mult.toFixed(1) + (i === LEVELS.length - 1 ? ' and climbing' : '') + '</span>' +
+          (me ? '<span class="rm-you">YOU ARE HERE</span><div class="rm-prog">' + prog + '</div>' : '') +
+        '</div></div>';
     });
-    return html;
+    return html + '</div>';
   }
   function showRoadmapScreen() {
     if (!state.myName) { show('home'); return; }
@@ -2359,6 +2402,10 @@ body.light .flight-number .flight-route{color:#15171d}
     show('roadmap');
     updateInboxTab();
     $('roadmap-body').innerHTML = roadmapHtml();
+    setTimeout(() => {
+      const me = document.querySelector('.rm-merow');
+      if (me && me.scrollIntoView) me.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
   }
   function statsHtml() {
     const c = myCareer();
@@ -4181,7 +4228,7 @@ body.light .flight-number .flight-route{color:#15171d}
             ? ' <button type="button" class="btn link" data-msg-code="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px">✉</button>' +
               '<button type="button" class="btn link" data-del-pilot="' + escapeHTML(r.code) + '" title="Delete this pilot" style="font-size:11px;padding:0 4px;color:#e5484d">✕</button>'
             : '') + '</td><td class="mono" style="font-size:11px">' + escapeHTML(r.word || '—') + '</td>' : '') +
-        '<td><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span></td>' +
+        '<td><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span>' + stripesHtml(lv.idx) + '</td>' +
         '<td>' + r.hours.toFixed(1) + '</td>' +
         '<td><span class="money">' + fmtMoney(r.money) + '</span></td>' +
         '<td>' + r.flights + '</td></tr>';
@@ -4484,7 +4531,8 @@ body.light .flight-number .flight-route{color:#15171d}
       if (member && member.name) {
         const lv = levelFor(member.hours || 0);
         el.innerHTML = escapeHTML(initials(member.name)) +
-          ' <span class="lvl lvl-' + lv.idx + '" style="margin-left:6px;vertical-align:middle">' + lv.name + '</span>';
+          ' <span class="lvl lvl-' + lv.idx + '" style="margin-left:6px;vertical-align:middle">' + lv.name + '</span>' +
+          stripesHtml(lv.idx);
         el.classList.remove('empty');
       } else {
         el.textContent = 'available';
@@ -5310,14 +5358,15 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!state.myName) return '<strong>Flight Deck EFB</strong>';
     const lv = levelFor(myCareer().hours);
     return '<strong>Flight Deck EFB</strong> — ' + escapeHTML(initials(state.myName)) +
-      ' <span class="lvl lvl-' + lv.idx + '" style="vertical-align:middle;margin-left:6px">' + lv.name.toUpperCase() + '</span>';
+      ' <span class="lvl lvl-' + lv.idx + '" style="vertical-align:middle;margin-left:6px">' + lv.name.toUpperCase() + '</span>' +
+      stripesHtml(lv.idx);
   }
   function updateBrandLines() {
     document.querySelectorAll('.brand-line').forEach(el => { el.innerHTML = brandLineHtml(); });
   }
   function careerSummaryHtml(c) {
     const lv = levelFor(c.hours);
-    let html = '<span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span> · Career: <strong>' +
+    let html = '<span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span>' + stripesHtml(lv.idx) + ' · Career: <strong>' +
       c.hours.toFixed(1) + ' h</strong> · <span class="money">' + fmtMoney(c.money) + '</span> · ' +
       c.flights + (c.flights === 1 ? ' flight' : ' flights');
     if (isFinite(lv.max)) {
