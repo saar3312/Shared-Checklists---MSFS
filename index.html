@@ -1080,10 +1080,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.03</div>
+<div class="ver-float app-version">v4.05</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.03</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.05</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1677,7 +1677,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.03</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.05</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2099,6 +2099,12 @@ body.light .flight-number .flight-route{color:#15171d}
     $('pickac-line').textContent = 'Select Your Aircraft, ' + initials(name);
     show('login'); // the aircraft-select screen
     setActiveTab('newflight');
+    // refresh should bring you back to the tab you were on, not the start
+    try {
+      const last = localStorage.getItem('fdeck-last-tab');
+      if (last && last !== 'newflight' && RESTORABLE_TABS.includes(last) &&
+          (last !== 'inbox' || code === ADMIN_CODE)) gotoTab(last);
+    } catch (e) {}
     maybeShowGuide();
     checkMyMessages(true);
     updateInboxTab();
@@ -2194,7 +2200,7 @@ body.light .flight-number .flight-route{color:#15171d}
   if (fauth) {
     let booted = false;
     fauth.onAuthStateChanged(user => {
-      if (booted || !user || state.myCode) return;
+      if (signupBusy || booted || !user || state.myCode) return; // signup handler owns profile creation
       booted = true;
       resolvePilotForUser(user, (code, nm) => {
         if (!state.myCode) finishLogin(code, nm);
@@ -2352,6 +2358,7 @@ body.light .flight-number .flight-route{color:#15171d}
       });
     }).catch(() => toast('Could not check initials — try again'));
   }
+  let signupBusy = false; // while true, onAuthStateChanged must not create a second pilot profile
   $('signup-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const email = ($('signup-email').value || '').trim();
@@ -2365,7 +2372,8 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!fauth || !fdb) { toast('Creating an account needs internet'); return; }
     const btn = document.querySelector('#signup-form button[type="submit"]');
     btn.disabled = true; btn.textContent = 'Creating…';
-    const restore = () => { btn.disabled = false; btn.textContent = 'Create Account'; };
+    const restore = () => { btn.disabled = false; btn.textContent = 'Create Account'; signupBusy = false; };
+    signupBusy = true;
     fauth.createUserWithEmailAndPassword(email, pass).then(cred => {
       const user = cred.user;
       const freshStart = () => createPilotProfile(user, want, (code, mine) => {
@@ -4574,6 +4582,25 @@ body.light .flight-number .flight-route{color:#15171d}
     updateInboxTab();
     updateMyFlightTab();
   }
+  const RESTORABLE_TABS = ['newflight', 'decks', 'chat', 'roster', 'logbook', 'stats', 'roadmap', 'guide', 'inbox', 'support'];
+  function rememberTab(t) { try { if (RESTORABLE_TABS.includes(t)) localStorage.setItem('fdeck-last-tab', t); } catch (e) {} }
+  function gotoTab(t) {
+    if (t === 'support') { showSupportScreen(); return; }
+    if (t === 'flight') { if (state.code && state.checklist) show('room'); }
+    else if (t === 'newflight') {
+      if (!state.myName) { show('home'); return; }
+      show('login');
+      setActiveTab('newflight');
+    }
+    else if (t === 'decks') showDecksScreen();
+    else if (t === 'inbox') showInboxScreen();
+    else if (t === 'chat') showChatScreen();
+    else if (t === 'guide') showGuideScreen();
+    else if (t === 'roadmap') showRoadmapScreen();
+    else if (t === 'stats') showStatsScreen();
+    else if (t === 'roster') showRosterScreen();
+    else if (t === 'logbook') showLogbookScreen();
+  }
   document.querySelectorAll('.app-tabs button').forEach(b => {
     b.addEventListener('click', () => {
       const t = b.dataset.tab;
@@ -4581,25 +4608,12 @@ body.light .flight-number .flight-route{color:#15171d}
       if (t === 'signout') {
         if (fauth && state.myCode) {
           if (!confirm('Sign out of CrewDeck on this browser?')) return;
-          fauth.signOut().then(() => location.reload());
+          fauth.signOut().then(() => { try { localStorage.removeItem('fdeck-last-tab'); } catch (e) {} location.reload(); });
         }
         return;
       }
-      if (t === 'support') { showSupportScreen(); return; }
-      if (t === 'flight') { if (state.code && state.checklist) show('room'); }
-      else if (t === 'newflight') {
-        if (!state.myName) { show('home'); return; }
-        show('login');
-        setActiveTab('newflight');
-      }
-      else if (t === 'decks') showDecksScreen();
-      else if (t === 'inbox') showInboxScreen();
-      else if (t === 'chat') showChatScreen();
-      else if (t === 'guide') showGuideScreen();
-      else if (t === 'roadmap') showRoadmapScreen();
-      else if (t === 'stats') showStatsScreen();
-      else if (t === 'roster') showRosterScreen();
-      else if (t === 'logbook') showLogbookScreen();
+      rememberTab(t);
+      gotoTab(t);
     });
   });
   $('btn-roster-back').addEventListener('click', backToBase);
