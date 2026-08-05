@@ -1116,10 +1116,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v4.22</div>
+<div class="ver-float app-version">v4.24</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.22</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.24</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1170,7 +1170,7 @@ body.light .flight-number .flight-route{color:#15171d}
         </label>
         <label class="field">
           <span class="field-label">Your initials<span class="req">*</span></span>
-          <input id="signup-name" class="input mono" type="text" maxlength="3"
+          <input id="signup-name" class="input mono" type="text" maxlength="2"
             autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="e.g. SM" />
           <span id="initials-hint" class="muted" style="font-size:11px;display:block;margin-top:5px;min-height:13px"></span>
         </label>
@@ -1762,6 +1762,7 @@ body.light .flight-number .flight-route{color:#15171d}
     </div>
     <div class="topbar-right">
       <button class="detail-toggle" id="btn-compact" title="Compact = one row per task · Detail = every switch">Detail: off</button>
+      <button class="btn link" id="btn-intercom" style="display:none" title="Cockpit voice — live only when BOTH pilots switch it on">🎙 Intercom: Off</button>
       <button class="btn link" id="btn-tabs-out" title="Browse the app — your flight stays active">Tabs</button>
       <button class="btn link" id="btn-ofp" title="Shared OFP — synced page and ink">OFP</button>
       <button class="btn link" id="btn-cards" title="All briefings, checklists & callouts">Cards</button>
@@ -1772,7 +1773,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.22</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.24</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2277,11 +2278,14 @@ body.light .flight-number .flight-route{color:#15171d}
       }
       const taken = {};
       for (const k of Object.keys(all)) taken[initials(all[k] && all[k].name)] = true;
-      let mine = wantInitials;
-      if (taken[mine]) {
-        mine = '';
-        for (let d = 2; d <= 9 && !mine; d++) if (!taken[wantInitials + d]) mine = wantInitials + d;
-        if (!mine) mine = wantInitials + Math.floor(Math.random() * 90 + 10);
+      let mine = wantInitials.slice(0, 2);
+      if (!/^[A-Z]{2}$/.test(mine)) mine = 'XX';
+      if (taken[mine]) { // letters only — never RA2-style variants
+        const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let found = '';
+        for (let j = 0; j < 26 && !found; j++) if (!taken[mine[0] + A[j]]) found = mine[0] + A[j];
+        for (let i = 0; i < 26 && !found; i++) for (let j = 0; j < 26 && !found; j++) if (!taken[A[i] + A[j]]) found = A[i] + A[j];
+        mine = found || mine;
       }
       const iWon = () => {
         fdb.ref('pilots/' + code).set({ name: mine, uid: user.uid });
@@ -2290,7 +2294,17 @@ body.light .flight-number .flight-route{color:#15171d}
           cache[code] = { name: mine };
           localStorage.setItem('fdeck-pilots-cache', JSON.stringify(cache));
         } catch (e) {}
-        cb(code, mine);
+        // every new pilot lands with a welcome DM from SM waiting (and the unread badge that comes with it)
+        const done = () => cb(code, mine);
+        try {
+          const tid = chatThreadId(code, ADMIN_CODE);
+          const now = Date.now();
+          const seen = {}; seen[ADMIN_CODE] = now;
+          fdb.ref('careers/_chats/' + tid).set({
+            msgs: [{ ts: now, from: ADMIN_CODE, text: 'Hello! Thanks for joining CrewDeck EFB. Please let me know if you need any help. You can message me here or click Support at the top right at any time!' }],
+            seen: seen,
+          }).then(done).catch(done);
+        } catch (e) { done(); }
       };
       const someoneElseWon = () => {
         // another tab/handler already linked this account to a pilot — reuse THAT one, never create a second
@@ -2459,10 +2473,10 @@ body.light .flight-number .flight-route{color:#15171d}
   $('signup-name').addEventListener('input', () => {
     const hint = $('initials-hint');
     const want = ($('signup-name').value || '').trim().toUpperCase();
-    if (!/^[A-Z]{2,3}$/.test(want)) { hint.textContent = ''; return; }
+    if (!/^[A-Z]{2}$/.test(want)) { hint.textContent = want ? 'Initials are exactly 2 letters' : ''; hint.style.color = '#c9942e'; return; }
     const check = () => {
       hint.textContent = takenInitials[want]
-        ? want + ' is taken — you would get a close variant like ' + want + '2'
+        ? want + ' is taken — pick different initials'
         : want + ' is available';
       hint.style.color = takenInitials[want] ? '#c9942e' : 'var(--good)';
     };
@@ -2476,9 +2490,9 @@ body.light .flight-number .flight-route{color:#15171d}
     }).catch(() => {});
   });
   function changeMyInitials() {
-    const want = (prompt('New initials (2–3 letters):', initials(state.myName)) || '').trim().toUpperCase();
+    const want = (prompt('New initials (exactly 2 letters):', initials(state.myName)) || '').trim().toUpperCase();
     if (!want) return;
-    if (!/^[A-Z]{2,3}$/.test(want)) { toast('Initials are 2 or 3 letters'); return; }
+    if (!/^[A-Z]{2}$/.test(want)) { toast('Initials are exactly 2 letters'); return; }
     if (!fdb) { toast('Needs internet'); return; }
     fdb.ref('pilots').get().then(sn => {
       const all = (sn && sn.val()) || {};
@@ -2510,7 +2524,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const want = ($('signup-name').value || '').trim().toUpperCase();
     const claimId = ($('signup-claim-id').value || '').trim();
     const claimWord = ($('signup-claim-word').value || '').trim();
-    if (!/^[A-Z]{2,3}$/.test(want)) { toast('Initials only — 2 or 3 letters, e.g. SM'); $('signup-name').focus(); return; }
+    if (!/^[A-Z]{2}$/.test(want)) { toast('Initials are exactly 2 letters, e.g. SM'); $('signup-name').focus(); return; }
     if (!email) { toast('Email is required — password resets go there'); $('signup-email').focus(); return; }
     if (pass.length < 6) { toast('Password must be at least 6 characters'); $('signup-pass').focus(); return; }
     if (!fauth || !fdb) { toast('Creating an account needs internet'); return; }
@@ -2518,6 +2532,17 @@ body.light .flight-number .flight-route{color:#15171d}
     btn.disabled = true; btn.textContent = 'Creating…';
     const restore = () => { btn.disabled = false; btn.textContent = 'Create Account'; signupBusy = false; };
     signupBusy = true;
+    // initials must be FREE before we make the account — nobody gets an auto-variant like RA2
+    fdb.ref('pilots').get().then(sp => {
+      const all0 = (sp && sp.val()) || {};
+      for (const k of Object.keys(all0)) {
+        if (initials(all0[k] && all0[k].name) === want) {
+          restore();
+          toast(want + ' is taken — pick different initials');
+          $('signup-name').focus();
+          return;
+        }
+      }
     fauth.createUserWithEmailAndPassword(email, pass).then(cred => {
       const user = cred.user;
       try { if (user.sendEmailVerification) user.sendEmailVerification(); } catch (e) {} // verify link goes out immediately
@@ -2554,6 +2579,7 @@ body.light .flight-number .flight-route{color:#15171d}
         freshStart();
       }
     }).catch(err => { restore(); toast(authError(err)); });
+    }).catch(() => { restore(); toast('Could not check initials — try again'); });
   });
   function updateTileRates() {
     const hours = myCareer().hours;
@@ -3254,6 +3280,7 @@ body.light .flight-number .flight-route{color:#15171d}
     }, 25000);
     const peer = new Peer(undefined, PEER_OPTS);
     state.peer = peer;
+    if (peer.on) peer.on('call', intercomAnswer);
     peer.on('open', () => {
       state.myKey = peer.id;
       $('connect-sub').textContent = 'Found the broker — opening a direct line to the host…';
@@ -3285,11 +3312,122 @@ body.light .flight-number .flight-route{color:#15171d}
     return s;
   }
   function peerIdFor(code) { return 'cockpit-checklist-' + code; }
+  // ---- INTERCOM — cockpit voice. OFF by default; live ONLY when BOTH pilots switch it on. ----
+  const intercom = { on: false, remoteOn: false, call: null, stream: null, ctx: null, audioEl: null, noise: null };
+  function intercomAvailable() {
+    return !state.solo && state.checklist && state.conns.length > 0 &&
+      state.peer && typeof state.peer.call === 'function' &&
+      navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  }
+  function updateIntercomBtn() {
+    const b2 = $('btn-intercom');
+    if (!b2) return;
+    if (!state.checklist || state.solo) { b2.style.display = 'none'; return; }
+    b2.style.display = '';
+    if (!intercom.on) { b2.textContent = '\ud83c\udf99 Intercom: Off'; b2.style.color = ''; b2.classList.remove('toggled'); }
+    else if (intercom.call) { b2.textContent = '\ud83c\udf99 Intercom: LIVE'; b2.style.color = 'var(--good)'; b2.classList.add('toggled'); }
+    else { b2.textContent = '\ud83c\udf99 Intercom: Waiting for co-pilot\u2026'; b2.style.color = '#c9942e'; b2.classList.add('toggled'); }
+  }
+  function radioEffectPlay(remoteStream) {
+    // the aircraft-radio sound: narrowband voice + compression + a whisper of static
+    try {
+      intercomAudioTeardown(false);
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AC();
+      intercom.ctx = ctx;
+      const el = new Audio(); // Chrome quirk: WebRTC audio must be attached to a muted element for WebAudio to receive it
+      el.srcObject = remoteStream; el.muted = true; el.play().catch(() => {});
+      intercom.audioEl = el;
+      const src = ctx.createMediaStreamSource(remoteStream);
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+      const shaper = ctx.createWaveShaper();
+      const curve = new Float32Array(1024);
+      for (let i = 0; i < 1024; i++) { const x = (i / 512) - 1; curve[i] = Math.tanh(2.2 * x); }
+      shaper.curve = curve;
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -28; comp.ratio.value = 10; comp.attack.value = 0.003; comp.release.value = 0.18;
+      const gain = ctx.createGain(); gain.gain.value = 1.25;
+      src.connect(hp); hp.connect(lp); lp.connect(shaper); shaper.connect(comp); comp.connect(gain); gain.connect(ctx.destination);
+      // faint carrier hiss while the intercom is live
+      const noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const nd = noiseBuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1);
+      const noise = ctx.createBufferSource(); noise.buffer = noiseBuf; noise.loop = true;
+      const nGain = ctx.createGain(); nGain.gain.value = 0.006;
+      noise.connect(nGain); nGain.connect(ctx.destination); noise.start();
+      intercom.noise = noise;
+    } catch (e) { console.error('intercom audio', e); }
+  }
+  function intercomAudioTeardown(full) {
+    try { if (intercom.noise) { intercom.noise.stop(); intercom.noise = null; } } catch (e) {}
+    try { if (intercom.ctx) { intercom.ctx.close(); intercom.ctx = null; } } catch (e) {}
+    try { if (intercom.audioEl) { intercom.audioEl.srcObject = null; intercom.audioEl = null; } } catch (e) {}
+    if (full) {
+      try { if (intercom.call) { intercom.call.close(); } } catch (e) {}
+      intercom.call = null;
+      try { if (intercom.stream) intercom.stream.getTracks().forEach(t => t.stop()); } catch (e) {}
+      intercom.stream = null;
+    }
+  }
+  function intercomWire(call) {
+    intercom.call = call;
+    call.on('stream', (remote) => { radioEffectPlay(remote); updateIntercomBtn(); });
+    call.on('close', () => { if (intercom.call === call) { intercomAudioTeardown(false); intercom.call = null; updateIntercomBtn(); } });
+    call.on('error', () => { if (intercom.call === call) { intercomAudioTeardown(false); intercom.call = null; updateIntercomBtn(); } });
+    updateIntercomBtn();
+  }
+  function intercomMaybeStart() {
+    // the HOST places the call, and only once BOTH sides are on
+    if (!intercom.on || !intercom.remoteOn || intercom.call || !intercom.stream) return;
+    if (state.role !== 'host') return;
+    const other = state.conns[0];
+    if (!other || !state.peer || typeof state.peer.call !== 'function') return;
+    try { intercomWire(state.peer.call(other.peer, intercom.stream)); } catch (e) { console.error(e); }
+  }
+  function intercomToggle() {
+    if (intercom.on) {
+      intercom.on = false;
+      broadcast({ type: 'intercom', on: false });
+      intercomAudioTeardown(true);
+      updateIntercomBtn();
+      toast('Intercom off');
+      return;
+    }
+    if (!intercomAvailable()) { toast(state.solo ? 'Intercom needs a co-pilot' : 'Intercom needs a connected co-pilot and mic access'); return; }
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(stream => {
+      intercom.stream = stream;
+      intercom.on = true;
+      broadcast({ type: 'intercom', on: true });
+      updateIntercomBtn();
+      toast(intercom.remoteOn ? 'Intercom connecting\u2026' : 'Intercom on \u2014 waiting for your co-pilot to switch theirs on');
+      intercomMaybeStart();
+    }).catch(() => toast('Mic permission denied \u2014 intercom needs your microphone'));
+  }
+  function intercomRemote(on) {
+    intercom.remoteOn = !!on;
+    if (!on) { intercomAudioTeardown(false); if (intercom.call) { try { intercom.call.close(); } catch (e) {} intercom.call = null; } }
+    else if (intercom.on) intercomMaybeStart();
+    updateIntercomBtn();
+    if (on && intercom.on && !intercom.call && state.role !== 'host') toast('Co-pilot intercom on \u2014 connecting\u2026');
+  }
+  function intercomAnswer(call) {
+    // callee side: only answer if OUR switch is on; otherwise reject
+    if (!intercom.on || !intercom.stream) { try { call.close(); } catch (e) {} return; }
+    try { call.answer(intercom.stream); intercomWire(call); } catch (e) { console.error(e); }
+  }
+  function intercomFullStop() {
+    if (intercom.on) broadcast({ type: 'intercom', on: false });
+    intercom.on = false; intercom.remoteOn = false;
+    intercomAudioTeardown(true);
+    updateIntercomBtn();
+  }
   function createPeerWithRetry(id, isHost, tries=0) {
     const peer = new Peer(id, PEER_OPTS);
     state.peer = peer;
     peer.on('open', () => { if (isHost) onHostReady(); });
     peer.on('connection', (conn) => wireConnection(conn, false));
+    if (peer.on) peer.on('call', intercomAnswer);
     peer.on('error', (err) => {
       if (err && err.type === 'unavailable-id' && tries < 3) {
         state.code = randomCode();
@@ -3323,6 +3461,7 @@ body.light .flight-number .flight-route{color:#15171d}
       let ok = false;
       p.on('open', () => { ok = true; lobbyStart(); lobbyAnnounce(); });
       p.on('connection', (conn) => wireConnection(conn, false));
+      p.on('call', intercomAnswer);
       p.on('error', (err) => {
         if (!ok && err && err.type === 'unavailable-id' && n < 8) {
           try { p.destroy(); } catch (e) {}
@@ -3356,6 +3495,7 @@ body.light .flight-number .flight-route{color:#15171d}
       return;
     }
     state.conns.push(conn);
+    setTimeout(updateIntercomBtn, 50);
     conn.on('open', () => {
       if (outgoing) {
         send(conn, { type: 'hello', from: state.myKey });
@@ -3380,6 +3520,8 @@ body.light .flight-number .flight-route{color:#15171d}
     conn.on('data', (msg) => onMessage(conn, msg));
     conn.on('close', () => {
       state.conns = state.conns.filter(c => c !== conn);
+      if (!state.conns.length) { intercomRemote(false); }
+      setTimeout(updateIntercomBtn, 50);
       if (state.role === 'host') {
         const k = conn.peer;
         if (state.members[k]) {
@@ -3527,6 +3669,9 @@ body.light .flight-number .flight-route{color:#15171d}
         break;
       case 'handover':
         becomeSoloHost();
+        break;
+      case 'intercom':
+        intercomRemote(msg.on);
         break;
       case 'view': // shared section paging — either pilot moves both browsers
         setViewSection(msg.idx, true);
@@ -5144,6 +5289,7 @@ body.light .flight-number .flight-route{color:#15171d}
     teardown();
     backToBase();
   });
+  $('btn-intercom').addEventListener('click', intercomToggle);
   $('btn-tabs-out').addEventListener('click', () => { openLobby(); });
   $('flight-number').addEventListener('click', editFlightNumber);
   $('btn-change-role').addEventListener('click', openRoleModal);
@@ -5190,6 +5336,7 @@ body.light .flight-number .flight-route{color:#15171d}
     }
   });
   function teardown() {
+    intercomFullStop();
     state.conns.forEach(c => { try { c.close(); } catch(e){} });
     if (state.peer) { try { state.peer.destroy(); } catch(e){} }
     state.peer = null;
@@ -6240,6 +6387,24 @@ body.light .flight-number .flight-route{color:#15171d}
       setTimeout(() => showPilotLogbook(code), 400);
     }).catch(() => toast('Could not update — try again'));
   }
+  function adminRenameInitials(code) {
+    if (!isAdminView() || !fdb) return;
+    const want = (prompt('New initials for pilot ' + code + ' (exactly 2 letters):') || '').trim().toUpperCase();
+    if (!want) return;
+    if (!/^[A-Z]{2}$/.test(want)) { toast('Initials are exactly 2 letters'); return; }
+    fdb.ref('pilots').get().then(sn => {
+      const all = (sn && sn.val()) || {};
+      for (const k of Object.keys(all)) {
+        if (k !== code && initials(all[k] && all[k].name) === want) { toast(want + ' is taken by pilot ' + k); return; }
+      }
+      const rec = { name: want };
+      if (all[code] && all[code].uid) rec.uid = all[code].uid;
+      fdb.ref('pilots/' + code).set(rec).then(() => {
+        toast('Pilot ' + code + ' is now ' + want);
+        fetchCloudPilots(() => showPilotLogbook(code));
+      }).catch(() => toast('Could not rename — try again'));
+    }).catch(() => toast('Could not check initials — try again'));
+  }
   function showPilotLogbook(code) {
     if (!state.myCode) return;
     if (code === state.myCode) { showLogbookScreen(); return; }
@@ -6247,7 +6412,10 @@ body.light .flight-number .flight-route{color:#15171d}
     setActiveTab('logbook');
     show('logbook');
     updateInboxTab();
-    $('logbook-title').innerHTML = 'Pilot Profile — ' + wingedByCode(code);
+    $('logbook-title').innerHTML = 'Pilot Profile — ' + wingedByCode(code) +
+      (isAdminView() ? ' <button type="button" class="btn" id="btn-admin-rename" style="font-size:12px;margin-left:10px;vertical-align:middle">\u270e Rename</button>' : '');
+    const rb = $('btn-admin-rename');
+    if (rb) rb.addEventListener('click', () => adminRenameInitials(code));
     $('logbook-career').innerHTML = '<p class="lobby-empty">Loading…</p>';
     $('logbook-table').innerHTML = '';
     toggleLogbookOwnButtons(false);
@@ -6886,6 +7054,7 @@ body.light .flight-number .flight-route{color:#15171d}
     setConn('reconnecting', 'Reconnecting…');
     const peer = new Peer(undefined, PEER_OPTS);
     state.peer = peer;
+    if (peer.on) peer.on('call', intercomAnswer);
     peer.on('open', () => {
       state.myKey = peer.id;
       const conn = peer.connect(peerIdFor(code),
