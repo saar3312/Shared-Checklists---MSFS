@@ -1112,10 +1112,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v4.19</div>
+<div class="ver-float app-version">v4.20</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.19</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.20</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1768,7 +1768,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.19</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.20</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2815,16 +2815,15 @@ body.light .flight-number .flight-route{color:#15171d}
     return h + '</div><div style="text-align:right;margin:2px 0 12px">' +
       '<button type="button" class="btn link" id="link-roadmap">View the full Career Roadmap →</button></div>';
   }
-  function statsHtml() {
-    const c = myCareer();
+  function careerStatsRowsHtml(c, whose) {
     const log = c.log || [];
     const row = (k, v) => '<div class="stat-row"><span class="stat-k">' + k + '</span><span class="stat-v">' + v + '</span></div>';
-    let html = miniRoadmapHtml() + '<div id="stats-awards"></div>' +
-      row('Total hours', c.hours.toFixed(1) + ' h') +
-      row('Total earnings', '<span class="money">' + fmtMoney(c.money) + '</span>') +
-      row('Flights completed', c.flights);
+    let html =
+      row('Total hours', (c.hours || 0).toFixed(1) + ' h') +
+      row('Total earnings', '<span class="money">' + fmtMoney(c.money || 0) + '</span>') +
+      row('Flights completed', c.flights || 0);
     if (!log.length) {
-      return html + '<p class="lobby-empty">Finish a flight and the superlatives light up.</p>';
+      return html + '<p class="lobby-empty">' + (whose ? 'No finished flights yet.' : 'Finish a flight and the superlatives light up.') + '</p>';
     }
     const by = (arr, key) => {
       const m = {};
@@ -2864,8 +2863,11 @@ body.light .flight-number .flight-route{color:#15171d}
       row('Average flight time', hm(avgMin));
     if (route) html += row('Favorite route', route.k + ' <span class="stat-k">(' + route.n + '×)</span>');
     if (buddy) html += row('Most frequent co-pilot', buddy.k + ' <span class="stat-k">(' + buddy.n + ' flights together)</span>');
-    if (log.length >= 50) html += '<p class="lobby-empty" style="margin-top:8px">Superlatives are computed from your last 50 flights.</p>';
+    if (log.length >= 50) html += '<p class="lobby-empty" style="margin-top:8px">Superlatives are computed from ' + (whose ? 'their' : 'your') + ' last 50 flights.</p>';
     return html;
+  }
+  function statsHtml() {
+    return miniRoadmapHtml() + '<div id="stats-awards"></div>' + careerStatsRowsHtml(myCareer(), null);
   }
   function showStatsScreen() {
     if (!state.myName) { show('home'); return; }
@@ -6219,14 +6221,27 @@ body.light .flight-number .flight-route{color:#15171d}
     setActiveTab('logbook');
     show('logbook');
     updateInboxTab();
-    $('logbook-title').innerHTML = 'Logbook — ' + wingedByCode(code);
+    $('logbook-title').innerHTML = 'Pilot Profile — ' + wingedByCode(code);
     $('logbook-career').innerHTML = '<p class="lobby-empty">Loading…</p>';
     $('logbook-table').innerHTML = '';
     toggleLogbookOwnButtons(false);
-    fdb.ref('careers/' + code).get().then(sn => {
-      const c = (sn && sn.val()) || { hours: 0, money: 0, flights: 0, log: [] };
+    Promise.all([
+      fdb.ref('careers/' + code).get().then(x => (x && x.val()) || null).catch(() => null),
+      fdb.ref('careers/_awards').get().then(x => (x && x.val()) || {}).catch(() => ({})),
+    ]).then(([cv, awards]) => {
+      const c = cv || { hours: 0, money: 0, flights: 0, log: [] };
+      c.hours = c.hours || 0; c.money = c.money || 0; c.flights = c.flights || 0;
       c.log = c.log || [];
-      $('logbook-career').innerHTML = careerSummaryHtml(c);
+      const theirs = Object.keys(awards).filter(i => awards[i] && awards[i].code === code);
+      const awardHtml = theirs.length
+        ? '<div style="margin-top:12px">' + theirs.map(i =>
+            '<div class="award-row">\ud83c\udfc6 <strong>1st pilot to reach ' + LEVELS[i].name + '</strong>' +
+            '<span style="display:inline-flex;align-items:center;gap:6px;margin-left:auto">' +
+            '<span class="lvl lvl-' + i + '">' + RANK_ABBR[i] + '</span>' + stripesHtml(i) + '</span></div>').join('') + '</div>'
+        : '';
+      $('logbook-career').innerHTML = careerSummaryHtml(c) + awardHtml +
+        '<div style="margin-top:16px"><p class="lobby-h">Career \u2014 Superlatives</p>' + careerStatsRowsHtml(c, code) + '</div>' +
+        '<p class="lobby-h" style="margin-top:16px">Logbook</p>';
       $('logbook-table').innerHTML = logbookTableHtml(c, isAdminView() ? code : null);
       wireLogDeletes(code);
     }).catch(() => { $('logbook-career').innerHTML = '<p class="lobby-empty">Could not load this logbook.</p>'; });
