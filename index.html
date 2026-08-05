@@ -206,6 +206,29 @@ button{font-family:inherit;color:inherit}
 .deck-route{font-weight:800;font-size:17px;letter-spacing:0.04em}
 .deck-ete{color:var(--text-muted);font-size:12px;border:1px solid var(--border);border-radius:8px;padding:2px 10px}
 #screen-decks .lobby-seat .stripes i{height:12px}
+.deck2-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.deck2-callsign{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:800;font-size:34px;letter-spacing:0.06em}
+.deck2-facts{display:flex;flex-direction:column;gap:7px;margin:16px 0 4px}
+.f-k{color:var(--text-muted);font-size:12px;letter-spacing:0.1em;display:inline-block;min-width:110px;font-weight:800}
+.f-v{font-weight:700;font-size:16px}
+.deck2-pilots{display:flex;gap:16px;margin-top:16px}
+.deck2-seat{flex:1 1 0;border:1px solid var(--border-strong);border-radius:14px;padding:18px 14px;
+  text-align:center;background:transparent;color:var(--text);cursor:pointer;font-family:inherit}
+.deck2-static{cursor:default}
+.deck2-seat:hover:not(.deck2-static){border-color:var(--accent)}
+.deck2-pic .seat-tag{color:var(--pic)}
+.deck2-pm .seat-tag{color:var(--pm)}
+.deck2-name{font-size:19px;margin:10px 0 8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.deck2-pay{font-size:14px}
+.winged{display:inline-flex;align-items:center;gap:8px}
+.rm-step{position:relative}
+.rm-count{position:absolute;top:18px;right:20px;font-size:13px;color:var(--text-muted);
+  border:1px solid var(--border);border-radius:999px;padding:3px 12px}
+.award-row{display:flex;align-items:center;gap:10px;border:1px solid var(--accent);border-radius:12px;
+  padding:12px 16px;margin:8px 0;font-size:15px;box-shadow:0 0 10px rgba(201,148,46,0.25)}
+.lb-table th.rs{cursor:pointer}
+.lb-table th.rs:hover{color:var(--text)}
+.lb-table th.rs.on{color:var(--accent)}
 #screen-decks [data-lcm]{font-size:13px !important}
 #screen-roadmap .lobby-card{max-width:780px;width:100%}
 #screen-roadmap h2{font-size:26px}
@@ -1000,6 +1023,15 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <!-- SCREEN 1: Home (start a B777 flight / join with code)        -->
 <!-- ============================================================ -->
+  <div class="modal-backdrop" id="award-modal" hidden>
+    <div class="modal" style="max-width:440px;text-align:center;border-color:var(--accent)">
+      <h2 style="margin:0">Award Unlocked</h2>
+      <div id="award-body"></div>
+      <div class="setup-actions" style="justify-content:center">
+        <button class="btn primary" id="award-close">Sweet</button>
+      </div>
+    </div>
+  </div>
   <div class="modal-backdrop" id="word-modal" hidden>
     <div class="modal" style="max-width:480px">
       <h2>Choose a Support Word</h2>
@@ -1041,10 +1073,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.73</div>
+<div class="ver-float app-version">v3.75</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.73</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.75</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1466,8 +1498,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <div class="setup-card lobby-card">
       <h2>Pilot Roster</h2>
       <div style="display:flex;gap:8px;margin:0 0 12px">
-        <button class="btn" id="rb-sort-hours">By hours</button>
-        <button class="btn" id="rb-sort-money">By earnings</button>
+        <span class="muted" style="font-size:12px">Ordered by level — click Hours, Earnings or Flights to reorder.</span>
       </div>
       <div id="roster-body" style="overflow-x:auto"></div>
     </div>
@@ -1618,7 +1649,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.73</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.75</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2044,6 +2075,7 @@ body.light .flight-number .flight-route{color:#15171d}
     checkAdminInbox(true);
     chatFetch(threads => updateChatBadge(threads));
     fetchAllHours();
+    setTimeout(checkFirstAwards, 2500); // once the cloud career has landed
   }
   $('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -2470,6 +2502,11 @@ body.light .flight-number .flight-route{color:#15171d}
   function roadmapHtml() {
     const c = myCareer();
     const lv = levelFor(c.hours);
+    const holders = [0, 0, 0, 0, 0, 0];
+    const pmap = localPilotsMap();
+    for (const pc of Object.keys(pmap)) {
+      if (pc in hoursCache) holders[levelFor(hoursCache[pc]).idx]++;
+    }
     let html = '<p style="font-size:13px">Every hour you log moves you up the line — your rank multiplies every paycheck.</p>' +
       '<div class="rm-track">';
     LEVELS.forEach((L, i) => {
@@ -2500,6 +2537,7 @@ body.light .flight-number .flight-route{color:#15171d}
           prog = statLine + '×' + lv.mult.toFixed(1) + ' pay now — next +0.1× at ' + lv.nextAt + ' h';
         }
       }
+      const nHold = holders[i];
       html += '<div class="rm-row' + (me ? ' rm-merow' : '') + '">' +
         '<div class="rm-rail">' +
           '<span class="rm-node' + (reached ? ' on' : '') + '"' +
@@ -2511,6 +2549,8 @@ body.light .flight-number .flight-route{color:#15171d}
             : '') +
         '</div>' +
         '<div class="rm-step' + (me ? ' rm-me' : '') + '">' +
+          '<span class="rm-count"' + (nHold ? '' : ' style="opacity:0.45"') + '>' + nHold +
+            (nHold === 1 ? ' pilot' : ' pilots') + '</span>' +
           '<span><span class="lvl lvl-' + i + '">' + L.name + '</span>' + stripesHtml(i) + '</span>' +
           '<span class="rm-range">' + range + ' · pay ×' + L.mult.toFixed(1) + (i === LEVELS.length - 1 ? ' and climbing' : '') + '</span>' +
           (me ? '<span class="rm-you">YOU ARE HERE</span><div class="rm-prog">' + prog + '</div>' : '') +
@@ -2524,10 +2564,52 @@ body.light .flight-number .flight-route{color:#15171d}
     show('roadmap');
     updateInboxTab();
     $('roadmap-body').innerHTML = roadmapHtml();
+    fetchAllHours(() => { if (!screens.roadmap.classList.contains('hidden')) $('roadmap-body').innerHTML = roadmapHtml(); });
     setTimeout(() => {
       const me = document.querySelector('.rm-merow');
       if (me && me.scrollIntoView) me.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 150);
+  }
+  // ---- "1st pilot to reach ___" awards: first claim wins, forever ----
+  function checkFirstAwards() {
+    if (!fdb || !state.myCode) return;
+    const myIdx = levelFor(myCareer().hours).idx;
+    if (myIdx < 1) return;
+    fdb.ref('careers/_awards').get().then(sn => {
+      const all = (sn && sn.val()) || {};
+      const won = [];
+      for (let i = 1; i <= myIdx; i++) {
+        if (!all[i]) {
+          const rec = { code: state.myCode, name: state.myName || '', ts: Date.now() };
+          try { fdb.ref('careers/_awards/' + i).set(rec); } catch (e) {}
+          won.push(i);
+        }
+      }
+      if (won.length) showAwardPopup(won);
+    }).catch(() => {});
+  }
+  function showAwardPopup(idxs) {
+    $('award-body').innerHTML = idxs.map(i =>
+      '<div style="margin:14px 0"><span style="font-size:40px">🏆</span><br>' +
+      '<strong style="font-size:19px">1st pilot to reach ' + LEVELS[i].name + '</strong><br>' +
+      '<span style="display:inline-flex;align-items:center;gap:6px;margin-top:8px">' +
+      '<span class="lvl lvl-' + i + '">' + LEVELS[i].name + '</span>' + stripesHtml(i) + '</span></div>').join('') +
+      '<p style="font-size:13px;color:var(--text-muted)">This award lives on your My Career page forever.</p>';
+    $('award-modal').hidden = false;
+  }
+  $('award-close').addEventListener('click', () => { $('award-modal').hidden = true; });
+  function renderMyAwards() {
+    const el = $('stats-awards');
+    if (!el || !fdb || !state.myCode) return;
+    fdb.ref('careers/_awards').get().then(sn => {
+      const all = (sn && sn.val()) || {};
+      const mine = Object.keys(all).filter(i => all[i] && all[i].code === state.myCode);
+      if (!mine.length || screens.stats.classList.contains('hidden')) return;
+      el.innerHTML = '<p class="lobby-h">Awards</p>' + mine.map(i =>
+        '<div class="award-row">🏆 <strong>1st pilot to reach ' + LEVELS[i].name + '</strong>' +
+        '<span style="display:inline-flex;align-items:center;gap:6px;margin-left:auto">' +
+        '<span class="lvl lvl-' + i + '">' + RANK_ABBR[i] + '</span>' + stripesHtml(i) + '</span></div>').join('');
+    }).catch(() => {});
   }
   function miniRoadmapHtml() {
     const c = myCareer();
@@ -2556,7 +2638,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const c = myCareer();
     const log = c.log || [];
     const row = (k, v) => '<div class="stat-row"><span class="stat-k">' + k + '</span><span class="stat-v">' + v + '</span></div>';
-    let html = miniRoadmapHtml() +
+    let html = miniRoadmapHtml() + '<div id="stats-awards"></div>' +
       row('Total hours', c.hours.toFixed(1) + ' h') +
       row('Total earnings', '<span class="money">' + fmtMoney(c.money) + '</span>') +
       row('Flights completed', c.flights);
@@ -2612,6 +2694,7 @@ body.light .flight-number .flight-route{color:#15171d}
     $('stats-body').innerHTML = statsHtml();
     const mr = $('mini-rm'); if (mr) mr.addEventListener('click', showRoadmapScreen);
     const lr = $('link-roadmap'); if (lr) lr.addEventListener('click', showRoadmapScreen);
+    renderMyAwards();
   }
   // everyone must set a support word on their first login (support only, not login)
   function maybeAskWord() {
@@ -4307,7 +4390,7 @@ body.light .flight-number .flight-route{color:#15171d}
     $('logbook-body').innerHTML = html;
     $('logbook-modal').hidden = false;
   });
-  let lbSort = 'hours';
+  let lbSort = 'level'; // roster default: ordered by level
   function localPilotsMap() {
     let m = {};
     try { m = JSON.parse(localStorage.getItem('fdeck-pilots-cache') || '{}'); } catch (e) {}
@@ -4345,7 +4428,9 @@ body.light .flight-number .flight-route{color:#15171d}
     });
     rows.sort((a, b) => lbSort === 'money'
       ? (b.money - a.money || b.hours - a.hours)
-      : (b.hours - a.hours || b.money - a.money));
+      : lbSort === 'flights'
+        ? (b.flights - a.flights || b.hours - a.hours)
+        : (b.hours - a.hours || b.money - a.money)); // 'level' & 'hours' both rank by hours
     const online = new Set(); // full names of anyone seated in a LIVE deck
     try {
       const fl = lobbyFresh();
@@ -4356,27 +4441,33 @@ body.light .flight-number .flight-route{color:#15171d}
       }
     } catch (e) {}
     const admin = state.myCode === ADMIN_CODE; // SM sees everyone's pilot IDs
+    const th = (k, label) => '<th class="rs' + (lbSort === k ? ' on' : '') + '" data-rs="' + k + '">' + label + '</th>';
     let html = '<table class="lb-table"><tr><th></th><th>Pilot</th>' + (admin ? '<th>ID</th><th>Word</th>' : '') +
-      '<th>Level</th><th>Hours</th><th>Earnings</th><th>Flights</th></tr>';
+      th('level', 'Level') + th('hours', 'Hours') + th('money', 'Earnings') + th('flights', 'Flights') + '</tr>';
     rows.forEach((r, i) => {
       const lv = levelFor(r.hours);
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
         '<td class="lb-rank">' + (i + 1) + '</td>' +
         '<td>' + (online.has(r.name) ? '<span class="dot-on" title="in a flight deck now"></span>' : '') +
-          escapeHTML(initials(r.name)) + '</td>' +
+          wingedHtml(escapeHTML(initials(r.name)), r.hours) + '</td>' +
         (admin ? '<td class="mono">' + escapeHTML(r.code) +
           (r.code !== state.myCode
             ? ' <button type="button" class="btn link" data-msg-code="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px">✉</button>' +
               '<button type="button" class="btn link" data-del-pilot="' + escapeHTML(r.code) + '" title="Delete this pilot" style="font-size:11px;padding:0 4px;color:#e5484d">✕</button>'
             : '') + '</td><td class="mono" style="font-size:11px">' + escapeHTML(r.word || '—') + '</td>' : '') +
-        '<td><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span>' + stripesHtml(lv.idx) + '</td>' +
+        '<td><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span></td>' +
         '<td>' + r.hours.toFixed(1) + '</td>' +
         '<td><span class="money">' + fmtMoney(r.money) + '</span></td>' +
         '<td>' + r.flights + '</td></tr>';
     });
     html += '</table>';
     const target = $(lbTargetId);
-    if (target) { target.innerHTML = html; if (admin) wireRosterMessageButtons(target); }
+    if (target) {
+      target.innerHTML = html;
+      if (admin) wireRosterMessageButtons(target);
+      target.querySelectorAll('th[data-rs]').forEach(h2 =>
+        h2.addEventListener('click', () => { lbSort = h2.dataset.rs; if (lbData) renderLeaderboard(lbData[0], lbData[1]); }));
+    }
     [['lb-sort-hours', 'hours'], ['lb-sort-money', 'money'],
      ['rb-sort-hours', 'hours'], ['rb-sort-money', 'money']].forEach(([id, key]) => {
       const b = $(id);
@@ -4467,8 +4558,6 @@ body.light .flight-number .flight-route{color:#15171d}
   $('btn-chat-back').addEventListener('click', backToBase);
   $('btn-roadmap-back').addEventListener('click', backToBase);
   $('btn-stats-back').addEventListener('click', backToBase);
-  $('rb-sort-hours').addEventListener('click', () => { lbSort = 'hours'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
-  $('rb-sort-money').addEventListener('click', () => { lbSort = 'money'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
   $('btn-leaderboard2').addEventListener('click', openLeaderboard);
   $('lb-sort-hours').addEventListener('click', () => { lbSort = 'hours'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
   $('lb-sort-money').addEventListener('click', () => { lbSort = 'money'; if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
@@ -4696,9 +4785,8 @@ body.light .flight-number .flight-route{color:#15171d}
       const member = holderKey && state.members[holderKey];
       if (member && member.name) {
         const lv = levelFor(member.hours || 0);
-        el.innerHTML = escapeHTML(initials(member.name)) +
-          ' <span class="lvl lvl-' + lv.idx + '" style="margin-left:6px;vertical-align:middle">' + lv.name + '</span>' +
-          stripesHtml(lv.idx);
+        el.innerHTML = wingedHtml(escapeHTML(initials(member.name)), member.hours || 0) +
+          ' <span class="lvl lvl-' + lv.idx + '" style="margin-left:6px;vertical-align:middle">' + lv.name + '</span>';
         el.classList.remove('empty');
       } else {
         el.textContent = 'available';
@@ -5467,7 +5555,7 @@ body.light .flight-number .flight-route{color:#15171d}
         const tid = chatThreadId(state.myCode, chatWith);
         const t2 = threads[tid] || { msgs: [] };
         const nm = initials((pilots[chatWith] && pilots[chatWith].name) || chatWith);
-        $('chat-title').innerHTML = 'Chat — ' + escapeHTML(nm) + rankChipByCode(chatWith);
+        $('chat-title').innerHTML = 'Chat — ' + wingedByCode(chatWith) + rankChipByCode(chatWith);
         // mark seen
         try { fdb.ref('careers/_chats/' + tid + '/seen/' + state.myCode).set(Date.now()); } catch (e) {}
         const bubbles = (t2.msgs || []).map(m => {
@@ -5530,7 +5618,7 @@ body.light .flight-number .flight-route{color:#15171d}
           const nm = initials((pilots[r.c] && pilots[r.c].name) || r.c);
           return '<div class="chat-thread" style="cursor:pointer" data-chat-open="' + escapeHTML(r.c) + '">' +
             '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center">' +
-            '<span>' + (r.unread ? '<span class="dot-on"></span>' : '') + '<strong>' + escapeHTML(nm) + '</strong>' + rankChipByCode(r.c) +
+            '<span>' + (r.unread ? '<span class="dot-on"></span>' : '') + wingedByCode(r.c) + rankChipByCode(r.c) +
             '<span style="font-size:12px;color:var(--text-muted)"> · ' +
               (r.last ? escapeHTML(((r.last.from === state.myCode ? 'you: ' : '') + r.last.text).slice(0, 46)) : 'Start a chat') + '</span></span>' +
             '<span style="font-size:11px;color:var(--text-muted)">' + (r.ts ? escapeHTML(agoPhrase(Date.now() - r.ts)) : '') + '</span>' +
@@ -5655,9 +5743,8 @@ body.light .flight-number .flight-route{color:#15171d}
   function brandLineHtml() {
     if (!state.myName) return '<strong>Flight Deck EFB</strong>';
     const lv = levelFor(myCareer().hours);
-    return '<strong>Flight Deck EFB</strong> — ' + escapeHTML(initials(state.myName)) +
-      ' <span class="lvl lvl-' + lv.idx + '" style="vertical-align:middle;margin-left:6px">' + lv.name.toUpperCase() + '</span>' +
-      stripesHtml(lv.idx);
+    return '<strong>Flight Deck EFB</strong> — ' + wingedHtml(escapeHTML(initials(state.myName)), myCareer().hours) +
+      ' <span class="lvl lvl-' + lv.idx + '" style="vertical-align:middle;margin-left:6px">' + lv.name.toUpperCase() + '</span>';
   }
   function updateBrandLines() {
     document.querySelectorAll('.brand-line').forEach(el => { el.innerHTML = brandLineHtml(); });
@@ -5791,6 +5878,7 @@ body.light .flight-number .flight-route{color:#15171d}
           cloudPushCareer();
           if (state.solo) soloSaveClear(); // flight is banked — the save is done
           updateBrandLines();
+          checkFirstAwards();
           toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
         }
       }
@@ -5947,7 +6035,17 @@ body.light .flight-number .flight-route{color:#15171d}
   function rankChipHtml(hours) {
     const lv = levelFor(hours || 0);
     return ' <span class="lvl lvl-' + lv.idx + '" style="font-size:11px;padding:3px 9px" title="' + lv.name + '">' +
-      RANK_ABBR[lv.idx] + '</span>' + stripesHtml(lv.idx);
+      RANK_ABBR[lv.idx] + '</span>';
+  }
+  // initials worn like epaulettes: stripes sit on BOTH shoulders of the name
+  function wingedHtml(nameHtml, hours) {
+    const i = levelFor(hours || 0).idx;
+    return '<span class="winged">' + stripesHtml(i) + '<strong>' + nameHtml + '</strong>' + stripesHtml(i) + '</span>';
+  }
+  function wingedByCode(code) {
+    const p = localPilotsMap();
+    const nm = escapeHTML(initials((p[code] && p[code].name) || code));
+    return (code in hoursCache) ? wingedHtml(nm, hoursCache[code]) : '<strong>' + nm + '</strong>';
   }
   function deckInfoHtml(aircraft, dep, arr, eteMin) {
     const ete = eteMin ? Math.floor(eteMin / 60) + 'h' + pad2(eteMin % 60) : '';
@@ -5983,6 +6081,12 @@ body.light .flight-number .flight-route{color:#15171d}
       if (isMoney) el.textContent = fmtMoney(estPay(f.slug, parts[1], hrs, minutes));
       else el.textContent = ' earned · ' + Math.round(minutes) + ' min';
     };
+    list.querySelectorAll('[data-etec]').forEach(el => {
+      const f = flights[el.dataset.etec];
+      if (!f || !f.pushAt) return;
+      const sec = Math.max(0, Math.floor(((f.engOffAt || Date.now()) - f.pushAt) / 1000));
+      el.textContent = Math.floor(sec / 3600) + ':' + pad2(Math.floor(sec / 60) % 60) + ':' + pad2(sec % 60);
+    });
     list.querySelectorAll('[data-lc]').forEach(el => upd(el, true));
     list.querySelectorAll('[data-lcm]').forEach(el => upd(el, false));
     // paused decks climb too
@@ -6025,13 +6129,16 @@ body.light .flight-number .flight-route{color:#15171d}
       const nm = (pilots[pcode] && pilots[pcode].name) || pcode;
       const row = document.createElement('div');
       row.className = 'lobby-flight lobby-paused';
-      row.innerHTML = '<div class="lobby-flight-top">' +
-        '<span class="lobby-flight-num">' + escapeHTML(sv.flight || '') + '</span>' +
+      row.innerHTML = '<div class="deck2-head"><span class="deck2-callsign">' + escapeHTML(sv.flight || '') + '</span>' +
         '<span class="lobby-flight-phase">PAUSED</span></div>' +
-        deckInfoHtml(cl ? cl.aircraft : sv.slug, sv.dep, sv.arr, sv.eteMin) +
-        '<div class="lobby-seats"><span class="solo-badge">SINGLE PILOT — ' + escapeHTML(initials(nm)) +
-          ' · SAVED ' + escapeHTML(agoPhrase(Date.now() - (sv.ts || 0))) + '</span>' +
-          '<span style="display:inline-flex;align-items:center">' + rankChipHtml(sv._hours) + '</span>' +
+        '<div class="deck2-facts">' +
+        '<div><span class="f-k">DEP:</span><span class="f-v mono">' + escapeHTML(sv.dep || '—') + '</span></div>' +
+        '<div><span class="f-k">ARR:</span><span class="f-v mono">' + escapeHTML(sv.arr || '—') + '</span></div>' +
+        '<div><span class="f-k">AIRCRAFT:</span><span class="f-v">' + escapeHTML(cl ? cl.aircraft : sv.slug) + '</span></div>' +
+        '<div><span class="f-k">SAVED:</span><span class="f-v">' + escapeHTML(agoPhrase(Date.now() - (sv.ts || 0))) + '</span></div>' +
+        '</div>' +
+        '<div class="lobby-seats"><span class="solo-badge">SINGLE PILOT — PAUSED</span>' +
+          '<span style="display:inline-flex;align-items:center;margin-left:8px">' + wingedHtml(escapeHTML(initials(nm)), sv._hours) + rankChipHtml(sv._hours) + '</span>' +
           (sv.pushAt
             ? '<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">' +
               '<span class="money" data-lcp="' + escapeHTML(pcode) + '" style="font-size:12px">' +
@@ -6057,23 +6164,62 @@ body.light .flight-number .flight-route{color:#15171d}
     codes.forEach(code => {
       const f = flights[code];
       const row = document.createElement('div');
-      row.className = 'lobby-flight';
-      const top = document.createElement('div');
-      top.className = 'lobby-flight-top';
-      top.innerHTML =
-        '<span class="lobby-flight-num">' + escapeHTML(f.flight || code) + '</span>' +
-        '<span class="lobby-flight-phase">' + escapeHTML(f.phase || 'PREFLIGHT') + '</span>';
-      row.appendChild(top);
-      const info = document.createElement('div');
-      info.innerHTML = deckInfoHtml(f.aircraft, f.dep, f.arr, f.eteMin);
-      row.appendChild(info.firstChild);
-      const seats = document.createElement('div');
-      seats.className = 'lobby-seats';
-      const addView = () => {
-        if (state.myCode !== ADMIN_CODE) return;
+      row.className = 'lobby-flight deck2';
+      const eteId = 'ete-' + code;
+      const filedEte = f.eteMin ? Math.floor(f.eteMin / 60) + ':' + pad2(f.eteMin % 60) + ' filed' : '—';
+      const seatPanel = (r) => {
+        const holder = f.roles && f.roles[r];
+        const mine = holder && holder === state.myName;
+        const hrs = (f.hoursBy && f.hoursBy[r]) || 0;
+        const soloLocked = f.solo && !holder;
+        let inner;
+        if (holder) {
+          inner = '<div class="seat-tag">' + (r === 'PIC' ? 'PIC — Pilot in Command' : 'PM — Pilot Monitoring') + '</div>' +
+            '<div class="deck2-name">' + wingedHtml(escapeHTML(initials(holder)), hrs) + rankChipHtml(hrs) + '</div>' +
+            '<div class="deck2-pay">' + liveCompHtml(f, r) + '</div>' +
+            (mine && !f.solo ? '<div class="seat-tag" style="margin-top:6px;color:var(--accent)">CLICK TO REJOIN</div>' : '');
+        } else if (soloLocked) {
+          inner = '<div class="seat-tag">' + r + '</div>' +
+            '<div class="deck2-name" style="color:var(--text-muted);font-size:13px">SINGLE PILOT — LOCKED</div>';
+        } else {
+          const est = f.eteMin ? estPay(f.slug, r, myCareer().hours, f.eteMin + 20) : 0;
+          inner = '<div class="seat-tag">' + (r === 'PIC' ? 'PIC — Pilot in Command' : 'PM — Pilot Monitoring') + '</div>' +
+            '<div class="deck2-name" style="color:var(--text-muted)">SEAT OPEN</div>' +
+            '<div class="deck2-pay">Join this seat' + (est ? ' · est. <span class="money">' + fmtMoney(est) + '</span>' : '') + '</div>';
+        }
+        const el = document.createElement(holder && !mine ? 'div' : 'button');
+        if (el.tagName === 'BUTTON') el.type = 'button';
+        el.className = 'deck2-seat deck2-' + r.toLowerCase() + (holder && !mine ? ' deck2-static' : '');
+        el.innerHTML = inner;
+        if ((!holder && !f.solo) || (mine && !f.solo)) {
+          el.addEventListener('click', () => {
+            state.observer = false;
+            desiredRole = r;
+            if (f.slug && CHECKLISTS[f.slug]) { state.slug = f.slug; state.checklist = CHECKLISTS[f.slug]; }
+            joinRoom(code);
+          });
+        }
+        return el;
+      };
+      row.innerHTML =
+        '<div class="deck2-head"><span class="deck2-callsign">' + escapeHTML(f.flight || code) + '</span>' +
+        '<span class="lobby-flight-phase">' + escapeHTML(f.phase || 'PREFLIGHT') + '</span></div>' +
+        '<div class="deck2-facts">' +
+        '<div><span class="f-k">DEP:</span><span class="f-v mono">' + escapeHTML(f.dep || '—') + '</span></div>' +
+        '<div><span class="f-k">ARR:</span><span class="f-v mono">' + escapeHTML(f.arr || '—') + '</span></div>' +
+        '<div><span class="f-k">AIRCRAFT:</span><span class="f-v">' + escapeHTML(f.aircraft || '—') + '</span></div>' +
+        '<div><span class="f-k">ETE:</span><span class="f-v mono" id="' + eteId + '" data-etec="' + escapeHTML(code) + '">' + filedEte + '</span></div>' +
+        '</div>';
+      const pilots2 = document.createElement('div');
+      pilots2.className = 'deck2-pilots';
+      pilots2.appendChild(seatPanel('PIC'));
+      pilots2.appendChild(seatPanel('PM'));
+      row.appendChild(pilots2);
+      if (state.myCode === ADMIN_CODE) {
         const vb = document.createElement('button');
         vb.type = 'button';
         vb.className = 'lobby-seat';
+        vb.style.marginTop = '12px';
         vb.innerHTML = '<span class="seat-tag">View live</span>Watch this flight in real time (read-only)';
         vb.addEventListener('click', () => {
           state.observer = true;
@@ -6081,46 +6227,8 @@ body.light .flight-number .flight-route{color:#15171d}
           if (f.slug && CHECKLISTS[f.slug]) { state.slug = f.slug; state.checklist = CHECKLISTS[f.slug]; }
           joinRoom(code);
         });
-        seats.appendChild(vb);
-      };
-      if (f.solo) {
-        const solopilot = (f.roles && (f.roles.PIC || f.roles.PM)) || '';
-        const soloRole = (f.roles && f.roles.PIC) ? 'PIC' : 'PM';
-        const soloHours = (f.hoursBy && f.hoursBy[soloRole]) || 0;
-        seats.innerHTML = '<span class="solo-badge">SINGLE PILOT' +
-          (solopilot ? ' — ' + escapeHTML(initials(solopilot)) : '') + ' · LOCKED</span>' +
-          (solopilot ? '<span style="display:inline-flex;align-items:center">' + rankChipHtml(soloHours) + '</span>' : '') +
-          '<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">' + liveCompHtml(f, soloRole) + '</span>';
-        addView();
-      } else {
-        ['PIC', 'PM'].forEach(r => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'lobby-seat seat-' + r.toLowerCase();
-          const holder = f.roles && f.roles[r];
-          const mine = holder && holder === state.myName;
-          const holderHours = (f.hoursBy && f.hoursBy[r]) || 0;
-          let seatSub = holder
-            ? '<strong>' + escapeHTML(initials(holder)) + '</strong>' + rankChipHtml(holderHours) + '<br>' + liveCompHtml(f, r)
-            : 'Join this seat';
-          if (mine) seatSub = 'Rejoin — <strong>' + escapeHTML(initials(holder)) + '</strong>' + rankChipHtml(holderHours) + '<br>' + liveCompHtml(f, r);
-          if (!holder && f.eteMin) {
-            const est = estPay(f.slug, r, myCareer().hours, f.eteMin + 20);
-            seatSub = 'Join this seat · est. <span class="money">' + fmtMoney(est) + '</span>';
-          }
-          b.innerHTML = '<span class="seat-tag">' + (r === 'PIC' ? 'Pilot in Command' : 'Pilot Monitoring') + '</span>' + seatSub;
-          if (holder && !mine) b.disabled = true;
-          else b.addEventListener('click', () => {
-            state.observer = false;
-            desiredRole = r;
-            if (f.slug && CHECKLISTS[f.slug]) { state.slug = f.slug; state.checklist = CHECKLISTS[f.slug]; }
-            joinRoom(code);
-          });
-          seats.appendChild(b);
-        });
-        addView();
+        row.appendChild(vb);
       }
-      row.appendChild(seats);
       list.appendChild(row);
     });
   }
