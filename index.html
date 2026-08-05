@@ -2833,7 +2833,8 @@ body.light .flight-number .flight-route{color:#15171d}
         (reached ? ';border-color:' + RANK_COLORS[i] + ';box-shadow:0 0 ' + (me ? '18px' : '8px') + ' ' + RANK_COLORS[i] : '') + '">' +
         '<span class="rm-count2"' + (nHold ? '' : ' style="opacity:0.45"') + '>' + nHold +
           (nHold === 1 ? ' pilot' : ' pilots') + '</span>' +
-        '<span><span class="lvl lvl-' + i + '">' + L.name + '</span>' + stripesHtml(i) + '</span>' +
+        '<span style="display:inline-flex;align-items:center;gap:6px">' + stripesHtml(i) +
+          '<span class="lvl lvl-' + i + '">' + L.name + '</span>' + stripesHtml(i) + '</span>' +
         '<span class="rm-range">' + range + ' · pay ×' + L.mult.toFixed(1) + (i === LEVELS.length - 1 ? ' and climbing' : '') + '</span>' +
         (me ? '<span class="rm-you">YOU ARE HERE</span><div class="rm-prog">' + prog + '</div>' : '') +
         '</div>';
@@ -2879,7 +2880,7 @@ body.light .flight-number .flight-route{color:#15171d}
     $('award-body').innerHTML = idxs.map(i =>
       '<div style="margin:14px 0"><span style="font-size:40px">🏆</span><br>' +
       '<strong style="font-size:19px">1st pilot to reach ' + LEVELS[i].name + '</strong><br>' +
-      '<span style="display:inline-flex;align-items:center;gap:6px;margin-top:8px">' +
+      '<span style="display:inline-flex;align-items:center;gap:6px;margin-top:8px">' + stripesHtml(i) +
       '<span class="lvl lvl-' + i + '">' + LEVELS[i].name + '</span>' + stripesHtml(i) + '</span></div>').join('') +
       '<p style="font-size:13px;color:var(--text-muted)">This award lives on your My Career page forever.</p>';
     $('award-modal').hidden = false;
@@ -2894,7 +2895,7 @@ body.light .flight-number .flight-route{color:#15171d}
       if (!mine.length || screens.stats.classList.contains('hidden')) return;
       el.innerHTML = '<p class="lobby-h">Awards</p>' + mine.map(i =>
         '<div class="award-row">🏆 <strong>1st pilot to reach ' + LEVELS[i].name + '</strong>' +
-        '<span style="display:inline-flex;align-items:center;gap:6px;margin-left:auto">' +
+        '<span style="display:inline-flex;align-items:center;gap:6px;margin-left:auto">' + stripesHtml(i) +
         '<span class="lvl lvl-' + i + '">' + RANK_ABBR[i] + '</span>' + stripesHtml(i) + '</span></div>').join('');
     }).catch(() => {});
   }
