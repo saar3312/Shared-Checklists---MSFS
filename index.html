@@ -1073,10 +1073,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.76</div>
+<div class="ver-float app-version">v3.77</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.76</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.77</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1649,7 +1649,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.76</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.77</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -3064,6 +3064,8 @@ body.light .flight-number .flight-route{color:#15171d}
     state.checklist = CHECKLISTS[state.slug] || CHECKLISTS.b777_2p;
     state.members[state.myKey] = { name: state.myName, role: null };
     state.roles = { PIC: null, PM: null };
+    state.phaseLog = [];
+    lastPhaseLabel = null;
     if (resumeSave) {
       // Restoring a paused solo flight: ticks, card acks and the salary
       // clock come back — the clock is wall time, so the flight kept earning
@@ -3071,6 +3073,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const now = Date.now();
       state.ticked = new Set(resumeSave.ticked || []);
       state.acks = resumeSave.acks || {};
+      state.phaseLog = resumeSave.phaseLog || [];
       state.pushAt = resumeSave.pushAt ||
         (resumeSave.pushElapsed ? now - resumeSave.pushElapsed : 0);
       state.gearUpAt = resumeSave.gearUpAt ||
@@ -4997,7 +5000,9 @@ body.light .flight-number .flight-route{color:#15171d}
     state.paGreet = 'auto'; state.paFlightTime = ''; state.paWx = ''; state.paTemp = '';
     state.eteMin = 0; state.gearUpAt = 0; state.pushAt = 0; state.engOffAt = 0; flightCommitted = false;
     state.viewSection = 0;
+    state.phaseLog = [];
     engineStartId = null;
+    lastPhaseLabel = null;
     releaseWakeLock();
     updateMyFlightTab();
   }
@@ -5242,6 +5247,7 @@ body.light .flight-number .flight-route{color:#15171d}
       eteMin: state.eteMin || 0, depDate: state.depDate || '',
       paFlightTime: state.paFlightTime || '', paWx: state.paWx || '', paTemp: state.paTemp || '',
       ticked: Array.from(state.ticked), acks: state.acks || {},
+      phaseLog: state.phaseLog || [],
       // absolute timestamps: the salary clock is REAL TIME and keeps running
       // while the flight is paused — pay accrues until engines-off
       pushAt: state.pushAt || 0, gearUpAt: state.gearUpAt || 0, engOffAt: state.engOffAt || 0,
@@ -5415,6 +5421,10 @@ body.light .flight-number .flight-route{color:#15171d}
           '<span class="lobby-flight-phase' + (kind === 'pending' ? '' : ' phase-muted') + '">' +
             (kind === 'pending' ? 'NEEDS REVIEW' : 'DISCARDED') + '</span></div>' +
           '<div class="note" style="margin:4px 0 8px">' + escapeHTML(r.reason || '') + '</div>' +
+          (e.phases && e.phases.length
+            ? '<div class="note" style="margin:0 0 8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px">PHASE TIMES: ' +
+              e.phases.map(p2 => escapeHTML((p2.phase || '?') + ' ' + (p2.min || 0) + 'm')).join(' · ') + '</div>'
+            : '') +
           '<div class="lobby-seats">' +
           (kind === 'pending'
             ? '<button type="button" class="lobby-seat seat-pic" data-rev-accept="' + id + '">' +
@@ -5799,9 +5809,21 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   let flightCommitted = false;
   let soloBeat = 0;
+  let lastPhaseLabel = null;
   function salaryTick() {
     if (!state.checklist) return;
     if (screens.room.classList.contains('hidden') && !state.code) return; // flight over AND not in the room
+    // phase timeline — logged so support can audit how long each phase took
+    // (only once the checklist is actually rendered — before that the phase
+    // engine has no section data and would misreport)
+    if (state.code && sectionItemIds && sectionItemIds.length) {
+      const ph = currentPhase().label || 'PREFLIGHT';
+      if (ph !== lastPhaseLabel) {
+        state.phaseLog = state.phaseLog || [];
+        state.phaseLog.push({ phase: ph, at: Date.now() });
+        lastPhaseLabel = ph;
+      }
+    }
     // refresh the solo save every minute so the salary clock stays current
     // even through long quiet stretches (cruise) — a pause never rewinds far
     if (state.solo && state.role === 'host' && !flightCommitted && ++soloBeat % 60 === 0) soloSaveNow();
@@ -5851,6 +5873,10 @@ body.light .flight-number .flight-route{color:#15171d}
             return (k && state.members[k] && state.members[k].name) || '';
           })(),
           minutes, pay: Math.round(pay * 100) / 100,
+          phases: (state.phaseLog || []).map((p, i, arr) => ({
+            phase: p.phase,
+            min: Math.max(0, Math.round((((i + 1 < arr.length) ? arr[i + 1].at : (state.engOffAt || Date.now())) - p.at) / 60000)),
+          })),
         };
         // ANTI-CHEAT: flight time must line up with the filed SimBrief ETE.
         // Longer than ETE + taxi allowance — or no OFP filed at all, so no
@@ -6021,6 +6047,9 @@ body.light .flight-number .flight-route{color:#15171d}
     fdb.ref('careers').get().then(sn => {
       const v = (sn && sn.val()) || {};
       for (const c of Object.keys(v)) if (v[c] && typeof v[c].hours === 'number') noteHours(c, v[c].hours);
+      // roster pilots with no career record yet are brand-new JFOs (0 h)
+      const pm = localPilotsMap();
+      for (const c of Object.keys(pm)) if (!(c in hoursCache)) noteHours(c, 0);
       cb && cb();
     }).catch(() => cb && cb());
   }
