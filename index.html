@@ -901,10 +901,11 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.45</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.48</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
+      <button class="btn link" id="btn-support">Support</button>
       <button class="btn link theme-toggle" id="btn-theme" title="Toggle light / dark">Theme</button>
     </div>
   </div>
@@ -919,12 +920,55 @@ body.light .flight-number .flight-route{color:#15171d}
           <span class="field-label">Pilot ID<span class="req">*</span></span>
           <input id="login-code" class="input mono" type="text" maxlength="8" required
             autocomplete="off" spellcheck="false" inputmode="numeric" />
+          <span id="login-invalid" class="hidden" style="display:block;margin-top:6px;color:#e5484d;font-weight:800;font-size:12px;letter-spacing:0.1em">INVALID</span>
         </label>
         <div class="setup-actions">
           <span></span>
           <button type="submit" class="btn primary">Log in</button>
         </div>
       </form>
+      <div class="setup-actions" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <span class="muted" style="font-size:12px">New pilot?</span>
+        <button type="button" class="btn link" id="btn-signup-toggle">Create an account</button>
+      </div>
+      <form id="signup-form" class="hidden" style="margin-top:6px">
+        <label class="field">
+          <span class="field-label">Your initials<span class="req">*</span></span>
+          <input id="signup-name" class="input mono" type="text" maxlength="3"
+            autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="e.g. SM" />
+        </label>
+        <div class="setup-actions">
+          <span class="muted" style="font-size:11px">You'll get a 4-digit pilot ID — it's your login everywhere.</span>
+          <button type="submit" class="btn primary">Create my pilot ID</button>
+        </div>
+      </form>
+    </div>
+    <div id="support-box" class="setup-card hidden" style="margin-top:14px">
+      <h2 style="font-size:16px;margin:0 0 4px">Support</h2>
+      <p class="setup-sub">Forgot your pilot ID? Send SM a message. You'll get a ticket code — check back here for the reply.</p>
+      <form id="support-form">
+        <label class="field">
+          <span class="field-label">Who are you?<span class="req">*</span></span>
+          <input id="support-from" class="input mono" type="text" maxlength="6"
+            autocomplete="off" autocapitalize="characters" placeholder="your initials, e.g. KT" />
+        </label>
+        <label class="field">
+          <span class="field-label">Message<span class="req">*</span></span>
+          <input id="support-msg" class="input" type="text" maxlength="140"
+            autocomplete="off" placeholder="I forgot my pilot ID" />
+        </label>
+        <div class="setup-actions">
+          <span></span>
+          <button type="submit" class="btn primary">Send to SM</button>
+        </div>
+      </form>
+      <div id="support-sent" class="hidden" style="font-size:13px;margin-top:8px"></div>
+      <div class="setup-actions" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <input id="support-ticket" class="input mono" type="text" maxlength="8"
+          placeholder="ticket code" style="max-width:150px" autocapitalize="characters" />
+        <button type="button" class="btn" id="btn-support-check">Check for a reply</button>
+      </div>
+      <div id="support-reply" class="hidden" style="font-size:13px;margin-top:8px"></div>
     </div>
   </div>
 </div>
@@ -944,6 +988,7 @@ body.light .flight-number .flight-route{color:#15171d}
   <div class="home-welcome">
     <h1 id="pickac-line">Select your aircraft</h1>
     <p>Ordered by compensation.</p>
+    <p id="newpilot-banner" class="hidden" style="max-width:520px;margin:10px auto 0;padding:10px 14px;border:1px solid var(--good);border-radius:10px;font-size:13px"></p>
   </div>
   <div class="home-apps">
     <button class="home-tile" data-slug="a220_2p">
@@ -1005,6 +1050,8 @@ body.light .flight-number .flight-route{color:#15171d}
       <h2 id="welcome-line">Welcome</h2>
       <div class="career-line" id="career-line"></div>
       <div id="lobby-resume" style="display:none"></div>
+      <div id="lobby-reviews" style="display:none"></div>
+      <div id="lobby-support" style="display:none"></div>
       <div class="lobby-create">
         <button type="button" class="btn primary" id="btn-create-dual">Create new flight deck</button>
         <button type="button" class="btn" id="btn-create-solo">Single pilot</button>
@@ -1200,7 +1247,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.45</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.48</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1363,7 +1410,10 @@ body.light .flight-number .flight-route{color:#15171d}
     '4143': 'Jayvir Monga',
   };
   function initials(n) {
-    return String(n || '').trim().split(/\s+/).map(w => (w[0] || '').toUpperCase()).join('').slice(0, 3);
+    n = String(n || '').trim();
+    if (!n) return '';
+    if (!/\s/.test(n) && n.length <= 4) return n.toUpperCase(); // already initials
+    return n.split(/\s+/).map(w => (w[0] || '').toUpperCase()).join('').slice(0, 3);
   }
   function pilotByCode(code) {
     const c = String(code || '').trim();
@@ -1594,7 +1644,9 @@ body.light .flight-number .flight-route{color:#15171d}
   function finishLogin(code, name) {
     state.myCode = code;
     state.myName = name;
+    const bn0 = $('newpilot-banner'); if (bn0) bn0.classList.add('hidden');
     syncCareerFromCloud();
+    flushReviewOutbox(); // flagged flights parked while offline go up now
     updateBrandLines();
     updateTileRates();
     setTimeout(updateTileRates, 1500); // refresh once the cloud career lands
@@ -1605,7 +1657,8 @@ body.light .flight-number .flight-route{color:#15171d}
     e.preventDefault();
     const code = ($('login-code').value || '').trim();
     if (!code) { toast('Pilot ID is required'); $('login-code').focus(); return; }
-    const reject = () => { toast('Invalid pilot ID'); $('login-code').focus(); $('login-code').select(); };
+    const reject = () => { $('login-invalid').classList.remove('hidden'); toast('Invalid pilot ID'); $('login-code').focus(); $('login-code').select(); };
+    $('login-invalid').classList.add('hidden');
     if (fdb) {
       const btn = document.querySelector('#login-form button[type="submit"]');
       if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
@@ -1639,6 +1692,89 @@ body.light .flight-number .flight-route{color:#15171d}
     finishLogin(code, name);
   });
   $('btn-login-back').addEventListener('click', () => show('home'));
+  $('login-code').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
+  // ---- support chat: forgot-my-ID tickets go to SM's account ----
+  const TICK_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  $('btn-support').addEventListener('click', () => $('support-box').classList.toggle('hidden'));
+  $('support-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const from = ($('support-from').value || '').trim().toUpperCase();
+    const msg = ($('support-msg').value || '').trim();
+    if (!/^[A-Z]{2,3}[0-9]?$/.test(from)) { toast('Your initials are required — SM finds your ID on the roster by them'); $('support-from').focus(); return; }
+    if (!msg) { toast('Write a short message'); $('support-msg').focus(); return; }
+    if (!fdb) { toast('Support needs internet — try again once online'); return; }
+    let tid = 'T';
+    const a2 = new Uint32Array(4); crypto.getRandomValues(a2);
+    for (let i = 0; i < 4; i++) tid += TICK_ALPHA[a2[i] % TICK_ALPHA.length];
+    fdb.ref('careers/_support/' + tid).set({ ts: Date.now(), from: from, msg: msg, reply: '' }).then(() => {
+      $('support-sent').classList.remove('hidden');
+      $('support-sent').innerHTML = 'Sent to SM. Your ticket code is <strong class="mono">' + tid +
+        '</strong> — come back here and check it for the reply.';
+      $('support-ticket').value = tid;
+      $('support-msg').value = '';
+    }).catch(() => toast('Could not send — try again'));
+  });
+  $('btn-support-check').addEventListener('click', () => {
+    const tid = ($('support-ticket').value || '').trim().toUpperCase();
+    if (!tid) { $('support-ticket').focus(); return; }
+    if (!fdb) { toast('Needs internet'); return; }
+    fdb.ref('careers/_support/' + tid).get().then(snap => {
+      const v = snap && snap.val();
+      const el = $('support-reply');
+      el.classList.remove('hidden');
+      if (!v) { el.textContent = 'No ticket with that code.'; return; }
+      el.innerHTML = v.reply
+        ? 'Reply from SM: <strong>' + escapeHTML(v.reply) + '</strong>'
+        : 'No reply yet — check back later.';
+    }).catch(() => toast('Could not check — try again'));
+  });
+  // ---- account creation: pick a free 4-digit pilot ID in the cloud roster ----
+  $('btn-signup-toggle').addEventListener('click', () => {
+    $('signup-form').classList.toggle('hidden');
+    if (!$('signup-form').classList.contains('hidden')) setTimeout(() => $('signup-name').focus(), 50);
+  });
+  $('signup-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const want = ($('signup-name').value || '').trim().toUpperCase();
+    if (!/^[A-Z]{2,3}$/.test(want)) { toast('Initials only — 2 or 3 letters, e.g. SM'); $('signup-name').focus(); return; }
+    if (!fdb) { toast('Creating an account needs internet — try again once you are online'); return; }
+    const btn = document.querySelector('#signup-form button[type="submit"]');
+    btn.disabled = true; btn.textContent = 'Creating…';
+    const restore = () => { btn.disabled = false; btn.textContent = 'Create my pilot ID'; };
+    fdb.ref('pilots').get().then(snap => {
+      const all = (snap && snap.val()) || {};
+      let code = '';
+      for (let i = 0; i < 80 && !code; i++) {
+        const c = String(1000 + Math.floor(Math.random() * 9000));
+        if (!all[c]) code = c;
+      }
+      if (!code) { restore(); toast('No free pilot IDs — tell SM'); return; }
+      // initials must be unique on the roster — taken? hand out a close one
+      const taken = {};
+      for (const k of Object.keys(all)) taken[initials(all[k] && all[k].name)] = true;
+      let mine = want;
+      if (taken[mine]) {
+        mine = '';
+        for (let d = 2; d <= 9 && !mine; d++) if (!taken[want + d]) mine = want + d;
+        if (!mine) { restore(); toast(want + ' and every close variant are taken — pick different initials'); return; }
+      }
+      return fdb.ref('pilots/' + code).set({ name: mine }).then(() => {
+        all[code] = { name: mine };
+        try { localStorage.setItem('fdeck-pilots-cache', JSON.stringify(all)); } catch (e2) {}
+        restore();
+        $('signup-form').classList.add('hidden');
+        $('signup-name').value = '';
+        finishLogin(code, mine);
+        const bn = $('newpilot-banner');
+        bn.innerHTML = 'Welcome aboard, ' + escapeHTML(mine) +
+          (mine !== want ? ' (' + escapeHTML(want) + ' was taken)' : '') +
+          ' — your pilot ID is <strong class="mono">' + code +
+          '</strong>. Write it down: it is your login on every device.';
+        bn.classList.remove('hidden');
+        toast('Account created — you are ' + mine + ', pilot ID ' + code);
+      });
+    }).catch(() => { restore(); toast('Could not create the account — check your internet and try again'); });
+  });
   function updateTileRates() {
     const hours = myCareer().hours;
     const mult = levelFor(hours).mult;
@@ -1680,6 +1816,8 @@ body.light .flight-number .flight-route{color:#15171d}
     lobbyFetchPaused();
     renderLobbyList();
     renderLobbyResume();
+    renderReviews();
+    renderSupport();
   }
   $('nav-decks1').addEventListener('click', () => {
     if (!state.myName) { show('home'); return; }
@@ -2157,7 +2295,7 @@ body.light .flight-number .flight-route{color:#15171d}
         }
         break;
       case 'role_denied':
-        toast(msg.role + ' is held by ' + (msg.holderName || 'someone'));
+        toast(msg.role + ' is held by ' + (initials(msg.holderName) || 'someone'));
         break;
       case 'set_flight':
         if (state.role === 'host') {
@@ -3214,12 +3352,15 @@ body.light .flight-number .flight-route{color:#15171d}
     rows.sort((a, b) => lbSort === 'money'
       ? (b.money - a.money || b.hours - a.hours)
       : (b.hours - a.hours || b.money - a.money));
-    let html = '<table class="lb-table"><tr><th></th><th>Pilot</th><th>Level</th><th>Hours</th><th>Earnings</th><th>Flights</th></tr>';
+    const admin = state.myCode === ADMIN_CODE; // SM sees everyone's pilot IDs
+    let html = '<table class="lb-table"><tr><th></th><th>Pilot</th>' + (admin ? '<th>ID</th>' : '') +
+      '<th>Level</th><th>Hours</th><th>Earnings</th><th>Flights</th></tr>';
     rows.forEach((r, i) => {
       const lv = levelFor(r.hours);
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
         '<td class="lb-rank">' + (i + 1) + '</td>' +
         '<td>' + escapeHTML(initials(r.name)) + '</td>' +
+        (admin ? '<td class="mono">' + escapeHTML(r.code) + '</td>' : '') +
         '<td><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span></td>' +
         '<td>' + r.hours.toFixed(1) + '</td>' +
         '<td><span class="money">' + fmtMoney(r.money) + '</span></td>' +
@@ -3497,7 +3638,7 @@ body.light .flight-number .flight-route{color:#15171d}
   function renderRoleBadge() {
     const b = $('role-badge');
     b.textContent = state.myRole
-      ? state.myRole + ' · ' + (state.myName || 'You')
+      ? state.myRole + ' · ' + (initials(state.myName) || 'You')
       : 'No role';
     b.className = 'role-badge' + (state.myRole ? ' role-' + state.myRole : '');
     if (typeof updateMobilePane === 'function') updateMobilePane();
@@ -4066,6 +4207,163 @@ body.light .flight-number .flight-route{color:#15171d}
       });
     });
   }
+  // =====================================================================
+  // FLIGHT REVIEW QUEUE — flagged flights (time exceeds the SimBrief ETE,
+  // or no OFP filed) wait in careers/_reviews for SM (7789) to accept
+  // them as legit or discard them. Discarded flights are KEPT so they can
+  // be retained (restored & credited) later.
+  // =====================================================================
+  const ADMIN_CODE = '7789';
+  function submitForReview(entry, reason) {
+    const rev = { code: state.myCode, name: state.myName || '', status: 'pending',
+                  reason: reason, ete: state.eteMin || 0, ts: Date.now(), entry: entry };
+    const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    if (fdb) {
+      try { fdb.ref('careers/_reviews/' + id).set(rev); return; } catch (e) {}
+    }
+    try { // offline: park it and push on the next login
+      const box = JSON.parse(localStorage.getItem('fdeck-review-outbox') || '[]');
+      box.push({ id: id, rev: rev });
+      localStorage.setItem('fdeck-review-outbox', JSON.stringify(box));
+    } catch (e) {}
+  }
+  function flushReviewOutbox() {
+    if (!fdb) return;
+    try {
+      const box = JSON.parse(localStorage.getItem('fdeck-review-outbox') || '[]');
+      if (!box.length) return;
+      box.forEach(x => fdb.ref('careers/_reviews/' + x.id).set(x.rev));
+      localStorage.removeItem('fdeck-review-outbox');
+    } catch (e) {}
+  }
+  function acceptReview(id, rev) {
+    if (!fdb || !rev || !rev.entry) return;
+    const e = rev.entry;
+    fdb.ref('careers/' + rev.code).get().then(snap => {
+      const c = (snap && snap.val()) || { hours: 0, money: 0, flights: 0, log: [] };
+      c.hours = Math.round(((c.hours || 0) + (e.minutes || 0) / 60) * 100) / 100;
+      c.money = Math.round(((c.money || 0) + (e.pay || 0)) * 100) / 100;
+      c.flights = (c.flights || 0) + 1;
+      c.log = (c.log || []).slice(-49);
+      c.log.push(e);
+      const ref = fdb.ref('careers/' + rev.code);
+      const fields = { hours: c.hours, money: c.money, flights: c.flights, log: c.log };
+      if (ref.update) ref.update(fields); else ref.set(c);
+      fdb.ref('careers/_reviews/' + id).remove().then(() => renderReviews());
+      if (rev.code === state.myCode) syncCareerFromCloud();
+      toast('Flight accepted — ' + (e.minutes || 0) + ' min · ' + fmtMoney(e.pay || 0) +
+        ' credited to ' + (initials(rev.name) || rev.code));
+    }).catch(() => toast("Could not load that pilot's career — try again"));
+  }
+  function renderReviews() {
+    const box = $('lobby-reviews');
+    if (!box) return;
+    box.style.display = 'none';
+    box.innerHTML = '';
+    if (state.myCode !== ADMIN_CODE || !fdb) return;
+    fdb.ref('careers/_reviews').get().then(snap => {
+      const all = (snap && snap.val()) || {};
+      if (screens.lobby.classList.contains('hidden')) return;
+      const ids = Object.keys(all).sort((a, b) => (all[b].ts || 0) - (all[a].ts || 0));
+      const pend = ids.filter(i => all[i] && all[i].status === 'pending');
+      const disc = ids.filter(i => all[i] && all[i].status === 'discarded');
+      if (!pend.length && !disc.length) return;
+      const row = (id, r, kind) => {
+        const e = r.entry || {};
+        return '<div class="lobby-flight review-row"><div class="lobby-flight-top">' +
+          '<span class="lobby-flight-num">' + escapeHTML(e.flight || '—') + '</span>' +
+          '<span class="lobby-flight-ac">' + escapeHTML(initials(r.name) || r.code) + ' · ' +
+            escapeHTML(e.aircraft || '') + ' · ' + escapeHTML(e.dep || '') + ' → ' + escapeHTML(e.arr || '') +
+            ' · ' + (e.minutes || 0) + ' min · <span class="money">' + fmtMoney(e.pay || 0) + '</span></span>' +
+          '<span class="lobby-flight-phase' + (kind === 'pending' ? '' : ' phase-muted') + '">' +
+            (kind === 'pending' ? 'NEEDS REVIEW' : 'DISCARDED') + '</span></div>' +
+          '<div class="note" style="margin:4px 0 8px">' + escapeHTML(r.reason || '') + '</div>' +
+          '<div class="lobby-seats">' +
+          (kind === 'pending'
+            ? '<button type="button" class="lobby-seat seat-pic" data-rev-accept="' + id + '">' +
+                '<span class="seat-tag">Accept</span>Legit flight — credit it to ' + escapeHTML(initials(r.name) || r.code) + '</button>' +
+              '<button type="button" class="lobby-seat" data-rev-discard="' + id + '">' +
+                '<span class="seat-tag">Discard</span>No credit — kept in the discarded list</button>'
+            : '<button type="button" class="lobby-seat seat-pic" data-rev-accept="' + id + '">' +
+                '<span class="seat-tag">Retain</span>Restore & credit this flight after all</button>' +
+              '<button type="button" class="lobby-seat" data-rev-delete="' + id + '">' +
+                '<span class="seat-tag">Delete forever</span>Remove it for good</button>') +
+          '</div></div>';
+      };
+      let html = '';
+      if (pend.length) {
+        html += '<p class="lobby-h">Flagged flights — need your review</p>';
+        pend.forEach(i => { html += row(i, all[i], 'pending'); });
+      }
+      if (disc.length) {
+        html += '<p class="lobby-h">Discarded flights</p>';
+        disc.forEach(i => { html += row(i, all[i], 'discarded'); });
+      }
+      box.innerHTML = html;
+      box.style.display = '';
+      box.querySelectorAll('[data-rev-accept]').forEach(b2 =>
+        b2.addEventListener('click', () => acceptReview(b2.dataset.revAccept, all[b2.dataset.revAccept])));
+      box.querySelectorAll('[data-rev-discard]').forEach(b2 =>
+        b2.addEventListener('click', () => {
+          fdb.ref('careers/_reviews/' + b2.dataset.revDiscard + '/status').set('discarded')
+            .then(() => { toast('Flight discarded — kept in the discarded list'); renderReviews(); });
+        }));
+      box.querySelectorAll('[data-rev-delete]').forEach(b2 =>
+        b2.addEventListener('click', () => {
+          if (!confirm('Delete this discarded flight forever? It cannot be retained afterwards.')) return;
+          fdb.ref('careers/_reviews/' + b2.dataset.revDelete).remove().then(() => renderReviews());
+        }));
+    }).catch(() => {});
+  }
+  function renderSupport() {
+    const box = $('lobby-support');
+    if (!box) return;
+    box.style.display = 'none';
+    box.innerHTML = '';
+    if (state.myCode !== ADMIN_CODE || !fdb) return;
+    fdb.ref('careers/_support').get().then(snap => {
+      const all = (snap && snap.val()) || {};
+      if (screens.lobby.classList.contains('hidden')) return;
+      const ids = Object.keys(all).sort((a, b) => (all[b].ts || 0) - (all[a].ts || 0));
+      if (!ids.length) return;
+      const pilots = localPilotsMap();
+      let html = '<p class="lobby-h">Support inbox</p>';
+      ids.forEach(tid => {
+        const m = all[tid] || {};
+        const who = String(m.from || '').trim().toUpperCase();
+        const matches = Object.keys(pilots).filter(c => initials(pilots[c] && pilots[c].name) === who);
+        html += '<div class="lobby-flight"><div class="lobby-flight-top">' +
+          '<span class="lobby-flight-num">' + escapeHTML(who || '?') + '</span>' +
+          '<span class="lobby-flight-ac">' + escapeHTML(m.msg || '') + '</span>' +
+          '<span class="lobby-flight-phase' + (m.reply ? ' phase-muted' : '') + '">' + (m.reply ? 'ANSWERED' : 'OPEN') + '</span></div>' +
+          '<div class="note" style="margin:4px 0 8px">Ticket ' + escapeHTML(tid) +
+          (matches.length
+            ? ' · roster match: ' + matches.map(c => escapeHTML(initials(pilots[c].name)) + ' → ID ' + escapeHTML(c)).join(', ')
+            : ' · no roster match for those initials') +
+          (m.reply ? ' · your reply: \u201c' + escapeHTML(m.reply) + '\u201d' : '') + '</div>' +
+          '<div class="lobby-seats">' +
+          '<button type="button" class="lobby-seat seat-pic" data-sup-reply="' + tid + '"><span class="seat-tag">Reply</span>' +
+            (m.reply ? 'Change the reply' : 'Answer this ticket') + '</button>' +
+          '<button type="button" class="lobby-seat" data-sup-del="' + tid + '"><span class="seat-tag">Delete</span>Remove this ticket</button>' +
+          '</div></div>';
+      });
+      box.innerHTML = html;
+      box.style.display = '';
+      box.querySelectorAll('[data-sup-reply]').forEach(b2 =>
+        b2.addEventListener('click', () => {
+          const cur = (all[b2.dataset.supReply] && all[b2.dataset.supReply].reply) || '';
+          const r = prompt('Reply (the pilot sees this when they check their ticket code):', cur);
+          if (r === null) return;
+          fdb.ref('careers/_support/' + b2.dataset.supReply + '/reply').set(r.trim())
+            .then(() => { toast('Reply saved'); renderSupport(); });
+        }));
+      box.querySelectorAll('[data-sup-del]').forEach(b2 =>
+        b2.addEventListener('click', () => {
+          if (!confirm('Delete this support ticket?')) return;
+          fdb.ref('careers/_support/' + b2.dataset.supDel).remove().then(() => renderSupport());
+        }));
+    }).catch(() => {});
+  }
   window.addEventListener('beforeunload', () => {
     // last-chance save when the tab closes mid-solo-flight
     if (state.solo && state.role === 'host' && state.code && !flightCommitted) {
@@ -4210,13 +4508,7 @@ body.light .flight-number .flight-route{color:#15171d}
         flightCommitted = true;
         const minutes = Math.round(salaryMinutes());
         const pay = earningsFor(state.myRole, myCareer().hours);
-        const careers = loadCareers();
-        const c = careers[state.myCode] || { hours: 0, money: 0, flights: 0, log: [] };
-        c.hours = Math.round((c.hours + minutes / 60) * 100) / 100;
-        c.money = Math.round((c.money + pay) * 100) / 100;
-        c.flights += 1;
-        c.log = (c.log || []).slice(-49);
-        c.log.push({
+        const entry = {
           date: new Date().toISOString().slice(0, 10),
           aircraft: state.checklist.aircraft, flight: state.flightNumber,
           dep: state.depApt, arr: state.arrApt, role: state.myRole,
@@ -4228,13 +4520,35 @@ body.light .flight-number .flight-route{color:#15171d}
             return (k && state.members[k] && state.members[k].name) || '';
           })(),
           minutes, pay: Math.round(pay * 100) / 100,
-        });
-        careers[state.myCode] = c;
-        saveCareers(careers);
-        cloudPushCareer();
-        if (state.solo) soloSaveClear(); // flight is banked — the save is done
-        updateBrandLines();
-        toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
+        };
+        // ANTI-CHEAT: flight time must line up with the filed SimBrief ETE.
+        // Longer than ETE + taxi allowance — or no OFP filed at all, so no
+        // ETE to check against — and the flight is NOT credited: it goes to
+        // SM (7789) to be accepted as a legit flight or discarded.
+        const TAXI_ALLOWANCE = 30; // min: push→ETE start + rollout→gate
+        const flagged = !state.eteMin || minutes > state.eteMin + TAXI_ALLOWANCE;
+        if (flagged) {
+          const reason = !state.eteMin
+            ? 'No SimBrief OFP filed — no ETE to verify the flight time against'
+            : minutes + ' min flown vs ' + state.eteMin + ' min ETE (+' + TAXI_ALLOWANCE + ' min taxi allowance)';
+          submitForReview(entry, reason);
+          if (state.solo) soloSaveClear();
+          toast('Flight flagged: ' + reason + '. Sent to SM (7789) for approval — it is credited once accepted.');
+        } else {
+          const careers = loadCareers();
+          const c = careers[state.myCode] || { hours: 0, money: 0, flights: 0, log: [] };
+          c.hours = Math.round((c.hours + minutes / 60) * 100) / 100;
+          c.money = Math.round((c.money + pay) * 100) / 100;
+          c.flights += 1;
+          c.log = (c.log || []).slice(-49);
+          c.log.push(entry);
+          careers[state.myCode] = c;
+          saveCareers(careers);
+          cloudPushCareer();
+          if (state.solo) soloSaveClear(); // flight is banked — the save is done
+          updateBrandLines();
+          toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
+        }
       }
     }
   }
