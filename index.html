@@ -1073,10 +1073,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.77</div>
+<div class="ver-float app-version">v3.78</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.77</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.78</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1649,7 +1649,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.77</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.78</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -5822,6 +5822,7 @@ body.light .flight-number .flight-route{color:#15171d}
         state.phaseLog = state.phaseLog || [];
         state.phaseLog.push({ phase: ph, at: Date.now() });
         lastPhaseLabel = ph;
+        if (state.role === 'host') lobbyAnnounce(); // viewers see the new phase immediately
       }
     }
     // refresh the solo save every minute so the salary clock stays current
@@ -5999,6 +6000,11 @@ body.light .flight-number .flight-route{color:#15171d}
       pushAt: state.pushAt || 0,
       engOffAt: state.engOffAt || 0,
       phase: (currentPhase().label || 'PREFLIGHT'),
+      prog: (() => { // % of gating checklist items ticked — the phase's ground truth
+        let t2 = 0, d2 = 0;
+        (sectionItemIds || []).forEach(ids => (ids || []).forEach(id => { t2++; if (state.ticked.has(id)) d2++; }));
+        return t2 ? Math.round((d2 / t2) * 100) : 0;
+      })(),
     };
   }
   function lobbyAnnounce() {
@@ -6110,6 +6116,14 @@ body.light .flight-number .flight-route{color:#15171d}
       if (isMoney) el.textContent = fmtMoney(estPay(f.slug, parts[1], hrs, minutes));
       else el.textContent = ' earned · ' + Math.round(minutes) + ' min';
     };
+    list.querySelectorAll('[data-prog]').forEach(el => {
+      const f = flights[el.dataset.prog];
+      if (f && typeof f.prog === 'number') el.textContent = f.prog + '% complete';
+    });
+    list.querySelectorAll('[data-ph]').forEach(el => {
+      const f = flights[el.dataset.ph];
+      if (f && f.phase && el.textContent !== f.phase) el.textContent = f.phase;
+    });
     list.querySelectorAll('[data-lc]').forEach(el => upd(el, true));
     list.querySelectorAll('[data-lcm]').forEach(el => upd(el, false));
     // paused decks climb too
@@ -6225,11 +6239,14 @@ body.light .flight-number .flight-route{color:#15171d}
       };
       row.innerHTML =
         '<div class="deck2-head"><span class="deck2-callsign">' + escapeHTML(f.flight || code) + '</span>' +
-        '<span class="lobby-flight-phase">' + escapeHTML(f.phase || 'PREFLIGHT') + '</span></div>' +
+        '<span class="lobby-flight-phase" data-ph="' + escapeHTML(code) + '">' + escapeHTML(f.phase || 'PREFLIGHT') + '</span></div>' +
         '<div class="deck2-facts">' +
         '<div><span class="f-k">DEP:</span><span class="f-v mono">' + escapeHTML(f.dep || '—') + '</span></div>' +
         '<div><span class="f-k">ARR:</span><span class="f-v mono">' + escapeHTML(f.arr || '—') + '</span></div>' +
         '<div><span class="f-k">AIRCRAFT:</span><span class="f-v">' + escapeHTML(f.aircraft || '—') + '</span></div>' +
+        (typeof f.prog === 'number'
+          ? '<div><span class="f-k">CHECKLIST:</span><span class="f-v" data-prog="' + escapeHTML(code) + '">' + f.prog + '% complete</span></div>'
+          : '') +
         '</div>';
       const pilots2 = document.createElement('div');
       pilots2.className = 'deck2-pilots';
