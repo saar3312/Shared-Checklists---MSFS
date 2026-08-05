@@ -1119,10 +1119,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.02</div>
+<div class="ver-float app-version">v1.05</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.02</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.05</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1757,7 +1757,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <div class="topbar-right">
       <button class="detail-toggle" id="btn-compact" title="Compact = one row per task · Detail = every switch">Detail: off</button>
       <button class="btn link" id="btn-intercom" style="display:none" title="COCKPIT INTERCOM SYSTEM — voice goes live only when BOTH pilots switch it on">INTERCOM OFF</button>
-      <button class="btn link" id="btn-intercom-mute" style="display:none" title="Mute / unmute your mic — you stay connected">MUTE</button>
+      <button class="btn link" id="btn-intercom-mute" style="display:none;color:#e5484d" title="Mute / unmute your mic — you stay connected">MUTE</button>
       <button class="btn link" id="btn-tabs-out" title="Browse the app — your flight stays active">Tabs</button>
       <span class="role-badge" id="role-badge">No role</span>
       <span id="rank-top" style="display:inline-flex;align-items:center"></span>
@@ -1765,7 +1765,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.02</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.05</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2139,9 +2139,50 @@ body.light .flight-number .flight-route{color:#15171d}
     for (const r of Object.keys(state.roles || {})) {
       if (state.roles[r] === state.myKey) { state.myRole = r; break; }
     }
+    if (state.myRole) hideDoorLock(); // the PIC approved — the deck is theirs to touch
   }
   // ---- DOM ----
   const $ = (id) => document.getElementById(id);
+  // ---- flight deck door: joiners wait outside until the PIC lets them in ----
+  function showDoorLock() {
+    let m = $('door-lock');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'door-lock';
+      m.style.cssText = 'position:fixed;inset:0;z-index:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(6,8,12,0.96)';
+      m.innerHTML = '<div class="spinner"></div>' +
+        '<div style="font-size:19px;font-weight:800;letter-spacing:0.14em">UNLOCKING FLIGHT DECK DOOR\u2026</div>' +
+        '<div style="font-size:13px;color:var(--text-muted)">Waiting for the PIC to let you in.</div>';
+      document.body.appendChild(m);
+    }
+    m.style.display = 'flex';
+  }
+  function askJoinApproval(name, role, hours, cb) {
+    let m = $('join-approve');
+    if (m) m.remove(); // a newer request replaces a stale popup
+    m = document.createElement('div');
+    m.id = 'join-approve';
+    m.style.cssText = 'position:fixed;inset:0;z-index:710;display:flex;align-items:center;justify-content:center;background:rgba(8,10,14,0.65)';
+    const lv = levelFor(hours || 0);
+    m.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;max-width:430px;width:90%;padding:26px 28px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,0.55)">' +
+      '<div style="font-size:12px;font-weight:800;letter-spacing:0.14em;color:var(--text-muted);margin-bottom:10px">FLIGHT DECK DOOR</div>' +
+      '<div style="margin-bottom:6px">' + wingedHtml(escapeHTML(initials(name)), hours || 0) + '</div>' +
+      '<p style="margin:0 0 18px;font-size:14px;color:var(--text-muted)"><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span> · ' +
+        (hours || 0).toFixed(1) + ' h — wants to join as <strong style="color:var(--text)">' + escapeHTML(role) + '</strong></p>' +
+      '<div style="display:flex;gap:10px;justify-content:center">' +
+      '<button type="button" class="btn primary" id="ja-allow" style="min-width:130px">ALLOW</button>' +
+      '<button type="button" class="btn" id="ja-no" style="min-width:110px;color:#e5484d;border-color:#e5484d">NO</button></div></div>';
+    document.body.appendChild(m);
+    m.querySelector('#ja-allow').addEventListener('click', () => { m.remove(); cb(true); });
+    m.querySelector('#ja-no').addEventListener('click', () => { m.remove(); cb(false); });
+  }
+  function hideDoorLock() {
+    const m = $('door-lock');
+    if (m && m.style.display !== 'none') {
+      m.style.display = 'none';
+      if (state.myRole) toast('Door open \u2014 welcome aboard');
+    }
+  }
   const screens = {
     home: $('screen-home'),
     login: $('screen-login'),
@@ -2245,7 +2286,21 @@ body.light .flight-number .flight-route{color:#15171d}
     if (c.includes('network')) return 'No connection — check your internet';
     return (err && err.message) || 'Something went wrong';
   }
+  function selfDestructDeleted(user) {
+    const bye = () => {
+      try { localStorage.removeItem('fdeck-expect-auth'); localStorage.removeItem('fdeck-last-tab'); } catch (e) {}
+      revealLoginForm();
+      show('home');
+      toast('This account was removed by SM. The email is free again \u2014 you can create a fresh account any time.');
+    };
+    user.delete()
+      .then(() => { fdb.ref('deleted/' + user.uid).remove().catch(() => {}); bye(); })
+      .catch(() => fauth.signOut().then(bye).catch(bye));
+  }
   function resolvePilotForUser(user, cb) {
+    // tombstone check is best-effort: if the read is blocked or fails, log in normally
+    fdb.ref('deleted/' + user.uid).get().catch(() => null).then(dsn => {
+      if (dsn && dsn.val()) { selfDestructDeleted(user); return; }
     fdb.ref('users/' + user.uid).get().then(sn => {
       const v = sn && sn.val();
       if (v && v.code) {
@@ -2259,6 +2314,7 @@ body.light .flight-number .flight-route{color:#15171d}
         createPilotProfile(user, want || 'XX', (code, nm) => cb(code, nm));
       }
     }).catch(() => { toast('Could not load your pilot profile — try again'); });
+    });
   }
   function createPilotProfile(user, wantInitials, cb) {
     fdb.ref('pilots').get().then(sn => {
@@ -2330,7 +2386,10 @@ body.light .flight-number .flight-route{color:#15171d}
     btn.disabled = true; btn.textContent = 'Checking…';
     const done = () => { btn.disabled = false; btn.textContent = 'Log In'; };
     fauth.signInWithEmailAndPassword(email, pass).then(cred => {
-      resolvePilotForUser(cred.user, (code, nm) => { done(); finishLogin(code, nm); });
+      done(); // the auth listener takes it from here — exactly one resolution path
+      if (booted && !state.myCode) {
+        resolvePilotForUser(cred.user, (code, nm) => { if (!state.myCode) finishLogin(code, nm); });
+      }
     }).catch(err => {
       done();
       $('login-invalid').textContent = 'INVALID — ' + authError(err).toUpperCase();
@@ -3304,7 +3363,7 @@ body.light .flight-number .flight-route{color:#15171d}
     if (mb) {
       mb.style.display = (hideAll || !intercom.on) ? 'none' : '';
       mb.textContent = intercom.muted ? 'UNMUTE' : 'MUTE';
-      mb.style.color = intercom.muted ? '#e5484d' : '';
+      mb.style.color = '#e5484d';
     }
     // seat-pane chips: my seat is a switch, the other seat mirrors their state
     document.querySelectorAll('.pane-ic').forEach(ic => {
@@ -3340,24 +3399,20 @@ body.light .flight-number .flight-route{color:#15171d}
       el.srcObject = remoteStream; el.muted = true; el.play().catch(() => {});
       intercom.audioEl = el;
       const src = ctx.createMediaStreamSource(remoteStream);
-      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3200;
+      // MORE radio: hotter drive into hard saturation, tighter voice band, honky midrange, squashed dynamics.
+      // No carrier hiss — silence is silent; the character lives entirely in the voice.
+      const pre = ctx.createGain(); pre.gain.value = 2.6; // drive the limiter like a hot mic
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 380; hp.Q.value = 0.9;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2800; lp.Q.value = 0.9;
+      const honk = ctx.createBiquadFilter(); honk.type = 'peaking'; honk.frequency.value = 1800; honk.Q.value = 1.1; honk.gain.value = 7; // the 'transmit' honk
       const shaper = ctx.createWaveShaper();
       const curve = new Float32Array(1024);
-      for (let i = 0; i < 1024; i++) { const x = (i / 512) - 1; curve[i] = Math.tanh(2.2 * x); }
+      for (let i = 0; i < 1024; i++) { const x = (i / 512) - 1; curve[i] = Math.tanh(5.5 * x); } // hard clip — crackly edges on speech peaks
       shaper.curve = curve;
       const comp = ctx.createDynamicsCompressor();
-      comp.threshold.value = -28; comp.ratio.value = 10; comp.attack.value = 0.003; comp.release.value = 0.18;
-      const gain = ctx.createGain(); gain.gain.value = 1.25;
-      src.connect(hp); hp.connect(lp); lp.connect(shaper); shaper.connect(comp); comp.connect(gain); gain.connect(ctx.destination);
-      // faint carrier hiss while the intercom is live
-      const noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-      const nd = noiseBuf.getChannelData(0);
-      for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1);
-      const noise = ctx.createBufferSource(); noise.buffer = noiseBuf; noise.loop = true;
-      const nGain = ctx.createGain(); nGain.gain.value = 0.006;
-      noise.connect(nGain); nGain.connect(ctx.destination); noise.start();
-      intercom.noise = noise;
+      comp.threshold.value = -35; comp.ratio.value = 16; comp.attack.value = 0.002; comp.release.value = 0.12; // everything at one loud, flat level
+      const gain = ctx.createGain(); gain.gain.value = 1.15;
+      src.connect(pre); pre.connect(hp); hp.connect(lp); lp.connect(honk); honk.connect(shaper); shaper.connect(comp); comp.connect(gain); gain.connect(ctx.destination);
     } catch (e) { console.error('intercom audio', e); }
   }
   function intercomAudioTeardown(full) {
@@ -3660,22 +3715,31 @@ body.light .flight-number .flight-route{color:#15171d}
             }
           };
           if (isRejoin || conn.peer === state.myKey) { proceed(); break; }
-          const hrs = msg.hours || 0;
-          const lv = levelFor(hrs);
-          if (confirm(initials(msg.name) + ' (' + lv.name + ', ' + hrs.toFixed(1) + ' h) wants to join as ' +
-              msg.role + '. Approve?')) {
-            proceed();
-          } else {
-            send(conn, { type: 'join_denied' });
-            setTimeout(() => { try { conn.close(); } catch (e) {} }, 400);
-          }
+          askJoinApproval(msg.name, msg.role, msg.hours || 0, (allowed) => {
+            if (allowed) { proceed(); }
+            else {
+              send(conn, { type: 'join_denied' });
+              setTimeout(() => { try { conn.close(); } catch (e) {} }, 400);
+            }
+          });
         }
         break;
-      case 'join_denied':
-        joinFailed('The PIC declined your request to join this flight deck.');
+      case 'join_denied': {
+        hideDoorLock();
+        const deniedMsg = 'The PIC did not approve you onto this flight deck. Find another crew below \u2014 plenty of open seats.';
+        if (!screens.room.classList.contains('hidden')) {
+          teardown();
+          showDecksScreen();
+          toast(deniedMsg);
+        } else {
+          joinFailed(deniedMsg);
+        }
         break;
+      }
       case 'role_denied':
+        hideDoorLock();
         toast(msg.role + ' is held by ' + (initials(msg.holderName) || 'someone'));
+        openRoleModal(); // pick a different seat
         break;
       case 'set_flight':
         if (state.role === 'host') {
@@ -3860,7 +3924,10 @@ body.light .flight-number .flight-route{color:#15171d}
         renderPaneHeaders();
       } else {
         const conn = state.conns[0];
-        if (conn) send(conn, { type: 'claim_role', name: state.myName, role: desiredRole, hours: myCareer().hours });
+        if (conn) {
+          send(conn, { type: 'claim_role', name: state.myName, role: desiredRole, hours: myCareer().hours });
+          if (!state.observer) showDoorLock();
+        }
       }
     }
     updateMobilePane();
@@ -4766,13 +4833,14 @@ body.light .flight-number .flight-route{color:#15171d}
       b2.addEventListener('click', () => {
         const code = b2.dataset.delPilot;
         if (!fdb) { toast('Deleting a pilot needs internet'); return; }
-        if (!confirm('Delete pilot ' + code + ' from the roster? Their career is wiped and their ID unlinked. Their email login itself survives — if they sign in again they start over as a brand-new pilot. This cannot be undone.')) return;
+        if (!confirm('Delete pilot ' + code + '? Their career is wiped AND their email login is destroyed the next time it signs in \u2014 the email becomes free to sign up fresh. This cannot be undone.')) return;
         fdb.ref('pilots/' + code).get().then(sp => {
           const uid = ((sp && sp.val()) || {}).uid;
           return Promise.all([
             fdb.ref('pilots/' + code).remove(),
             fdb.ref('careers/' + code).remove(),
-            uid ? fdb.ref('users/' + uid).remove() : Promise.resolve(), // unlink the account so next login mints a clean fresh pilot
+            uid ? fdb.ref('users/' + uid).remove() : Promise.resolve(),
+            uid ? fdb.ref('deleted/' + uid).set(true) : Promise.resolve(), // tombstone: their login self-destructs next time they sign in
           ]);
         }).then(() => {
           try {
@@ -5155,7 +5223,10 @@ body.light .flight-number .flight-route{color:#15171d}
             broadcastState();
           } else {
             const conn = state.conns[0];
-            if (conn) send(conn, { type: 'claim_role', name: state.myName, role, hours: myCareer().hours });
+            if (conn) {
+              send(conn, { type: 'claim_role', name: state.myName, role, hours: myCareer().hours });
+              if (!state.observer) showDoorLock();
+            }
           }
           closeRoleModal();
         });
@@ -5395,6 +5466,7 @@ body.light .flight-number .flight-route{color:#15171d}
     }
   });
   function teardown() {
+    hideDoorLock();
     intercomFullStop();
     state.conns.forEach(c => { try { c.close(); } catch(e){} });
     if (state.peer) { try { state.peer.destroy(); } catch(e){} }
