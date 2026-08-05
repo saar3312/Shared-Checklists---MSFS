@@ -133,8 +133,20 @@ button{font-family:inherit;color:inherit}
 .career-line strong{color:var(--accent);font-weight:700}
 .money{color:var(--good);font-weight:700}
 .logbook{margin:8px 0 0;font-size:11px;color:var(--text-muted);line-height:1.7}
-.lobby-create{display:flex;gap:8px;margin:0 0 18px}
-.lobby-create .btn{flex:1 1 0;min-height:52px}
+.lobby-create{display:flex;gap:14px;margin:0 0 22px}
+.lobby-create .btn{flex:1 1 0;min-height:64px;font-size:17px}
+/* the aircraft lobby: give it real presence on the page */
+#screen-lobby .setup-card{max-width:860px;width:100%;padding:40px 44px 32px}
+#screen-lobby #welcome-line{font-size:30px;margin:0 0 18px}
+#screen-lobby .career-line{font-size:16px;padding:18px 20px;margin:0 0 26px;line-height:1.7}
+#screen-lobby .lobby-create{gap:16px;margin:0 0 26px}
+#screen-lobby .lobby-create .btn{min-height:76px;font-size:19px;border-radius:10px}
+#screen-lobby #btn-join-code2{font-size:14px}
+@media (max-width:640px){
+  #screen-lobby .setup-card{padding:26px 20px 22px}
+  #screen-lobby #welcome-line{font-size:23px}
+  #screen-lobby .lobby-create{flex-direction:column}
+}
 .lobby-h{
   font-size:10px;font-weight:700;color:var(--text-muted);
   text-transform:uppercase;letter-spacing:0.14em;margin:0 0 8px;
@@ -1080,10 +1092,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.10</div>
+<div class="ver-float app-version">v4.11</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.10</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.11</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1729,7 +1741,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.10</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.11</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
