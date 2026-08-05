@@ -901,7 +901,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- ============================================================ -->
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.44</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.45</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1200,7 +1200,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.44</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.45</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1883,14 +1883,17 @@ body.light .flight-number .flight-route{color:#15171d}
     state.roles = { PIC: null, PM: null };
     if (resumeSave) {
       // Restoring a paused solo flight: ticks, card acks and the salary
-      // clock come back exactly where they stopped — elapsed offsets mean
-      // no time passed while the flight was paused.
+      // clock come back — the clock is wall time, so the flight kept earning
+      // the whole time it sat paused.
       const now = Date.now();
       state.ticked = new Set(resumeSave.ticked || []);
       state.acks = resumeSave.acks || {};
-      state.pushAt = resumeSave.pushElapsed ? now - resumeSave.pushElapsed : 0;
-      state.gearUpAt = resumeSave.gearUpElapsed ? now - resumeSave.gearUpElapsed : 0;
-      state.engOffAt = resumeSave.engOffElapsed ? now - resumeSave.engOffElapsed : 0;
+      state.pushAt = resumeSave.pushAt ||
+        (resumeSave.pushElapsed ? now - resumeSave.pushElapsed : 0);
+      state.gearUpAt = resumeSave.gearUpAt ||
+        (resumeSave.gearUpElapsed ? now - resumeSave.gearUpElapsed : 0);
+      state.engOffAt = resumeSave.engOffAt ||
+        (resumeSave.engOffElapsed ? now - resumeSave.engOffElapsed : 0);
       resumeSave = null;
     }
     $('connect-eyebrow').textContent = 'Cockpit code';
@@ -3634,7 +3637,7 @@ body.light .flight-number .flight-route{color:#15171d}
         return;
       }
       if (state.solo && !flightCommitted && state.ticked.size) {
-        if (!confirm('Pause this solo flight? It is saved — resume it any time from the lobby, on any device. The clock stays frozen while you are away.')) return;
+        if (!confirm('Pause this solo flight? It is saved — resume it any time from the lobby, on any device. The clock keeps running: pay accrues in real time until you finish the flight.')) return;
         soloSaveNow();
       } else {
         if (!confirm('Close this flight deck?')) return;
@@ -3945,8 +3948,8 @@ body.light .flight-number .flight-route{color:#15171d}
   // would normally cancel the flight. For single-pilot flights the state
   // auto-saves (locally AND to the cloud under /careers/{code}/save), and
   // the lobby offers to resume it — from this browser or any other device.
-  // The salary clock stores ELAPSED time, so it is frozen while you're
-  // away: an inactive pilot never keeps logging.
+  // The salary clock is wall time, exactly like a live flight — a paused
+  // flight keeps earning until its engines are shut down.
   // =====================================================================
   const SOLO_SAVE_PREFIX = 'fdeck-solo-save-';
   let soloSaveTimer = 0;
@@ -3961,6 +3964,9 @@ body.light .flight-number .flight-route{color:#15171d}
       eteMin: state.eteMin || 0, depDate: state.depDate || '',
       paFlightTime: state.paFlightTime || '', paWx: state.paWx || '', paTemp: state.paTemp || '',
       ticked: Array.from(state.ticked), acks: state.acks || {},
+      // absolute timestamps: the salary clock is REAL TIME and keeps running
+      // while the flight is paused — pay accrues until engines-off
+      pushAt: state.pushAt || 0, gearUpAt: state.gearUpAt || 0, engOffAt: state.engOffAt || 0,
       pushElapsed: state.pushAt ? (now - state.pushAt) : 0,
       gearUpElapsed: state.gearUpAt ? (now - state.gearUpAt) : 0,
       engOffElapsed: state.engOffAt ? (now - state.engOffAt) : 0,
@@ -4035,8 +4041,9 @@ body.light .flight-number .flight-route{color:#15171d}
       if (!save || !save.slug) return;
       if (screens.lobby.classList.contains('hidden')) return;
       const cl = CHECKLISTS[save.slug];
-      const flightMin = save.pushElapsed
-        ? Math.max(0, Math.round((save.pushElapsed - (save.engOffElapsed || 0)) / 60000)) : 0;
+      const pushT = save.pushAt || (save.pushElapsed ? (save.ts || Date.now()) - save.pushElapsed : 0);
+      const flightMin = pushT
+        ? Math.max(0, Math.round(((save.engOffAt || Date.now()) - pushT) / 60000)) : 0;
       box.style.display = '';
       box.innerHTML = '<p class="lobby-h">Paused solo flight</p>' +
         '<div class="lobby-flight"><div class="lobby-flight-top">' +
@@ -4046,7 +4053,7 @@ body.light .flight-number .flight-route{color:#15171d}
         '<span class="lobby-flight-phase">SAVED ' + escapeHTML(agoPhrase(Date.now() - (save.ts || 0))) + '</span>' +
         '</div><div class="lobby-seats">' +
         '<button type="button" class="lobby-seat seat-pic" id="btn-resume-solo"><span class="seat-tag">Resume flight</span>' +
-          (flightMin ? flightMin + ' min on the clock — paused while you were away' : 'Picks up right where you left off') +
+          (flightMin ? flightMin + ' min on the clock — still earning while paused' : 'Picks up right where you left off') +
         '</button>' +
         '<button type="button" class="lobby-seat" id="btn-discard-solo"><span class="seat-tag">Discard</span>Delete this saved flight</button>' +
         '</div></div>';
