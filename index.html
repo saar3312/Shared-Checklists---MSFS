@@ -1116,10 +1116,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v4.26</div>
+<div class="ver-float app-version">v4.28</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.26</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.28</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1762,19 +1762,16 @@ body.light .flight-number .flight-route{color:#15171d}
     </div>
     <div class="topbar-right">
       <button class="detail-toggle" id="btn-compact" title="Compact = one row per task · Detail = every switch">Detail: off</button>
-      <button class="btn link" id="btn-intercom" style="display:none" title="COCKPIT INTERCOM SYSTEM — voice goes live only when BOTH pilots switch it on">🎙 INTERCOM OFF</button>
-      <button class="btn link" id="btn-intercom-mute" style="display:none" title="Mute / unmute your mic — you stay connected">🔇 MUTE</button>
+      <button class="btn link" id="btn-intercom" style="display:none" title="COCKPIT INTERCOM SYSTEM — voice goes live only when BOTH pilots switch it on">INTERCOM OFF</button>
+      <button class="btn link" id="btn-intercom-mute" style="display:none" title="Mute / unmute your mic — you stay connected">MUTE</button>
       <button class="btn link" id="btn-tabs-out" title="Browse the app — your flight stays active">Tabs</button>
-      <button class="btn link" id="btn-ofp" title="Shared OFP — synced page and ink">OFP</button>
-      <button class="btn link" id="btn-cards" title="All briefings, checklists & callouts">Cards</button>
-      <button class="btn link" id="btn-pad" title="Scratchpad">Pad</button>
       <span class="role-badge" id="role-badge">No role</span>
       <span id="rank-top" style="display:inline-flex;align-items:center"></span>
       <div class="menu-wrap">
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.26</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.28</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1864,10 +1861,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div class="ofp-scroll o-scroll">
         <div class="ofp-empty o-empty">
           <div class="big">No OFP loaded yet</div>
-          Either pilot can upload the flight plan PDF — it transfers to your
-          co-pilot automatically. The page number and pen marks are shared;
-          each pilot opens their own copy on their half and draws with their
-          own pen.
+          Fetch your SimBrief plan on the flight setup screen and the OFP
+          document loads here for both pilots. The page number and pen marks
+          are shared; each pilot opens their own copy on their half and draws
+          with their own pen.
         </div>
         <div class="ofp-stage hidden o-stage">
           <canvas class="o-canvas"></canvas>
@@ -3316,24 +3313,40 @@ body.light .flight-number .flight-route{color:#15171d}
   // ---- INTERCOM — cockpit voice. OFF by default; live ONLY when BOTH pilots switch it on. ----
   const intercom = { on: false, remoteOn: false, muted: false, call: null, stream: null, ctx: null, audioEl: null, noise: null };
   function intercomAvailable() {
-    return !state.solo && state.checklist &&
-      state.peer && typeof state.peer.call === 'function' &&
-      navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    return !state.solo && !!state.checklist;
   }
   function updateIntercomBtn() {
     const b2 = $('btn-intercom');
     const mb = $('btn-intercom-mute');
-    if (!b2) return;
-    if (!state.checklist || state.solo) { b2.style.display = 'none'; if (mb) mb.style.display = 'none'; return; } // PM seat locked — no one to talk to
-    b2.style.display = '';
-    if (!intercom.on) { b2.textContent = '\ud83c\udf99 INTERCOM OFF'; b2.style.color = ''; b2.classList.remove('toggled'); }
-    else if (intercom.call) { b2.textContent = '\ud83c\udf99 INTERCOM LIVE'; b2.style.color = 'var(--good)'; b2.classList.add('toggled'); }
-    else { b2.textContent = '\ud83c\udf99 INTERCOM ON \u2014 AWAITING CO-PILOT'; b2.style.color = '#c9942e'; b2.classList.add('toggled'); }
+    const hideAll = !state.checklist || state.solo; // PM seat locked — no one to talk to
+    if (b2) {
+      if (hideAll) { b2.style.display = 'none'; }
+      else {
+        b2.style.display = '';
+        if (!intercom.on) { b2.textContent = 'INTERCOM OFF'; b2.style.color = ''; }
+        else if (intercom.call) { b2.textContent = 'INTERCOM LIVE'; b2.style.color = 'var(--good)'; }
+        else { b2.textContent = 'INTERCOM ON \u2014 AWAITING CO-PILOT'; b2.style.color = '#c9942e'; }
+      }
+    }
     if (mb) {
-      mb.style.display = intercom.on ? '' : 'none';
-      mb.textContent = intercom.muted ? '\ud83d\udd0a UNMUTE' : '\ud83d\udd07 MUTE';
+      mb.style.display = (hideAll || !intercom.on) ? 'none' : '';
+      mb.textContent = intercom.muted ? 'UNMUTE' : 'MUTE';
       mb.style.color = intercom.muted ? '#e5484d' : '';
     }
+    // seat-pane chips: my seat is a switch, the other seat mirrors their state
+    document.querySelectorAll('.pane-ic').forEach(ic => {
+      if (hideAll) { ic.style.display = 'none'; return; }
+      ic.style.display = '';
+      const mine = ic.dataset.icRole === state.myRole;
+      const on = mine ? intercom.on : intercom.remoteOn;
+      const live = !!intercom.call;
+      const label = live && on ? 'INTERCOM LIVE' : (on ? 'INTERCOM ON' : 'INTERCOM OFF');
+      ic.textContent = label + (mine && intercom.muted ? ' \u00b7 MUTED' : '');
+      ic.style.color = live && on ? 'var(--good)' : (on ? '#c9942e' : 'var(--text-muted)');
+      ic.style.borderColor = live && on ? 'var(--good)' : (on ? '#c9942e' : 'var(--border-strong)');
+      ic.style.cursor = mine ? 'pointer' : 'default';
+      ic.title = mine ? 'Your intercom \u2014 click to switch it ' + (intercom.on ? 'off' : 'on') : "Your co-pilot's intercom state";
+    });
   }
   function intercomMuteToggle() {
     if (!intercom.on || !intercom.stream) return;
@@ -3396,7 +3409,7 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!intercom.on || !intercom.remoteOn || intercom.call || !intercom.stream) return;
     if (state.role !== 'host') return;
     const other = state.conns[0];
-    if (!other || !state.peer || typeof state.peer.call !== 'function') return;
+    if (!other || !state.peer || typeof state.peer.call !== 'function') { toast('Voice link unavailable on this connection'); return; }
     try { intercomWire(state.peer.call(other.peer, intercom.stream)); } catch (e) { console.error(e); }
   }
   function intercomToggle() {
@@ -3409,7 +3422,11 @@ body.light .flight-number .flight-route{color:#15171d}
       toast('Intercom off');
       return;
     }
-    if (!intercomAvailable()) { toast(state.solo ? 'Single-pilot deck \u2014 the PM seat is locked, no one to talk to' : 'Intercom needs mic access'); return; }
+    if (state.solo || !state.checklist) { toast('Single-pilot deck \u2014 the PM seat is locked, no one to talk to'); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast('This browser blocks the microphone here \u2014 make sure you opened the app over https');
+      return;
+    }
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(stream => {
       intercom.stream = stream;
       intercom.on = true;
@@ -3419,7 +3436,9 @@ body.light .flight-number .flight-route{color:#15171d}
         (state.conns.length ? 'Intercom on \u2014 waiting for your co-pilot to switch theirs on'
                             : 'Intercom armed \u2014 goes live once a co-pilot joins and switches theirs on'));
       intercomMaybeStart();
-    }).catch(() => toast('Mic permission denied \u2014 intercom needs your microphone'));
+    }).catch((err) => toast((err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'))
+      ? 'Mic permission denied \u2014 allow the microphone in your browser and try again'
+      : 'Could not open your microphone (' + ((err && err.name) || 'unknown') + ')'));
   }
   function intercomRemote(on) {
     intercom.remoteOn = !!on;
@@ -3441,7 +3460,6 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function intercomPreflightAsk() {
     if (intercom.asked || intercom.on || state.solo || state.observer || !state.checklist) return;
-    if (!intercomAvailable()) return;
     intercom.asked = true;
     let m = $('intercom-ask');
     if (!m) {
@@ -3449,7 +3467,6 @@ body.light .flight-number .flight-route{color:#15171d}
       m.id = 'intercom-ask';
       m.style.cssText = 'position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;background:rgba(8,10,14,0.6)';
       m.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;max-width:440px;width:90%;padding:26px 28px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,0.55)">' +
-        '<div style="font-size:34px;margin-bottom:8px">\ud83c\udf99</div>' +
         '<h3 style="margin:0 0 8px;font-size:17px;letter-spacing:0.05em">COCKPIT INTERCOM SYSTEM</h3>' +
         '<p style="margin:0 0 6px;font-size:14px;color:var(--text-muted);line-height:1.6">Do you want to be on the intercom for this flight? Voice goes live only when both pilots are on.</p>' +
         '<p style="margin:0 0 18px;font-size:12px;color:var(--text-muted)">You can always change this with the INTERCOM button up top.</p>' +
@@ -4016,15 +4033,38 @@ body.light .flight-number .flight-route{color:#15171d}
     money.className = 'pane-money';
     money.dataset.moneyRole = role;
     id.appendChild(money);
+    const ic = document.createElement('button');
+    ic.type = 'button';
+    ic.className = 'pane-ic';
+    ic.dataset.icRole = role;
+    ic.style.cssText = 'display:none;font-size:10px;font-weight:800;letter-spacing:0.08em;padding:3px 9px;border-radius:999px;border:1px solid var(--border-strong);background:none;color:var(--text-muted);cursor:pointer;margin-left:8px;white-space:nowrap';
+    ic.addEventListener('click', () => { if (ic.dataset.icRole === state.myRole) intercomToggle(); });
+    id.appendChild(ic);
     header.appendChild(id);
-    const padBtn = document.createElement('button');
-    padBtn.type = 'button';
-    padBtn.className = 'pane-pad-btn';
+    // seat controls live under the pilot's name — OFP, Cards, Pad for THIS seat
+    const tools = document.createElement('div');
+    tools.className = 'pane-tools';
+    tools.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:4px;flex-wrap:wrap';
+    const mkBtn = (label, title, fn) => {
+      const b3 = document.createElement('button');
+      b3.type = 'button';
+      b3.className = 'pane-pad-btn';
+      b3.textContent = label;
+      b3.title = title;
+      b3.addEventListener('click', fn);
+      tools.appendChild(b3);
+      return b3;
+    };
+    const ofpBtn = mkBtn(role + ' OFP', 'Shared OFP \u2014 synced page and ink; ' + role + "'s copy", () => {
+      if (role !== state.myRole) { toast(role + "'s copy \u2014 open your own from your seat"); return; }
+      normalizeOfpOpen();
+      ofpOp(state.ofp.open[role] ? { op: 'close', side: role } : { op: 'open', side: role });
+    });
+    ofpBtn.dataset.ofpBtn = role;
+    mkBtn('Cards', 'All briefings, checklists & callouts', openCardsMenu);
+    const padBtn = mkBtn(role + ' Pad', 'Open ' + (ROLE_NAMES[role] || role) + "'s scratchpad \u2014 visible to both pilots, only " + role + ' can write', () => togglePad(role));
     padBtn.dataset.padBtn = role;
-    padBtn.textContent = role + ' Pad';
-    padBtn.title = 'Open ' + (ROLE_NAMES[role] || role) + "'s scratchpad — visible to both pilots, only " + role + ' can write';
-    padBtn.addEventListener('click', () => togglePad(role));
-    header.appendChild(padBtn);
+    header.appendChild(tools);
     pane.appendChild(header);
     const scroll = document.createElement('div');
     scroll.className = 'pane-scroll';
@@ -5013,7 +5053,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const menu = $('top-menu');
     if (!menu.hidden && !menu.contains(e.target) && e.target !== $('btn-menu')) menu.hidden = true;
   });
-  $('btn-cards').addEventListener('click', openCardsMenu);
+  { const bc = $('btn-cards'); if (bc) bc.addEventListener('click', openCardsMenu); }
   $('cards-menu-close').addEventListener('click', () => { $('cards-menu').hidden = true; });
   $('cards-menu').addEventListener('click', (e) => {
     if (e.target === $('cards-menu')) $('cards-menu').hidden = true;
@@ -7694,12 +7734,12 @@ body.light .flight-number .flight-route{color:#15171d}
       }
     });
   }
-  $('btn-ofp').addEventListener('click', () => {
+  { const bo = $('btn-ofp'); if (bo) bo.addEventListener('click', () => {
     const side = state.myRole;
     if (!side) { toast('Pick a role first'); return; }
     normalizeOfpOpen();
     ofpOp(state.ofp.open[side] ? { op: 'close', side } : { op: 'open', side });
-  });
+  }); }
   window.addEventListener('resize', () => {
     clearTimeout(ofpResizeTimer);
     ofpResizeTimer = setTimeout(() => {
@@ -7883,10 +7923,7 @@ body.light .flight-number .flight-route{color:#15171d}
     padOp(role, { op: wantOpen ? 'open' : 'close' });
   }
   function padRefresh() { renderPads(); }
-  $('btn-pad').addEventListener('click', () => {
-    // Topbar button opens YOUR pad; without a role it opens the PIC pad to view
-    togglePad(state.myRole || 'PIC');
-  });
+  { const bp = $('btn-pad'); if (bp) bp.addEventListener('click', () => togglePad(state.myRole || 'PIC')); }
   window.addEventListener('resize', () => { ['PIC','PM'].forEach(padRedraw); });
   // Escape closes whatever popup is on top (your own open pad first)
   document.addEventListener('keydown', (e) => {
