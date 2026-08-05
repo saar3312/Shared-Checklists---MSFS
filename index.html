@@ -1098,10 +1098,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v4.15</div>
+<div class="ver-float app-version">v4.16</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.15</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.16</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1749,7 +1749,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.15</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.16</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -6537,7 +6537,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const cl = CHECKLISTS[sv.slug];
       const nm = (pilots[pcode] && pilots[pcode].name) || pcode;
       const row = document.createElement('div');
-      row.className = 'lobby-flight lobby-paused';
+      row.className = 'lobby-flight deck2 lobby-paused';
       row.innerHTML = '<div class="deck2-head"><span class="deck2-callsign">' + escapeHTML(sv.flight || '') + '</span>' +
         '<span class="lobby-flight-phase">PAUSED' + (savedPhase(sv) ? ' — ' + escapeHTML(savedPhase(sv)) : '') + '</span></div>' +
         '<div class="deck2-facts">' +
@@ -6546,18 +6546,29 @@ body.light .flight-number .flight-route{color:#15171d}
         '<div><span class="f-k">AIRCRAFT:</span><span class="f-v">' + escapeHTML(cl ? cl.aircraft : sv.slug) + '</span></div>' +
         '<div><span class="f-k">SAVED:</span><span class="f-v">' + escapeHTML(agoPhrase(Date.now() - (sv.ts || 0))) + '</span></div>' +
         '</div>' +
-        '<div class="lobby-seats"><span class="solo-badge">SINGLE PILOT — PAUSED</span>' +
-          '<span style="display:inline-flex;align-items:center;margin-left:8px">' + wingedHtml(escapeHTML(initials(nm)), sv._hours) + rankChipHtml(sv._hours) + '</span>' +
-          (sv.pushAt
-            ? '<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">' +
-              '<span class="money" data-lcp="' + escapeHTML(pcode) + '" style="font-size:12px">' +
-              fmtMoney(estPay(sv.slug, 'PIC', sv._hours || 0, Math.max(0, ((sv.engOffAt || Date.now()) - sv.pushAt) / 60000))) +
-              '</span><span style="font-size:11px;color:var(--text-muted)"> earned — still counting</span></span>'
-            : '') +
-          (isAdminView()
-            ? '<button type="button" class="lobby-seat" data-del-save="' + escapeHTML(pcode) + '">' +
-              '<span class="seat-tag">Delete deck</span>Remove ' + escapeHTML(initials(nm)) + "'s paused flight</button>"
-            : '') + '</div>';
+        // same two-seat layout as a live deck — PIC holds the seat, PM is locked out on a solo flight
+        '<div class="deck2-pilots">' +
+          '<div class="deck2-seat deck2-pic deck2-static">' +
+            '<div class="seat-tag">PIC — Pilot in Command</div>' +
+            '<div class="deck2-name">' + wingedHtml(escapeHTML(initials(nm)), sv._hours) + rankChipHtml(sv._hours) + '</div>' +
+            '<div class="deck2-pay">' +
+              (sv.pushAt
+                ? '<span class="money" data-lcp="' + escapeHTML(pcode) + '" style="font-size:12px">' +
+                  fmtMoney(estPay(sv.slug, 'PIC', sv._hours || 0, Math.max(0, ((sv.engOffAt || Date.now()) - sv.pushAt) / 60000))) +
+                  '</span><span style="font-size:11px;color:var(--text-muted)"> earned — still counting</span>'
+                : '<span style="font-size:11px;color:var(--text-muted)">at the gate — clock not started</span>') +
+            '</div>' +
+            '<div class="seat-tag" style="margin-top:6px">PAUSED — RESUMES FROM THEIR OWN LOGIN</div>' +
+          '</div>' +
+          '<div class="deck2-seat deck2-pm deck2-static">' +
+            '<div class="seat-tag">PM — Pilot Monitoring</div>' +
+            '<div class="deck2-name" style="color:var(--text-muted);font-size:13px">SINGLE PILOT — LOCKED</div>' +
+          '</div>' +
+        '</div>' +
+        (isAdminView()
+          ? '<button type="button" class="lobby-seat" style="margin-top:12px" data-del-save="' + escapeHTML(pcode) + '">' +
+            '<span class="seat-tag">Delete deck</span>Remove ' + escapeHTML(initials(nm)) + "'s paused flight</button>"
+          : '');
       list.appendChild(row);
     });
     if (isAdminView()) {
