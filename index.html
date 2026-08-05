@@ -1119,10 +1119,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.00</div>
+<div class="ver-float app-version">v1.01</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.00</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.01</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1177,15 +1177,6 @@ body.light .flight-number .flight-route{color:#15171d}
             autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="e.g. SM" />
           <span id="initials-hint" class="muted" style="font-size:11px;display:block;margin-top:5px;min-height:13px"></span>
         </label>
-        <div style="border-top:1px solid var(--border);margin:10px 0;padding-top:10px">
-          <span class="muted" style="font-size:12px">Flew here before accounts existed? Claim your old pilot ID (optional):</span>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="signup-claim-id" class="input mono" type="text" maxlength="4" placeholder="pilot ID"
-              autocomplete="off" inputmode="numeric" style="max-width:110px" />
-            <input id="signup-claim-word" class="input mono" type="text" maxlength="20" placeholder="your support word"
-              autocomplete="off" spellcheck="false" />
-          </div>
-        </div>
         <div class="setup-actions">
           <span class="muted" style="font-size:11px">You get a 4-digit flight ID — email + password is your login.</span>
           <button type="submit" class="btn primary">Create Account</button>
@@ -1774,7 +1765,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.00</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.01</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2185,14 +2176,14 @@ body.light .flight-number .flight-route{color:#15171d}
     return pilotByCode(code);
   }
   function appVersionNum(v) { return parseFloat(String(v || '').replace(/[^0-9.]/g, '')) || 0; }
-  function checkAppVersion() {
+  function checkAppVersion(canPublish) {
     if (!fdb || !state.myCode) return;
     const el = document.querySelector('.ver-float');
     const local = el ? el.textContent.trim() : '';
     if (!local) return;
     fdb.ref('meta/version').get().then(sn => {
       const remote = (sn && sn.val()) || '';
-      if (state.myCode === ADMIN_CODE && appVersionNum(local) > appVersionNum(remote)) {
+      if (canPublish && state.myCode === ADMIN_CODE && appVersionNum(local) > appVersionNum(remote)) {
         fdb.ref('meta/version').set(local).catch(() => {}); // SM opening a fresh build publishes it for everyone
         return;
       }
@@ -2206,7 +2197,7 @@ body.light .flight-number .flight-route{color:#15171d}
       }
     }).catch(() => {});
   }
-  setInterval(checkAppVersion, 10 * 60000); // keep long sessions honest too
+  setInterval(() => checkAppVersion(false), 10 * 60000); // long sessions get the banner, but NEVER publish
   function finishLogin(code, name) {
     state.myCode = code;
     state.myName = name;
@@ -2237,7 +2228,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateSupportBadge();
     fetchAllHours();
     setTimeout(checkFirstAwards, 2500); // once the cloud career has landed
-    checkAppVersion();
+    checkAppVersion(true);
   }
   // =====================================================================
   // ACCOUNTS — real email + password auth (Firebase Authentication).
@@ -2523,8 +2514,6 @@ body.light .flight-number .flight-route{color:#15171d}
     const email = ($('signup-email').value || '').trim();
     const pass = $('signup-pass').value || '';
     const want = ($('signup-name').value || '').trim().toUpperCase();
-    const claimId = ($('signup-claim-id').value || '').trim();
-    const claimWord = ($('signup-claim-word').value || '').trim();
     if (!/^[A-Z]{2}$/.test(want)) { toast('Initials are exactly 2 letters, e.g. SM'); $('signup-name').focus(); return; }
     if (!email) { toast('Email is required — password resets go there'); $('signup-email').focus(); return; }
     if (pass.length < 6) { toast('Password must be at least 6 characters'); $('signup-pass').focus(); return; }
@@ -2559,26 +2548,7 @@ body.light .flight-number .flight-route{color:#15171d}
           ' — open it and click the link. Not in your inbox? CHECK SPAM.</span>';
         bn.classList.remove('hidden');
       });
-      if (claimId && /^\d{4}$/.test(claimId)) {
-        // claiming an existing pilot: their support word is the proof
-        Promise.all([
-          fdb.ref('pilots/' + claimId).get().then(x => x && x.val()).catch(() => null),
-          fdb.ref('careers/' + claimId + '/supportWord').get().then(x => x && x.val()).catch(() => null),
-        ]).then(([p, word]) => {
-          if (p && !p.uid && word && claimWord && String(word).toLowerCase() === claimWord.toLowerCase()) {
-            fdb.ref('pilots/' + claimId).set({ name: p.name, uid: user.uid });
-            fdb.ref('users/' + user.uid).set({ code: claimId, email: email });
-            restore();
-            finishLogin(claimId, p.name);
-            toast('Pilot ' + escapeHTML(initials(p.name)) + ' (' + claimId + ') claimed — career intact');
-          } else {
-            toast(p && p.uid ? 'That pilot ID is already claimed' : 'Pilot ID + support word did not match — a fresh pilot was created instead');
-            freshStart();
-          }
-        });
-      } else {
-        freshStart();
-      }
+      freshStart();
     }).catch(err => { restore(); toast(authError(err)); });
     }).catch(() => { restore(); toast('Could not check initials — try again'); });
   });
