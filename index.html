@@ -163,13 +163,17 @@ button{font-family:inherit;color:inherit}
 .lobby-seat.seat-pm .seat-tag{color:var(--pm)}
 .lobby-empty{color:var(--text-dim);font-size:12px;font-style:italic;padding:12px 4px}
 .lobby-paused{opacity:0.7}
-.rm-step{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:8px 0;
-  display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+#screen-roadmap .lobby-card{max-width:780px;width:100%}
+#screen-roadmap h2{font-size:26px}
+.rm-step{border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin:12px 0;
+  display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.rm-step .lvl{font-size:15px;padding:5px 14px}
+.rm-me .lvl{font-size:17px}
 .rm-me{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.rm-you{color:var(--accent);font-weight:800;letter-spacing:0.12em;font-size:11px}
-.rm-range{color:var(--text-muted);font-size:12px}
-.rm-prog{font-size:12px;width:100%}
-.rm-bar{height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin:4px 0 6px;width:100%}
+.rm-you{color:var(--accent);font-weight:800;letter-spacing:0.14em;font-size:13px}
+.rm-range{color:var(--text-muted);font-size:14px}
+.rm-prog{font-size:14px;width:100%}
+.rm-bar{height:12px;background:var(--border);border-radius:99px;overflow:hidden;margin:6px 0 8px;width:100%}
 .rm-fill{height:100%;background:var(--accent)}
 .stat-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--border)}
 .stat-row:last-child{border-bottom:none}
@@ -945,10 +949,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.56</div>
+<div class="ver-float app-version">v3.59</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.56</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.59</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -962,6 +966,13 @@ body.light .flight-number .flight-route{color:#15171d}
   </div>
   <div class="center-stack">
     <div class="setup-card">
+      <div id="quick-login" class="hidden" style="margin-bottom:14px">
+        <button type="button" class="btn primary" id="btn-quick-login" style="width:100%"></button>
+        <div class="setup-actions" style="margin-top:6px">
+          <span class="muted" style="font-size:11px">Not you?</span>
+          <button type="button" class="btn link" id="btn-quick-forget" style="font-size:11px">Use a different pilot ID</button>
+        </div>
+      </div>
       <form id="login-form">
         <label class="field">
           <span class="field-label">Pilot ID<span class="req">*</span></span>
@@ -1028,6 +1039,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button class="btn link" id="btn-login-back">&larr; Back</button>
     <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
     <span class="subnav-links">
+      <button type="button" class="btn link" id="nav-inbox1" style="display:none">Inbox</button>
       <button type="button" class="btn link" id="nav-msgs1" style="display:none">Messages</button>
       <button type="button" class="btn link" id="nav-guide1">Guide</button>
       <button type="button" class="btn link" id="nav-roadmap1">Roadmap</button>
@@ -1038,7 +1050,7 @@ body.light .flight-number .flight-route{color:#15171d}
     </span>
   </div>
   <div class="home-welcome">
-    <h1 id="pickac-line">Select your aircraft</h1>
+    <h1 id="pickac-line">Select Your Aircraft</h1>
     <p>Ordered by compensation.</p>
     <p id="newpilot-banner" class="hidden" style="max-width:520px;margin:10px auto 0;padding:10px 14px;border:1px solid var(--good);border-radius:10px;font-size:13px"></p>
   </div>
@@ -1137,9 +1149,9 @@ body.light .flight-number .flight-route{color:#15171d}
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
-      <h2>Active flight decks</h2>
+      <h2>Active Flight Decks</h2>
       <div id="lobby-resume" style="display:none"></div>
-      <p class="lobby-h">All decks</p>
+      <p class="lobby-h">All Decks</p>
       <div class="lobby-list" id="lobby-list"><div class="lobby-empty">Looking for active flight decks…</div></div>
     </div>
   </div>
@@ -1190,7 +1202,7 @@ body.light .flight-number .flight-route{color:#15171d}
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
-      <h2>Guide — features &amp; how to use</h2>
+      <h2>Guide — Features &amp; How to Use</h2>
       <div id="guide-tab-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
@@ -1214,7 +1226,7 @@ body.light .flight-number .flight-route{color:#15171d}
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
-      <h2>Career roadmap</h2>
+      <h2>Career Roadmap</h2>
       <div id="roadmap-body"></div>
     </div>
   </div>
@@ -1238,7 +1250,7 @@ body.light .flight-number .flight-route{color:#15171d}
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
-      <h2>Your stats</h2>
+      <h2>Your Stats</h2>
       <div id="stats-body" style="font-size:13px;line-height:1.6"></div>
     </div>
   </div>
@@ -1439,7 +1451,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.56</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.59</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1840,16 +1852,18 @@ body.light .flight-number .flight-route{color:#15171d}
   function finishLogin(code, name) {
     state.myCode = code;
     state.myName = name;
+    try { localStorage.setItem('fdeck-last-login', JSON.stringify({ code: code, name: name })); } catch (e) {}
     const bn0 = $('newpilot-banner'); if (bn0) bn0.classList.add('hidden');
     syncCareerFromCloud();
     flushReviewOutbox(); // flagged flights parked while offline go up now
     updateBrandLines();
     updateTileRates();
     setTimeout(updateTileRates, 1500); // refresh once the cloud career lands
-    $('pickac-line').textContent = 'Select your aircraft, ' + initials(name);
+    $('pickac-line').textContent = 'Select Your Aircraft, ' + initials(name);
     show('login'); // the aircraft-select screen
     maybeShowGuide();
     checkMyMessages(true);
+    updateInboxTab();
     checkAdminInbox(true);
   }
   $('login-form').addEventListener('submit', (e) => {
@@ -1892,6 +1906,30 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   $('btn-login-back').addEventListener('click', () => show('home'));
   $('login-code').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
+  // ---- remembered login: saved on this machine, one click to get in ----
+  function refreshQuickLogin() {
+    let last = null;
+    try { last = JSON.parse(localStorage.getItem('fdeck-last-login')); } catch (e) {}
+    const box = $('quick-login');
+    if (!last || !last.code) { box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    $('btn-quick-login').textContent = 'Continue as ' + (initials(last.name) || '?') + ' · ' + last.code;
+    $('login-code').value = last.code;
+  }
+  $('btn-quick-login').addEventListener('click', () => {
+    let last = null;
+    try { last = JSON.parse(localStorage.getItem('fdeck-last-login')); } catch (e) {}
+    if (!last || !last.code) return;
+    $('login-code').value = last.code;
+    $('login-form').dispatchEvent(new Event('submit', { cancelable: true }));
+  });
+  $('btn-quick-forget').addEventListener('click', () => {
+    try { localStorage.removeItem('fdeck-last-login'); } catch (e) {}
+    $('login-code').value = '';
+    refreshQuickLogin();
+    $('login-code').focus();
+  });
+  refreshQuickLogin();
   // ---- support chat: forgot-my-ID tickets go to SM's account ----
   const TICK_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   $('btn-support').addEventListener('click', () => {
@@ -1921,12 +1959,12 @@ body.light .flight-number .flight-route{color:#15171d}
     const mine = myTickets();
     if (!mine.length) { box.innerHTML = ''; return; }
     if (!fdb) { box.innerHTML = '<p class="lobby-empty">Your tickets need internet to check.</p>'; return; }
-    box.innerHTML = '<p class="lobby-h">Your tickets</p><p class="lobby-empty">Checking…</p>';
+    box.innerHTML = '<p class="lobby-h">Your Tickets</p><p class="lobby-empty">Checking…</p>';
     Promise.all(mine.slice(-8).reverse().map(tk =>
       fdb.ref('careers/_support/' + tk.id).get()
         .then(sn => ({ tk: tk, v: sn && sn.val() })).catch(() => ({ tk: tk, v: undefined }))
     )).then(rows => {
-      box.innerHTML = '<p class="lobby-h">Your tickets</p>' + rows.map(r => {
+      box.innerHTML = '<p class="lobby-h">Your Tickets</p>' + rows.map(r => {
         const st = r.v === undefined ? '?' : (!r.v ? 'CLOSED' : (r.v.reply ? 'ANSWERED' : 'OPEN'));
         return '<div style="border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin:6px 0;font-size:13px' +
           (st === 'ANSWERED' ? ';border-color:var(--good)' : '') + '">' +
@@ -2237,6 +2275,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateInboxTab();
     $('stats-body').innerHTML = statsHtml();
   }
+  $('nav-inbox1').addEventListener('click', showInboxScreen);
   $('nav-guide1').addEventListener('click', showGuideScreen);
   $('nav-roadmap1').addEventListener('click', showRoadmapScreen);
   $('nav-stats1').addEventListener('click', showStatsScreen);
@@ -2250,8 +2289,11 @@ body.light .flight-number .flight-route{color:#15171d}
     toast('Got it — hidden for the next 10 logins, then you get one refresher');
   });
   function updateInboxTab() {
+    const isAdmin = state.myCode === ADMIN_CODE;
     document.querySelectorAll('.app-tabs button[data-tab="inbox"]')
-      .forEach(b2 => { b2.style.display = state.myCode === ADMIN_CODE ? '' : 'none'; });
+      .forEach(b2 => { b2.style.display = isAdmin ? '' : 'none'; });
+    const nav = $('nav-inbox1');
+    if (nav) nav.style.display = isAdmin ? '' : 'none';
   }
   function checkAdminInbox(announce) {
     if (state.myCode !== ADMIN_CODE || !fdb) return;
@@ -2266,6 +2308,8 @@ body.light .flight-number .flight-route{color:#15171d}
         b2.textContent = n ? 'Inbox (' + n + ')' : 'Inbox';
         b2.style.color = n ? 'var(--accent)' : '';
       });
+      const nav = $('nav-inbox1');
+      if (nav) { nav.textContent = n ? 'Inbox (' + n + ')' : 'Inbox'; nav.style.color = n ? 'var(--accent)' : ''; }
       if (announce && n) {
         toast('Inbox: ' + (pend ? pend + ' flagged flight' + (pend === 1 ? '' : 's') + ' to review' : '') +
           (pend && open ? ' · ' : '') +
@@ -4029,6 +4073,7 @@ body.light .flight-number .flight-route{color:#15171d}
     document.querySelectorAll('.app-tabs button').forEach(b => {
       b.classList.toggle('active', b.dataset.tab === tab);
     });
+    updateInboxTab();
   }
   document.querySelectorAll('.app-tabs button').forEach(b => {
     b.addEventListener('click', () => {
@@ -4807,7 +4852,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const flightMin = pushT
         ? Math.max(0, Math.round(((save.engOffAt || Date.now()) - pushT) / 60000)) : 0;
       box.style.display = '';
-      box.innerHTML = '<p class="lobby-h">Paused solo flight</p>' +
+      box.innerHTML = '<p class="lobby-h">Paused Solo Flight</p>' +
         '<div class="lobby-flight"><div class="lobby-flight-top">' +
         '<span class="lobby-flight-num">' + escapeHTML(save.flight || '') + '</span>' +
         '<span class="lobby-flight-ac">' + escapeHTML(cl ? cl.aircraft : save.slug) +
@@ -4913,11 +4958,11 @@ body.light .flight-number .flight-route{color:#15171d}
       };
       let html = '';
       if (pend.length) {
-        html += '<p class="lobby-h">Flagged flights — need your review</p>';
+        html += '<p class="lobby-h">Flagged Flights — Need Your Review</p>';
         pend.forEach(i => { html += row(i, all[i], 'pending'); });
       }
       if (disc.length) {
-        html += '<p class="lobby-h">Discarded flights</p>';
+        html += '<p class="lobby-h">Discarded Flights</p>';
         disc.forEach(i => { html += row(i, all[i], 'discarded'); });
       }
       box.innerHTML = html;
@@ -5000,7 +5045,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const ids = Object.keys(all).sort((a, b) => (all[b].ts || 0) - (all[a].ts || 0));
       if (!ids.length) return;
       const pilots = localPilotsMap();
-      let html = '<p class="lobby-h">Support inbox</p>';
+      let html = '<p class="lobby-h">Support Inbox</p>';
       ids.forEach(tid => {
         const m = all[tid] || {};
         const who = String(m.from || '').trim().toUpperCase();
