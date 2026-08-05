@@ -266,9 +266,8 @@ html.booting #home-auth-wait{display:block !important}
 .deck2-name{font-size:19px;margin:10px 0 8px;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
 .deck2-pay{font-size:14px}
 .winged{display:inline-flex;align-items:center;gap:8px}
-.rm-step{position:relative}
-.rm-count{position:absolute;top:18px;right:20px;font-size:13px;color:var(--text-muted);
-  border:1px solid var(--border);border-radius:999px;padding:3px 12px}
+.rm-count2{font-size:12px;color:var(--text-muted);border:1px solid var(--border);
+  border-radius:999px;padding:2px 11px}
 .award-row{display:flex;align-items:center;gap:10px;border:1px solid var(--accent);border-radius:12px;
   padding:12px 16px;margin:8px 0;font-size:15px;box-shadow:0 0 10px rgba(201,148,46,0.25)}
 .lb-table td.pc{text-align:center}
@@ -278,32 +277,43 @@ html.booting #home-auth-wait{display:block !important}
 .lb-table th.rs:hover{color:var(--text)}
 .lb-table th.rs.on{color:var(--accent)}
 #screen-decks [data-lcm]{font-size:13px !important}
-#screen-roadmap .lobby-card{max-width:780px;width:100%}
+#screen-roadmap .lobby-card{max-width:1100px;width:100%}
 #screen-roadmap h2{font-size:26px}
 .stripes{display:inline-flex;gap:2px;align-items:center;margin:0 6px;vertical-align:middle;
   background:#101318;border:1px solid rgba(255,255,255,0.08);border-radius:4px;padding:3px 5px}
 .stripes i{display:block;width:3px;height:12px;border-radius:1px;background:currentColor;
   box-shadow:0 0 5px currentColor}
 body.light .stripes{background:#2c313c}
-.rm-track{display:flex;flex-direction:column}
-.rm-row{display:flex;gap:18px}
-.rm-rail{display:flex;flex-direction:column;align-items:center;width:24px;flex:0 0 auto}
-.rm-node{width:18px;height:18px;border-radius:50%;background:var(--border);flex:0 0 auto;
-  margin-top:34px;border:2px solid var(--bg);transition:background .3s}
-.rm-seg{width:5px;flex:1 1 auto;border-radius:3px;margin:6px 0;min-height:34px}
+/* ---------- Career Roadmap: snaking flowchart (3 across, S-turn, 3 back) ---------- */
+.rm-flow{display:grid;grid-template-columns:1fr 46px 1fr 46px 1fr;grid-template-rows:auto 52px auto;
+  grid-template-areas:"c0 s0 c1 s1 c2" ". . . . s2" "c5 s4 c4 s3 c3";margin-top:10px}
+.rm-card{border:1px solid var(--border);border-radius:14px;padding:16px 14px;
+  display:flex;flex-direction:column;gap:7px;align-items:center;text-align:center;
+  transition:border-color .3s,box-shadow .3s}
+.rm-card .lvl{font-size:14px;padding:5px 12px}
+.rm-me .lvl{font-size:16px}
+.rm-me{border-width:2px}
+.rm-you{color:var(--accent);font-weight:800;letter-spacing:0.14em;font-size:12px}
+.rm-range{color:var(--text-muted);font-size:13px}
+.rm-prog{font-size:13px;width:100%}
+.rm-stats{font-size:13px;margin-bottom:2px}
+.rm-bar{height:10px;background:var(--border);border-radius:99px;overflow:hidden;margin:5px 0 7px;width:100%}
+.rm-fill{height:100%;background:var(--accent)}
+/* the glowing progress lines between ranks */
+.rm-link{border-radius:4px}
+.rm-h{height:6px;align-self:center;width:100%;
+  background:linear-gradient(to right,var(--sc) var(--sp),var(--border) var(--sp))}
+.rm-h.rm-rev{background:linear-gradient(to left,var(--sc) var(--sp),var(--border) var(--sp))}
+.rm-v{width:6px;height:100%;justify-self:center;
+  background:linear-gradient(to bottom,var(--sc) var(--sp),var(--border) var(--sp))}
 .rm-seg-live{animation:rmpulse 1.6s ease-in-out infinite}
 @keyframes rmpulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.55)}}
-.rm-stats{font-size:14px;margin-bottom:2px}
-.rm-step{border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin:12px 0;
-  display:flex;flex-direction:column;gap:8px;align-items:flex-start;flex:1 1 auto}
-.rm-step .lvl{font-size:15px;padding:5px 14px}
-.rm-me .lvl{font-size:17px}
-.rm-me{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.rm-you{color:var(--accent);font-weight:800;letter-spacing:0.14em;font-size:13px}
-.rm-range{color:var(--text-muted);font-size:14px}
-.rm-prog{font-size:14px;width:100%}
-.rm-bar{height:12px;background:var(--border);border-radius:99px;overflow:hidden;margin:6px 0 8px;width:100%}
-.rm-fill{height:100%;background:var(--accent)}
+/* phones: the snake unrolls into a single downward line */
+@media (max-width:720px){
+  .rm-flow{display:flex;flex-direction:column}
+  .rm-link{width:6px !important;height:38px;align-self:center;
+    background:linear-gradient(to bottom,var(--sc) var(--sp),var(--border) var(--sp)) !important}
+}
 .stat-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--border)}
 .stat-row:last-child{border-bottom:none}
 .stat-k{color:var(--text-muted)}
@@ -1123,10 +1133,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.06</div>
+<div class="ver-float app-version">v1.07</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.06</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.07</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1769,7 +1779,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.06</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.07</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2785,14 +2795,17 @@ body.light .flight-number .flight-route{color:#15171d}
     // count ONLY pilots that exist on the roster right now — orphaned careers don't hold a rank
     const counted = livePilotCodes || Object.keys(localPilotsMap()).filter(pc => pc in hoursCache);
     for (const pc of counted) holders[levelFor(hoursCache[pc] || 0).idx]++;
-    let html = '<p style="font-size:13px">Every hour you log moves you up the line — your rank multiplies every paycheck.</p>' +
-      '<div class="rm-track">';
+    // flowchart snake: JFO → FO → SFO across the top, glowing line turns DOWN, then JC → SC → PC back
+    // seg i sits between rank i and i+1; class picks its direction on the board
+    const SEG_CLS = ['rm-h', 'rm-h', 'rm-v', 'rm-h rm-rev', 'rm-h rm-rev'];
+    let html = '<p style="font-size:13px">Every hour you log moves you along the line — your rank multiplies every paycheck.</p>' +
+      '<div class="rm-flow">';
     LEVELS.forEach((L, i) => {
       const reached = i <= lv.idx;
       const me = i === lv.idx;
       const lo = i === 0 ? 0 : LEVELS[i - 1].max;
       const hi = L.max;
-      // how far along the segment BELOW this node you are
+      // how far along the segment AFTER this node you are
       let segPct = 0;
       if (i < lv.idx) segPct = 100;
       else if (me) {
@@ -2816,23 +2829,19 @@ body.light .flight-number .flight-route{color:#15171d}
         }
       }
       const nHold = holders[i];
-      html += '<div class="rm-row' + (me ? ' rm-merow' : '') + '">' +
-        '<div class="rm-rail">' +
-          '<span class="rm-node' + (reached ? ' on' : '') + '"' +
-            (reached ? ' style="background:' + RANK_COLORS[i] + ';box-shadow:0 0 ' + (me ? '14px' : '6px') + ' ' + RANK_COLORS[i] + '"' : '') + '></span>' +
-          (i < LEVELS.length - 1
-            ? '<span class="rm-seg' + (me ? ' rm-seg-live' : '') + '" style="background:linear-gradient(to bottom,' +
-              RANK_COLORS[i] + ' ' + segPct + '%,var(--border) ' + segPct + '%)' +
-              (segPct ? ';box-shadow:0 0 8px ' + RANK_COLORS[i] : '') + '"></span>'
-            : '') +
-        '</div>' +
-        '<div class="rm-step' + (me ? ' rm-me' : '') + '">' +
-          '<span class="rm-count"' + (nHold ? '' : ' style="opacity:0.45"') + '>' + nHold +
-            (nHold === 1 ? ' pilot' : ' pilots') + '</span>' +
-          '<span><span class="lvl lvl-' + i + '">' + L.name + '</span>' + stripesHtml(i) + '</span>' +
-          '<span class="rm-range">' + range + ' · pay ×' + L.mult.toFixed(1) + (i === LEVELS.length - 1 ? ' and climbing' : '') + '</span>' +
-          (me ? '<span class="rm-you">YOU ARE HERE</span><div class="rm-prog">' + prog + '</div>' : '') +
-        '</div></div>';
+      html += '<div class="rm-card' + (me ? ' rm-me' : '') + '" style="grid-area:c' + i +
+        (reached ? ';border-color:' + RANK_COLORS[i] + ';box-shadow:0 0 ' + (me ? '18px' : '8px') + ' ' + RANK_COLORS[i] : '') + '">' +
+        '<span class="rm-count2"' + (nHold ? '' : ' style="opacity:0.45"') + '>' + nHold +
+          (nHold === 1 ? ' pilot' : ' pilots') + '</span>' +
+        '<span><span class="lvl lvl-' + i + '">' + L.name + '</span>' + stripesHtml(i) + '</span>' +
+        '<span class="rm-range">' + range + ' · pay ×' + L.mult.toFixed(1) + (i === LEVELS.length - 1 ? ' and climbing' : '') + '</span>' +
+        (me ? '<span class="rm-you">YOU ARE HERE</span><div class="rm-prog">' + prog + '</div>' : '') +
+        '</div>';
+      if (i < LEVELS.length - 1) {
+        html += '<div class="rm-link ' + SEG_CLS[i] + (me ? ' rm-seg-live' : '') + '" style="grid-area:s' + i +
+          ';--sc:' + RANK_COLORS[i] + ';--sp:' + segPct + '%' +
+          (segPct ? ';box-shadow:0 0 10px ' + RANK_COLORS[i] : '') + '"></div>';
+      }
     });
     return html + '</div>';
   }
@@ -2844,7 +2853,7 @@ body.light .flight-number .flight-route{color:#15171d}
     $('roadmap-body').innerHTML = roadmapHtml();
     fetchAllHours(() => { if (!screens.roadmap.classList.contains('hidden')) $('roadmap-body').innerHTML = roadmapHtml(); });
     setTimeout(() => {
-      const me = document.querySelector('.rm-merow');
+      const me = document.querySelector('.rm-flow .rm-me');
       if (me && me.scrollIntoView) me.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 150);
   }
