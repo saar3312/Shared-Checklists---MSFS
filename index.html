@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Flight Deck EFB</title>
+<title>CrewDeck EFB</title>
 <style>
 :root {
   --bg:#0a0c10;
@@ -1051,26 +1051,6 @@ body.light .flight-number .flight-route{color:#15171d}
       </div>
     </div>
   </div>
-  <div class="modal-backdrop" id="word-modal" hidden>
-    <div class="modal" style="max-width:480px">
-      <h2>Choose a Support Word</h2>
-      <p style="font-size:13px">Pick any word as a password for <strong>support tickets only</strong> (it is NOT your login —
-      you still log in with your pilot ID). If you ever forget your pilot ID, telling support your initials + this word
-      gets your ID back <strong>automatically</strong>.</p>
-      <p style="font-size:13px;color:#e5484d;font-weight:800;line-height:1.5">YOU MUST REMEMBER THIS WORD WHEN YOU SEND SUPPORT IN.
-      WITHOUT IT THERE IS NO WAY TO IDENTIFY YOU PROPERLY — YOU WOULD HAVE TO DM SM ON DISCORD INSTEAD.</p>
-      <form id="word-form">
-        <label class="field">
-          <span class="field-label">Your support word<span class="req">*</span></span>
-          <input id="word-input" class="input mono" type="text" maxlength="20" autocomplete="off" spellcheck="false" />
-        </label>
-        <div class="setup-actions">
-          <span></span>
-          <button type="submit" class="btn primary">Save My Word</button>
-        </div>
-      </form>
-    </div>
-  </div>
   <div class="modal-backdrop" id="msgs-modal" hidden>
     <div class="modal" style="max-width:520px;max-height:80vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
@@ -1083,7 +1063,7 @@ body.light .flight-number .flight-route{color:#15171d}
   <div class="modal-backdrop" id="guide-modal" hidden>
     <div class="modal" style="max-width:640px;max-height:86vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;position:sticky;top:0;background:inherit;padding-bottom:8px">
-        <h2 style="margin:0">Welcome to Flight Deck EFB</h2>
+        <h2 style="margin:0">Welcome to CrewDeck EFB</h2>
         <span>
           <button class="btn" id="guide-hide-forever" style="border-color:#c9942e;color:#c9942e;font-weight:800">DO NOT SHOW ME THIS AGAIN</button>
           <button class="btn link" id="guide-close">Close</button>
@@ -1092,10 +1072,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.82</div>
+<div class="ver-float app-version">v4.00</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.82</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v4.00</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1104,28 +1084,26 @@ body.light .flight-number .flight-route{color:#15171d}
     </div>
   </div>
   <div class="home-welcome">
-    <h1>Welcome to Flight Deck EFB</h1>
+    <h1>Welcome to CrewDeck EFB</h1>
     <p>Log in with your pilot ID to begin.</p>
   </div>
   <div class="center-stack">
     <div class="setup-card">
-      <div id="quick-login" class="hidden" style="margin-bottom:14px">
-        <button type="button" class="btn primary" id="btn-quick-login" style="width:100%"></button>
-        <div class="setup-actions" style="margin-top:6px">
-          <span class="muted" style="font-size:11px">Not you?</span>
-          <button type="button" class="btn link" id="btn-quick-forget" style="font-size:11px">Use a different pilot ID</button>
-        </div>
-      </div>
       <form id="login-form">
         <label class="field">
-          <span class="field-label">Pilot ID<span class="req">*</span></span>
-          <input id="login-code" class="input mono" type="text" maxlength="8" required
-            autocomplete="off" spellcheck="false" inputmode="numeric" />
+          <span class="field-label">Email<span class="req">*</span></span>
+          <input id="login-email" class="input" type="email" maxlength="80" required
+            autocomplete="email" spellcheck="false" />
+        </label>
+        <label class="field">
+          <span class="field-label">Password<span class="req">*</span></span>
+          <input id="login-pass" class="input" type="password" maxlength="60" required
+            autocomplete="current-password" />
           <span id="login-invalid" class="hidden" style="display:block;margin-top:6px;color:#e5484d;font-weight:800;font-size:12px;letter-spacing:0.1em">INVALID</span>
         </label>
         <div class="setup-actions">
-          <span></span>
-          <button type="submit" class="btn primary">Log in</button>
+          <button type="button" class="btn link" id="btn-forgot">Forgot password?</button>
+          <button type="submit" class="btn primary">Log In</button>
         </div>
       </form>
       <div class="setup-actions" style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
@@ -1134,13 +1112,31 @@ body.light .flight-number .flight-route{color:#15171d}
       </div>
       <form id="signup-form" class="hidden" style="margin-top:6px">
         <label class="field">
+          <span class="field-label">Email<span class="req">*</span></span>
+          <input id="signup-email" class="input" type="email" maxlength="80"
+            autocomplete="email" spellcheck="false" />
+        </label>
+        <label class="field">
+          <span class="field-label">Password<span class="req">*</span> <span class="muted" style="font-size:11px">(6+ characters)</span></span>
+          <input id="signup-pass" class="input" type="password" maxlength="60" autocomplete="new-password" />
+        </label>
+        <label class="field">
           <span class="field-label">Your initials<span class="req">*</span></span>
           <input id="signup-name" class="input mono" type="text" maxlength="3"
             autocomplete="off" spellcheck="false" autocapitalize="characters" placeholder="e.g. SM" />
         </label>
+        <div style="border-top:1px solid var(--border);margin:10px 0;padding-top:10px">
+          <span class="muted" style="font-size:12px">Flew here before accounts existed? Claim your old pilot ID (optional):</span>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="signup-claim-id" class="input mono" type="text" maxlength="4" placeholder="pilot ID"
+              autocomplete="off" inputmode="numeric" style="max-width:110px" />
+            <input id="signup-claim-word" class="input mono" type="text" maxlength="20" placeholder="your support word"
+              autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
         <div class="setup-actions">
-          <span class="muted" style="font-size:11px">You'll get a 4-digit pilot ID — it's your login everywhere.</span>
-          <button type="submit" class="btn primary">Create my pilot ID</button>
+          <span class="muted" style="font-size:11px">You get a 4-digit flight ID — email + password is your login.</span>
+          <button type="submit" class="btn primary">Create Account</button>
         </div>
       </form>
     </div>
@@ -1188,7 +1184,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-login" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-login-back">&larr; Back</button>
-    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
     <span></span>
   </div>
   <nav class="app-tabs">
@@ -1204,6 +1200,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
   <div class="home-welcome">
     <h1 id="pickac-line">Select Your Aircraft</h1>
@@ -1256,7 +1253,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-lobby" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-lobby-back">&larr; Back</button>
-    <span class="subnav-title brand-line" id="lobby-aircraft"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line" id="lobby-aircraft"><strong>CrewDeck EFB</strong></span>
     <span></span>
   </div>
   <nav class="app-tabs">
@@ -1272,6 +1269,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
 
   <div class="center-stack">
@@ -1294,7 +1292,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-decks" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-decks-back">&larr; Back</button>
-    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
     <span></span>
   </div>
   <nav class="app-tabs">
@@ -1310,6 +1308,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1324,7 +1323,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-inbox" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-inbox-back">&larr; Back</button>
-    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
     <span></span>
   </div>
   <nav class="app-tabs">
@@ -1340,6 +1339,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1355,7 +1355,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-guide" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-guide-back">&larr; Back</button>
-    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
     <span></span>
   </div>
   <nav class="app-tabs">
@@ -1371,6 +1371,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1383,7 +1384,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-roadmap" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-roadmap-back">&larr; Back</button>
-    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
     <span></span>
   </div>
   <nav class="app-tabs">
@@ -1399,6 +1400,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1411,7 +1413,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-stats" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-stats-back">&larr; Back</button>
-    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
     <span></span>
   </div>
   <nav class="app-tabs">
@@ -1427,6 +1429,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1439,7 +1442,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <div id="screen-chat" class="hidden">
   <div class="subnav">
     <button class="btn link" id="btn-chat-back">&larr; Back</button>
-    <span class="subnav-title brand-line"><strong>Flight Deck EFB</strong></span>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
     <span></span>
   </div>
   <nav class="app-tabs">
@@ -1455,6 +1458,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
   <div class="center-stack">
     <div class="setup-card lobby-card">
@@ -1511,6 +1515,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
 
   <div class="center-stack" style="align-items:flex-start">
@@ -1542,6 +1547,7 @@ body.light .flight-number .flight-route{color:#15171d}
     <button type="button" data-tab="inbox" style="display:none">Inbox</button>
     <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
     <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="signout">Sign Out</button>
   </nav>
 
   <div class="center-stack" style="align-items:flex-start">
@@ -1668,7 +1674,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.82</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v4.00</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -1794,6 +1800,7 @@ body.light .flight-number .flight-route{color:#15171d}
 <!-- Firebase (free Spark tier): pilot database, cloud logbooks, live lobby -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 (function () {
   "use strict";
@@ -1815,10 +1822,12 @@ body.light .flight-number .flight-route{color:#15171d}
     appId: "1:958160526812:web:ea18536eb368275182c319",
   };
   let fdb = null;
+  let fauth = null;
   try {
     if (window.firebase && firebase.initializeApp) {
       firebase.initializeApp(FIREBASE_CONFIG);
       fdb = firebase.database();
+      if (firebase.auth) fauth = firebase.auth();
     }
   } catch (e) { console.error('firebase init failed', e); fdb = null; }
   // =========================================================================
@@ -2077,7 +2086,6 @@ body.light .flight-number .flight-route{color:#15171d}
   function finishLogin(code, name) {
     state.myCode = code;
     state.myName = name;
-    try { localStorage.setItem('fdeck-last-login', JSON.stringify({ code: code, name: name })); } catch (e) {}
     const bn0 = $('newpilot-banner'); if (bn0) bn0.classList.add('hidden');
     syncCareerFromCloud();
     flushReviewOutbox(); // flagged flights parked while offline go up now
@@ -2088,78 +2096,110 @@ body.light .flight-number .flight-route{color:#15171d}
     show('login'); // the aircraft-select screen
     setActiveTab('newflight');
     maybeShowGuide();
-    maybeAskWord();
     checkMyMessages(true);
     updateInboxTab();
     checkAdminInbox(true);
-    chatFetch(threads => updateChatBadge(threads));
+    crewFetch(() => chatFetch(threads => updateChatBadge(threads)));
     fetchAllHours();
     setTimeout(checkFirstAwards, 2500); // once the cloud career has landed
   }
+  // =====================================================================
+  // ACCOUNTS — real email + password auth (Firebase Authentication).
+  // The 4-digit pilot ID stays as your in-app flight ID; it's linked to
+  // your account. Password resets go to your email.
+  // =====================================================================
+  function authError(err) {
+    const c = (err && err.code) || '';
+    if (c.includes('invalid-email')) return 'That is not a valid email address';
+    if (c.includes('user-not-found') || c.includes('wrong-password') || c.includes('invalid-credential') || c.includes('invalid-login')) return 'Wrong email or password';
+    if (c.includes('email-already-in-use')) return 'That email already has an account — log in instead';
+    if (c.includes('weak-password')) return 'Password must be at least 6 characters';
+    if (c.includes('too-many-requests')) return 'Too many tries — wait a bit and try again';
+    if (c.includes('network')) return 'No connection — check your internet';
+    return (err && err.message) || 'Something went wrong';
+  }
+  function resolvePilotForUser(user, cb) {
+    fdb.ref('users/' + user.uid).get().then(sn => {
+      const v = sn && sn.val();
+      if (v && v.code) {
+        fdb.ref('pilots/' + v.code).get().then(sp => {
+          const p = sp && sp.val();
+          cb(v.code, (p && p.name) || 'PILOT');
+        }).catch(() => cb(v.code, 'PILOT'));
+      } else {
+        // authed but no pilot profile yet — mint one from the email
+        const want = (user.email || 'XX').slice(0, 2).toUpperCase().replace(/[^A-Z]/g, 'X');
+        createPilotProfile(user, want || 'XX', (code, nm) => cb(code, nm));
+      }
+    }).catch(() => { toast('Could not load your pilot profile — try again'); });
+  }
+  function createPilotProfile(user, wantInitials, cb) {
+    fdb.ref('pilots').get().then(sn => {
+      const all = (sn && sn.val()) || {};
+      let code = '';
+      for (let i = 0; i < 80 && !code; i++) {
+        const c = String(1000 + Math.floor(Math.random() * 9000));
+        if (!all[c]) code = c;
+      }
+      const taken = {};
+      for (const k of Object.keys(all)) taken[initials(all[k] && all[k].name)] = true;
+      let mine = wantInitials;
+      if (taken[mine]) {
+        mine = '';
+        for (let d = 2; d <= 9 && !mine; d++) if (!taken[wantInitials + d]) mine = wantInitials + d;
+        if (!mine) mine = wantInitials + Math.floor(Math.random() * 90 + 10);
+      }
+      fdb.ref('pilots/' + code).set({ name: mine, uid: user.uid });
+      fdb.ref('users/' + user.uid).set({ code: code, email: user.email || '' });
+      try {
+        const cache = JSON.parse(localStorage.getItem('fdeck-pilots-cache') || '{}');
+        cache[code] = { name: mine };
+        localStorage.setItem('fdeck-pilots-cache', JSON.stringify(cache));
+      } catch (e) {}
+      cb(code, mine);
+    }).catch(() => toast('Could not create your pilot profile — try again'));
+  }
   $('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    const code = ($('login-code').value || '').trim();
-    if (!code) { toast('Pilot ID is required'); $('login-code').focus(); return; }
-    const reject = () => { $('login-invalid').classList.remove('hidden'); toast('Invalid pilot ID'); $('login-code').focus(); $('login-code').select(); };
+    const email = ($('login-email').value || '').trim();
+    const pass = $('login-pass').value || '';
     $('login-invalid').classList.add('hidden');
-    if (fdb) {
-      const btn = document.querySelector('#login-form button[type="submit"]');
-      if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
-      const done = (fn) => { if (btn) { btn.disabled = false; btn.textContent = 'Log in'; } fn(); };
-      const timer = setTimeout(() => { // cloud slow/unreachable -> local fallback
-        const nm = pilotByCodeCached(code);
-        done(() => nm ? finishLogin(code, nm) : reject());
-      }, 6000);
-      fdb.ref('pilots/' + code).get().then(snap => {
-        clearTimeout(timer);
-        const v = snap && snap.val();
-        if (v && v.name) {
-          try { // refresh the offline cache with the whole roster
-            fdb.ref('pilots').get().then(all => {
-              if (all && all.val()) localStorage.setItem('fdeck-pilots-cache', JSON.stringify(all.val()));
-            });
-          } catch (e) {}
-          done(() => finishLogin(code, v.name));
-        } else {
-          done(reject);
-        }
-      }).catch(() => {
-        clearTimeout(timer);
-        const nm = pilotByCodeCached(code);
-        done(() => nm ? finishLogin(code, nm) : reject());
+    if (!fauth || !fdb) { toast('Logging in needs internet'); return; }
+    if (!email || !pass) { toast('Email and password are required'); return; }
+    const btn = document.querySelector('#login-form button[type="submit"]');
+    btn.disabled = true; btn.textContent = 'Checking…';
+    const done = () => { btn.disabled = false; btn.textContent = 'Log In'; };
+    fauth.signInWithEmailAndPassword(email, pass).then(cred => {
+      resolvePilotForUser(cred.user, (code, nm) => { done(); finishLogin(code, nm); });
+    }).catch(err => {
+      done();
+      $('login-invalid').textContent = 'INVALID — ' + authError(err).toUpperCase();
+      $('login-invalid').classList.remove('hidden');
+    });
+  });
+  $('btn-forgot').addEventListener('click', () => {
+    const email = ($('login-email').value || '').trim();
+    if (!email) { toast('Type your email above first, then hit Forgot password'); $('login-email').focus(); return; }
+    if (!fauth) { toast('Needs internet'); return; }
+    fauth.sendPasswordResetEmail(email).then(() => {
+      toast('Password reset email sent to ' + email + ' — check your inbox (and spam)');
+    }).catch(err => toast(authError(err)));
+  });
+  // returning pilots: the auth session persists — straight in, no typing
+  if (fauth) {
+    let booted = false;
+    fauth.onAuthStateChanged(user => {
+      if (booted || !user || state.myCode) return;
+      booted = true;
+      resolvePilotForUser(user, (code, nm) => {
+        if (!state.myCode) finishLogin(code, nm);
       });
-      return;
-    }
-    const name = pilotByCodeCached(code);
-    if (!name) { reject(); return; }
-    finishLogin(code, name);
-  });
-  $('btn-login-back').addEventListener('click', () => show('home'));
-  $('login-code').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
-  // ---- remembered login: saved on this machine, one click to get in ----
-  function refreshQuickLogin() {
-    let last = null;
-    try { last = JSON.parse(localStorage.getItem('fdeck-last-login')); } catch (e) {}
-    const box = $('quick-login');
-    if (!last || !last.code) { box.classList.add('hidden'); return; }
-    box.classList.remove('hidden');
-    $('btn-quick-login').textContent = 'Continue as ' + (initials(last.name) || '?') + ' · ' + last.code;
-    $('login-code').value = last.code;
+    });
   }
-  $('btn-quick-login').addEventListener('click', () => {
-    let last = null;
-    try { last = JSON.parse(localStorage.getItem('fdeck-last-login')); } catch (e) {}
-    if (!last || !last.code) return;
-    $('login-code').value = last.code;
-    $('login-form').dispatchEvent(new Event('submit', { cancelable: true }));
-  });
-  $('btn-quick-forget').addEventListener('click', () => {
-    try { localStorage.removeItem('fdeck-last-login'); } catch (e) {}
-    $('login-code').value = '';
-    refreshQuickLogin();
-    $('login-code').focus();
-  });
-  refreshQuickLogin();
+  $('btn-login-back').addEventListener('click', () => show('home'));
+  $('login-email').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
+  $('login-pass').addEventListener('input', () => $('login-invalid').classList.add('hidden'));
+  // (one-click login now comes from the Firebase Auth session itself)
   // ---- support chat: forgot-my-ID tickets go to SM's account ----
   const TICK_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   $('btn-support').addEventListener('click', () => {
@@ -2187,7 +2227,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const mine = fromTeam(m) === (viewer === 'SM');
       return '<div class="chat-line' + (mine ? ' chat-mine' : '') + '">' +
         '<div class="chat-bubble">' + escapeHTML(m.text || '') + '</div>' +
-        '<div class="chat-meta">' + escapeHTML(m.who === 'support' ? 'Flight Deck EFB Support'
+        '<div class="chat-meta">' + escapeHTML(m.who === 'support' ? 'CrewDeck Support'
           : (m.who === 'SM' ? 'SM' : (initials(v.from) || 'pilot'))) +
         (m.who === 'SM' ? stripesByCode(ADMIN_CODE) : (m.who === 'pilot' ? stripesByName(v.from) : '')) +
         (m.ts ? ' · ' + escapeHTML(agoPhrase(Date.now() - m.ts)) : '') + '</div></div>';
@@ -2314,8 +2354,8 @@ body.light .flight-number .flight-route{color:#15171d}
     new Promise(res => { word ? lookupByWord(from, word, res) : res(null); }).then(codeHit => {
       const autoMsg = word
         ? (codeHit
-          ? 'Automated reply from Flight Deck EFB Support — support word verified. Your pilot ID is ' + codeHit + '. Welcome back, ' + from + '!'
-          : 'Automated reply from Flight Deck EFB Support — that support word does not match our records for ' + from + '. SM cannot identify you properly this way; he will review manually, or DM him on Discord.')
+          ? 'Automated reply from CrewDeck Support — support word verified. Your pilot ID is ' + codeHit + '. Welcome back, ' + from + '!'
+          : 'Automated reply from CrewDeck Support — that support word does not match our records for ' + from + '. SM cannot identify you properly this way; he will review manually, or DM him on Discord.')
         : null;
       return finishTicket(autoMsg);
     }).then(() => {
@@ -2361,45 +2401,51 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   $('signup-form').addEventListener('submit', (e) => {
     e.preventDefault();
+    const email = ($('signup-email').value || '').trim();
+    const pass = $('signup-pass').value || '';
     const want = ($('signup-name').value || '').trim().toUpperCase();
+    const claimId = ($('signup-claim-id').value || '').trim();
+    const claimWord = ($('signup-claim-word').value || '').trim();
     if (!/^[A-Z]{2,3}$/.test(want)) { toast('Initials only — 2 or 3 letters, e.g. SM'); $('signup-name').focus(); return; }
-    if (!fdb) { toast('Creating an account needs internet — try again once you are online'); return; }
+    if (!email) { toast('Email is required — password resets go there'); $('signup-email').focus(); return; }
+    if (pass.length < 6) { toast('Password must be at least 6 characters'); $('signup-pass').focus(); return; }
+    if (!fauth || !fdb) { toast('Creating an account needs internet'); return; }
     const btn = document.querySelector('#signup-form button[type="submit"]');
     btn.disabled = true; btn.textContent = 'Creating…';
-    const restore = () => { btn.disabled = false; btn.textContent = 'Create my pilot ID'; };
-    fdb.ref('pilots').get().then(snap => {
-      const all = (snap && snap.val()) || {};
-      let code = '';
-      for (let i = 0; i < 80 && !code; i++) {
-        const c = String(1000 + Math.floor(Math.random() * 9000));
-        if (!all[c]) code = c;
-      }
-      if (!code) { restore(); toast('No free pilot IDs — tell SM'); return; }
-      // initials must be unique on the roster — taken? hand out a close one
-      const taken = {};
-      for (const k of Object.keys(all)) taken[initials(all[k] && all[k].name)] = true;
-      let mine = want;
-      if (taken[mine]) {
-        mine = '';
-        for (let d = 2; d <= 9 && !mine; d++) if (!taken[want + d]) mine = want + d;
-        if (!mine) { restore(); toast(want + ' and every close variant are taken — pick different initials'); return; }
-      }
-      return fdb.ref('pilots/' + code).set({ name: mine }).then(() => {
-        all[code] = { name: mine };
-        try { localStorage.setItem('fdeck-pilots-cache', JSON.stringify(all)); } catch (e2) {}
+    const restore = () => { btn.disabled = false; btn.textContent = 'Create Account'; };
+    fauth.createUserWithEmailAndPassword(email, pass).then(cred => {
+      const user = cred.user;
+      const freshStart = () => createPilotProfile(user, want, (code, mine) => {
         restore();
-        $('signup-form').classList.add('hidden');
-        $('signup-name').value = '';
         finishLogin(code, mine);
         const bn = $('newpilot-banner');
         bn.innerHTML = 'Welcome aboard, ' + escapeHTML(mine) +
           (mine !== want ? ' (' + escapeHTML(want) + ' was taken)' : '') +
-          ' — your pilot ID is <strong class="mono">' + code +
-          '</strong>. Write it down: it is your login on every device.';
+          ' — your flight ID is <strong class="mono">' + code +
+          '</strong>. You log in with your email; the flight ID is how the roster knows you.';
         bn.classList.remove('hidden');
-        toast('Account created — you are ' + mine + ', pilot ID ' + code);
       });
-    }).catch(() => { restore(); toast('Could not create the account — check your internet and try again'); });
+      if (claimId && /^\d{4}$/.test(claimId)) {
+        // claiming an existing pilot: their support word is the proof
+        Promise.all([
+          fdb.ref('pilots/' + claimId).get().then(x => x && x.val()).catch(() => null),
+          fdb.ref('careers/' + claimId + '/supportWord').get().then(x => x && x.val()).catch(() => null),
+        ]).then(([p, word]) => {
+          if (p && !p.uid && word && claimWord && String(word).toLowerCase() === claimWord.toLowerCase()) {
+            fdb.ref('pilots/' + claimId).set({ name: p.name, uid: user.uid });
+            fdb.ref('users/' + user.uid).set({ code: claimId, email: email });
+            restore();
+            finishLogin(claimId, p.name);
+            toast('Pilot ' + escapeHTML(initials(p.name)) + ' (' + claimId + ') claimed — career intact');
+          } else {
+            toast(p && p.uid ? 'That pilot ID is already claimed' : 'Pilot ID + support word did not match — a fresh pilot was created instead');
+            freshStart();
+          }
+        });
+      } else {
+        freshStart();
+      }
+    }).catch(err => { restore(); toast(authError(err)); });
   });
   function updateTileRates() {
     const hours = myCareer().hours;
@@ -2429,7 +2475,7 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   let lobbyGlobal = false; // opened from the main menu, no aircraft picked yet
   function openLobby() {
-    $('welcome-line').textContent = 'Welcome to Flight Deck EFB, ' + initials(state.myName);
+    $('welcome-line').textContent = 'Welcome to CrewDeck EFB, ' + initials(state.myName);
     updateBrandLines();
     renderCareerLine();
     const global_ = !state.checklist;
@@ -2479,9 +2525,11 @@ body.light .flight-number .flight-route{color:#15171d}
     '<p class="lobby-h">PAUSING &amp; RESUMING</p>' +
     '<p><strong>Solo flights never die</strong> — close the tab and the flight pauses to the cloud, still earning. Resume it from Active Decks on any device. ' +
     '<strong>Dual flights</strong> — if the PIC leaves, the co-pilot keeps the aircraft and continues single pilot.</p>' +
-    '<p class="lobby-h">ACCOUNT</p>' +
-    '<p><strong>Your 4-digit pilot ID is your login everywhere</strong> — write it down. Forgot it? Use <strong>Support</strong> (top right of the login screen): ' +
-    'send your initials and check back with your ticket code for SM’s reply.</p>';
+    '<p class="lobby-h">ACCOUNT &amp; CREW</p>' +
+    '<p><strong>You log in with your email and password.</strong> Forgot the password? Hit “Forgot password?” on the login screen — a reset link goes to your email. ' +
+    'Your 4-digit flight ID is how the roster, decks and logbook know you.</p>' +
+    '<p><strong>Chat is crew-only</strong> — find pilots on the Roster, hit + Crew, and once they accept you can DM each other. ' +
+    'And the <strong>PIC approves</strong> every co-pilot who asks to join their flight deck.</p>';
   function guideMeta() {
     try { return JSON.parse(localStorage.getItem('fdeck-guide-' + state.myCode)) || {}; } catch (e) { return {}; }
   }
@@ -2715,29 +2763,6 @@ body.light .flight-number .flight-route{color:#15171d}
     const lr = $('link-roadmap'); if (lr) lr.addEventListener('click', showRoadmapScreen);
     renderMyAwards();
   }
-  // everyone must set a support word on their first login (support only, not login)
-  function maybeAskWord() {
-    if (!state.myCode || !fdb) return;
-    fdb.ref('careers/' + state.myCode + '/supportWord').get().then(sn => {
-      if (sn && sn.val()) return;
-      const poll = () => {
-        if (!$('guide-modal').hidden) { setTimeout(poll, 800); return; } // after the guide
-        $('word-modal').hidden = false;
-        setTimeout(() => $('word-input').focus(), 60);
-      };
-      poll();
-    }).catch(() => {});
-  }
-  $('word-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const w = ($('word-input').value || '').trim();
-    if (w.length < 3) { toast('Pick a word of at least 3 letters'); $('word-input').focus(); return; }
-    if (!fdb || !state.myCode) { toast('Needs internet — it will ask again next login'); $('word-modal').hidden = true; return; }
-    fdb.ref('careers/' + state.myCode + '/supportWord').set(w).then(() => {
-      $('word-modal').hidden = true;
-      toast('Support word saved — remember it!');
-    }).catch(() => toast('Could not save — try again'));
-  });
   $('guide-close').addEventListener('click', () => { $('guide-modal').hidden = true; });
   $('guide-modal').addEventListener('click', (e) => { if (e.target === $('guide-modal')) $('guide-modal').hidden = true; });
   $('guide-hide-forever').addEventListener('click', () => {
@@ -3353,15 +3378,35 @@ body.light .flight-number .flight-route{color:#15171d}
         break;
       case 'claim_role':
         if (state.role === 'host') {
-          const ok = claimRole(conn.peer, msg.name, msg.role, msg.hours);
-          if (!ok) {
-            const holder = state.roles[msg.role];
-            const holderName = (holder && state.members[holder] && state.members[holder].name) || 'someone';
-            send(conn, { type: 'role_denied', role: msg.role, holderName });
+          // same-name reclaim (their old browser died) is waved through;
+          // anyone else needs the PIC's approval to take a seat
+          const prevHolder = state.roles[msg.role];
+          const prevName = prevHolder && state.members[prevHolder] && state.members[prevHolder].name;
+          const isRejoin = prevName && prevName === msg.name;
+          const proceed = () => {
+            const ok = claimRole(conn.peer, msg.name, msg.role, msg.hours);
+            if (!ok) {
+              const holder = state.roles[msg.role];
+              const holderName = (holder && state.members[holder] && state.members[holder].name) || 'someone';
+              send(conn, { type: 'role_denied', role: msg.role, holderName });
+            } else {
+              broadcastState();
+            }
+          };
+          if (isRejoin || conn.peer === state.myKey) { proceed(); break; }
+          const hrs = msg.hours || 0;
+          const lv = levelFor(hrs);
+          if (confirm(initials(msg.name) + ' (' + lv.name + ', ' + hrs.toFixed(1) + ' h) wants to join as ' +
+              msg.role + '. Approve?')) {
+            proceed();
           } else {
-            broadcastState();
+            send(conn, { type: 'join_denied' });
+            setTimeout(() => { try { conn.close(); } catch (e) {} }, 400);
           }
         }
+        break;
+      case 'join_denied':
+        joinFailed('The PIC declined your request to join this flight deck.');
         break;
       case 'role_denied':
         toast(msg.role + ' is held by ' + (initials(msg.holderName) || 'someone'));
@@ -4465,13 +4510,19 @@ body.light .flight-number .flight-route{color:#15171d}
     const admin = state.myCode === ADMIN_CODE; // SM sees everyone's pilot IDs
     const th = (k, label) => '<th class="rs' + (lbSort === k ? ' on' : '') + '" data-rs="' + k + '">' + label + '</th>';
     let html = '<table class="lb-table"><tr><th>Seniority</th><th style="text-align:center">Pilot</th>' + (admin ? '<th>ID</th><th>Word</th>' : '') +
-      th('level', 'Level') + th('hours', 'Hours') + th('money', 'Earnings') + th('flights', 'Flights') + '</tr>';
+      '<th>Crew</th>' + th('level', 'Level') + th('hours', 'Hours') + th('money', 'Earnings') + th('flights', 'Flights') + '</tr>';
     rows.forEach((r, i) => {
       const lv = levelFor(r.hours);
       html += '<tr' + (r.code === state.myCode ? ' class="lb-me"' : '') + '>' +
         '<td class="lb-rank">' + (i + 1) + '</td>' +
         '<td class="pc" data-viewlog="' + escapeHTML(r.code) + '" style="cursor:pointer" title="Open logbook"><span class="pilot-wrap">' + (online.has(r.name) ? '<span class="dot-on" title="in a flight deck now"></span>' : '') +
           wingedHtml(escapeHTML(initials(r.name)), r.hours) + '</span></td>' +
+        '<td>' + (r.code === state.myCode ? '' :
+          (crewStatusWith(r.code) === 'crew'
+            ? '<span style="font-size:11px;color:var(--good)">✓ CREW</span> <button type="button" class="btn link" data-crew-rm="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px" title="Remove from crew">✕</button>'
+            : crewStatusWith(r.code) === 'pending'
+              ? '<span style="font-size:11px;color:var(--text-muted)">PENDING</span>'
+              : '<button type="button" class="btn" data-crew-add="' + escapeHTML(r.code) + '" style="font-size:11px;padding:3px 10px">+ Crew</button>')) + '</td>' +
         (admin ? '<td class="mono">' + escapeHTML(r.code) +
           (r.code !== state.myCode
             ? ' <button type="button" class="btn link" data-msg-code="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px">✉</button>' +
@@ -4491,6 +4542,13 @@ body.light .flight-number .flight-route{color:#15171d}
         h2.addEventListener('click', () => { lbSort = h2.dataset.rs; if (lbData) renderLeaderboard(lbData[0], lbData[1]); }));
       target.querySelectorAll('td[data-viewlog]').forEach(td2 =>
         td2.addEventListener('click', () => showPilotLogbook(td2.dataset.viewlog)));
+      target.querySelectorAll('[data-crew-add]').forEach(b3 =>
+        b3.addEventListener('click', (ev) => { ev.stopPropagation(); crewRequest(b3.dataset.crewAdd); }));
+      target.querySelectorAll('[data-crew-rm]').forEach(b3 =>
+        b3.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          if (confirm('Remove this pilot from your crew? You will no longer be able to chat.')) crewRemove(crewPairId(state.myCode, b3.dataset.crewRm));
+        }));
     }
     [['lb-sort-hours', 'hours'], ['lb-sort-money', 'money'],
      ['rb-sort-hours', 'hours'], ['rb-sort-money', 'money']].forEach(([id, key]) => {
@@ -4526,7 +4584,8 @@ body.light .flight-number .flight-route{color:#15171d}
     loadRosterData();
   }
   function showRosterScreen() {
-    lobbyStart(); // full page, used from the lobby
+    lobbyStart();
+    crewFetch(() => { if (lbData) renderLeaderboard(lbData[0], lbData[1]); }); // full page, used from the lobby
     lbTargetId = 'roster-body';
     $('roster-body').innerHTML = '<div class="lobby-empty">Loading the roster…</div>';
     updateBrandLines();
@@ -4553,6 +4612,13 @@ body.light .flight-number .flight-route{color:#15171d}
     b.addEventListener('click', () => {
       const t = b.dataset.tab;
       if (t === 'theme') { toggleTheme(); return; }
+      if (t === 'signout') {
+        if (fauth && state.myCode) {
+          if (!confirm('Sign out of CrewDeck on this browser?')) return;
+          fauth.signOut().then(() => location.reload());
+        }
+        return;
+      }
       if (t === 'support') {
         show('home');
         $('support-box').classList.remove('hidden');
@@ -5531,6 +5597,48 @@ body.light .flight-number .flight-route{color:#15171d}
   // CHAT — pilot-to-pilot DMs. Same bubbles as support, threads stored at
   // careers/_chats/{a_b}. 15-second slow mode + hourly cap stop spamming.
   // =====================================================================
+  // =====================================================================
+  // CREW PAIRING — your crew list (the friend system, airline style).
+  // You can only chat with pilots you're paired with. Requests go both
+  // ways: one pilot requests, the other accepts. SM can reach anyone.
+  // =====================================================================
+  let crewCache = {}; // pairId -> record
+  function crewPairId(a2, b2) { return [a2, b2].sort().join('_'); }
+  function crewFetch(cb) {
+    if (!fdb) { cb({}); return; }
+    fdb.ref('careers/_crew').get().then(sn => {
+      const all = (sn && sn.val()) || {};
+      const mine = {};
+      for (const k of Object.keys(all)) if (k.split('_').indexOf(state.myCode) >= 0) mine[k] = all[k];
+      crewCache = mine;
+      cb(mine);
+    }).catch(() => cb(crewCache));
+  }
+  function crewStatusWith(code) {
+    const rec = crewCache[crewPairId(state.myCode, code)];
+    return rec ? rec.status : null; // 'pending' | 'crew' | null
+  }
+  function crewRequest(code) {
+    if (!fdb) { toast('Needs internet'); return; }
+    const id = crewPairId(state.myCode, code);
+    fdb.ref('careers/_crew/' + id).set({ a: state.myCode, b: code, by: state.myCode, status: 'pending', ts: Date.now() })
+      .then(() => { crewCache[id] = { a: state.myCode, b: code, by: state.myCode, status: 'pending', ts: Date.now() };
+        toast('Crew request sent'); if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
+  }
+  function crewAccept(id) {
+    fdb.ref('careers/_crew/' + id + '/status').set('crew').then(() => {
+      if (crewCache[id]) crewCache[id].status = 'crew';
+      toast('Crewed up — you can chat now');
+      renderChat();
+    });
+  }
+  function crewRemove(id) {
+    fdb.ref('careers/_crew/' + id).remove().then(() => { delete crewCache[id]; renderChat(); if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
+  }
+  function canChatWith(code) {
+    if (state.myCode === ADMIN_CODE || code === ADMIN_CODE) return true; // support line always open
+    return crewStatusWith(code) === 'crew';
+  }
   const CHAT_SLOWMODE_MS = 15000;
   const CHAT_HOURLY_CAP = 30;
   let chatWith = null;
@@ -5560,6 +5668,7 @@ body.light .flight-number .flight-route{color:#15171d}
   function chatUnreadCount(threads) {
     let n = 0;
     for (const k of Object.keys(threads || {})) {
+      if (!canChatWith(chatOther(k))) continue;
       const t2 = threads[k];
       const msgs = (t2 && t2.msgs) || [];
       const last = msgs[msgs.length - 1];
@@ -5578,10 +5687,11 @@ body.light .flight-number .flight-route{color:#15171d}
     const box = $('chat-body');
     if (!box) return;
     if (!fdb) { box.innerHTML = '<p class="lobby-empty">Chat needs internet.</p>'; return; }
-    chatFetch(threads => {
+    crewFetch(() => chatFetch(threads => {
       if (screens.chat.classList.contains('hidden')) return;
       updateChatBadge(threads);
       const pilots = localPilotsMap();
+      if (chatWith && !canChatWith(chatWith)) { chatWith = null; }
       if (chatWith) {
         const tid = chatThreadId(state.myCode, chatWith);
         const t2 = threads[tid] || { msgs: [] };
@@ -5627,8 +5737,25 @@ body.light .flight-number .flight-route{color:#15171d}
         setTimeout(() => { const i2 = $('chat-input'); if (i2) i2.focus(); }, 60);
       } else {
         $('chat-title').textContent = 'Chat';
-        const codes = Object.keys(pilots).filter(c => c !== state.myCode);
-        if (!codes.length) { box.innerHTML = '<p class="lobby-empty">No other pilots on the roster yet.</p>'; return; }
+        // incoming crew requests first
+        let reqHtml = '';
+        for (const id of Object.keys(crewCache)) {
+          const rec = crewCache[id];
+          if (rec.status === 'pending' && rec.by !== state.myCode) {
+            const other = rec.by;
+            reqHtml += '<div class="chat-thread" style="border-color:var(--accent)">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+              '<span>' + wingedByCode(other) + ' <span style="font-size:13px;color:var(--text-muted)">wants to crew up with you</span></span>' +
+              '<span><button type="button" class="btn primary" data-crew-acc="' + escapeHTML(id) + '" style="font-size:12px">Accept</button> ' +
+              '<button type="button" class="btn link" data-crew-dec="' + escapeHTML(id) + '" style="font-size:12px">Decline</button></span>' +
+              '</div></div>';
+          }
+        }
+        const codes = Object.keys(pilots).filter(c => c !== state.myCode && canChatWith(c));
+        if (!codes.length && !reqHtml) {
+          box.innerHTML = '<p class="lobby-empty">Chat is crew-only. Find pilots on the Roster and hit “+ Crew” to pair up — once they accept, you can talk here.</p>';
+          return;
+        }
         // order: unread first, then most recent thread, then the rest
         const rowFor = (c) => {
           const tid = chatThreadId(state.myCode, c);
@@ -5640,7 +5767,7 @@ body.light .flight-number .flight-route{color:#15171d}
           return { c: c, last: last, unread: unread, ts: (last && last.ts) || 0 };
         };
         const rows = codes.map(rowFor).sort((x, y) => (y.unread - x.unread) || (y.ts - x.ts));
-        box.innerHTML = rows.map(r => {
+        box.innerHTML = reqHtml + rows.map(r => {
           const nm = initials((pilots[r.c] && pilots[r.c].name) || r.c);
           return '<div class="chat-thread" style="cursor:pointer" data-chat-open="' + escapeHTML(r.c) + '">' +
             '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center">' +
@@ -5652,8 +5779,12 @@ body.light .flight-number .flight-route{color:#15171d}
         }).join('');
         box.querySelectorAll('[data-chat-open]').forEach(el =>
           el.addEventListener('click', () => { chatWith = el.dataset.chatOpen; renderChat(); }));
+        box.querySelectorAll('[data-crew-acc]').forEach(el =>
+          el.addEventListener('click', () => crewAccept(el.dataset.crewAcc)));
+        box.querySelectorAll('[data-crew-dec]').forEach(el =>
+          el.addEventListener('click', () => { if (confirm('Decline this crew request?')) crewRemove(el.dataset.crewDec); }));
       }
-    });
+    }));
   }
   let chatBeat = 0;
   function chatTick() {
@@ -5771,9 +5902,9 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function fmtMoney(v) { return '$' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
   function brandLineHtml() {
-    if (!state.myName) return '<strong>Flight Deck EFB</strong>';
+    if (!state.myName) return '<strong>CrewDeck EFB</strong>';
     const lv = levelFor(myCareer().hours);
-    return '<strong>Flight Deck EFB</strong> — ' + wingedHtml(escapeHTML(initials(state.myName)), myCareer().hours) +
+    return '<strong>CrewDeck EFB</strong> — ' + wingedHtml(escapeHTML(initials(state.myName)), myCareer().hours) +
       ' <span class="lvl lvl-' + lv.idx + '" style="vertical-align:middle;margin-left:6px">' + lv.name.toUpperCase() + '</span>';
   }
   function updateBrandLines() {
