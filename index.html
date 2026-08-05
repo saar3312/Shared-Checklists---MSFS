@@ -124,7 +124,7 @@ button{font-family:inherit;color:inherit}
 .home-grid-4 .home-tile{min-height:190px;padding:28px}
 .home-grid-4 .home-tile-name{font-size:58px}
 /* ---------- Lobby (active flight decks) ---------- */
-.lobby-card{max-width:620px}
+.lobby-card{max-width:760px}
 .career-line{
   font-size:12px;color:var(--text-muted);letter-spacing:0.04em;
   border:1px solid var(--border);border-radius:3px;padding:10px 12px;margin:0 0 16px;
@@ -163,6 +163,35 @@ button{font-family:inherit;color:inherit}
 .lobby-seat.seat-pm .seat-tag{color:var(--pm)}
 .lobby-empty{color:var(--text-dim);font-size:12px;font-style:italic;padding:12px 4px}
 .lobby-paused{opacity:0.7}
+/* ---- global size pass: content fills the page (within reason) ---- */
+.setup-card h2{font-size:24px}
+#screen-roster .lobby-card,#screen-logbook .lobby-card,#screen-stats .lobby-card,
+#screen-guide .lobby-card,#screen-chat .lobby-card,#screen-inbox .lobby-card{max-width:900px;width:100%}
+.lb-table{font-size:15px}
+.lb-table td{padding:12px 12px}
+.lb-table th{font-size:12px;padding:10px 12px}
+.lvl{font-size:12px}
+#screen-stats .stat-row{font-size:15px;padding:12px 0}
+#screen-guide #guide-tab-body{font-size:15px !important;line-height:1.65 !important}
+#screen-chat .chat-bubble{font-size:15px}
+#screen-chat .chat-thread{padding:14px 18px;border-radius:14px}
+#screen-inbox .chat-bubble{font-size:15px}
+#screen-inbox h2,#screen-chat h2,#screen-stats h2,#screen-guide h2{font-size:26px}
+.career-line{font-size:14px}
+.home-welcome h1{font-size:34px}
+/* Active Decks tab is the shop window — make it big */
+#screen-decks .lobby-card{max-width:900px;width:100%}
+#screen-decks h2{font-size:26px}
+#screen-decks .lobby-flight{padding:22px 26px;border-radius:14px;margin:14px 0}
+#screen-decks .lobby-flight-num{font-size:28px}
+#screen-decks .lobby-flight-ac{font-size:14px}
+#screen-decks .lobby-flight-phase{font-size:13px;padding:5px 16px;border-radius:999px}
+#screen-decks .lobby-seats{gap:12px;margin-top:16px;flex-wrap:wrap}
+#screen-decks .lobby-seat{font-size:14px;padding:14px 16px;border-radius:10px}
+#screen-decks .lobby-seat .seat-tag{font-size:12px;margin-bottom:4px}
+#screen-decks .solo-badge{font-size:13px;padding:6px 14px}
+#screen-decks .lobby-flight .money{font-size:17px !important}
+#screen-decks [data-lcm]{font-size:13px !important}
 #screen-roadmap .lobby-card{max-width:780px;width:100%}
 #screen-roadmap h2{font-size:26px}
 .stripes{display:inline-flex;gap:2px;align-items:center;margin:0 6px;vertical-align:middle;
@@ -995,10 +1024,10 @@ body.light .flight-number .flight-route{color:#15171d}
       <div id="guide-body" style="font-size:13px;line-height:1.55"></div>
     </div>
   </div>
-<div class="ver-float app-version">v3.66</div>
+<div class="ver-float app-version">v3.68</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.66</span></span>
+    <span class="home-brand-name">Flight Deck EFB <span class="app-version">v3.68</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1399,7 +1428,7 @@ body.light .flight-number .flight-route{color:#15171d}
   </nav>
 
   <div class="center-stack" style="align-items:flex-start">
-    <div class="setup-card lobby-card" style="max-width:720px">
+    <div class="setup-card lobby-card">
       <h2>Pilot Roster</h2>
       <div style="display:flex;gap:8px;margin:0 0 12px">
         <button class="btn" id="rb-sort-hours">By hours</button>
@@ -1429,7 +1458,7 @@ body.light .flight-number .flight-route{color:#15171d}
   </nav>
 
   <div class="center-stack" style="align-items:flex-start">
-    <div class="setup-card lobby-card" style="max-width:820px">
+    <div class="setup-card lobby-card">
       <h2 id="logbook-title">Logbook</h2>
       <div class="career-line" id="logbook-career"></div>
       <div id="logbook-table" style="overflow-x:auto"></div>
@@ -1552,7 +1581,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.66</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v3.68</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -5812,7 +5841,11 @@ body.light .flight-number .flight-route{color:#15171d}
     }).catch(() => {});
   }
   function liveCompHtml(f, role) {
-    if (!f.pushAt) return '<span style="font-size:11px;color:var(--text-muted)">at the gate — clock not started</span>';
+    if (!f.pushAt) {
+      return (f.phase && f.phase !== 'PREFLIGHT')
+        ? '<span style="font-size:11px;color:var(--text-muted)">airborne — live pay shows once the host is on the latest file</span>'
+        : '<span style="font-size:11px;color:var(--text-muted)">at the gate — clock not started</span>';
+    }
     const minutes = Math.max(0, ((f.engOffAt || Date.now()) - f.pushAt) / 60000);
     const hrs = (f.hoursBy && f.hoursBy[role]) || 0;
     const pay = estPay(f.slug, role, hrs, minutes);
