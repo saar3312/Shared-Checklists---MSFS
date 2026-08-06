@@ -570,6 +570,8 @@ body.light .app-icon{box-shadow:0 6px 14px rgba(40,50,70,0.28), inset 0 1px 0 rg
   transition:background .15s,color .15s;
 }
 .detail-toggle.toggled{background:var(--accent);color:#141007}
+/* the in-checklist version: bigger, centered in every section header */
+.detail-inline{font-size:13px;padding:9px 22px;border-radius:10px;flex:0 0 auto;margin:0 auto}
 .role-badge{
   font-size:10px;font-weight:700;letter-spacing:0.1em;
   padding:5px 8px;border:1px solid var(--border);color:var(--text-muted);
@@ -1134,10 +1136,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.11</div>
+<div class="ver-float app-version">v1.12</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.11</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.12</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1774,7 +1776,6 @@ body.light .flight-number .flight-route{color:#15171d}
       <span class="zulu-clock" id="clock-room" title="Zulu time">----Z</span>
     </div>
     <div class="topbar-right">
-      <button class="detail-toggle" id="btn-compact" title="Compact = one row per task · Detail = every switch">Detail: off</button>
       <button class="btn link" id="btn-intercom" style="display:none" title="COCKPIT INTERCOM SYSTEM — voice goes live only when BOTH pilots switch it on">INTERCOM OFF</button>
       <button class="btn link" id="btn-intercom-mute" style="display:none;color:#e5484d" title="Mute / unmute your mic — you stay connected">MUTE</button>
       <button class="btn link" id="btn-tabs-out" title="Browse the app — your flight stays active">Tabs</button>
@@ -1784,7 +1785,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.11</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.12</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2744,7 +2745,7 @@ body.light .flight-number .flight-route{color:#15171d}
     '<p><strong>Two panes</strong> — PIC left, PM right; tick your own seat’s items, either pilot ticks the shared (CM) ones. ' +
     '<strong>Cards</strong> — briefings, normal checklists and callouts open from linked rows; one acknowledge completes them for both pilots. ' +
     '<strong>Mark all done</strong> — overrides every row on that page, both seats and cards. Sections unlock in order.</p>' +
-    '<p><strong>Detail toggle</strong> (gold pill, top bar) — compact one-row-per-task view or every single switch. ' +
+    '<p><strong>Detail toggle</strong> (gold pill in every section header) — compact one-row-per-task view or every single switch. ' +
     '<strong>OFP viewer</strong> — shared document with red PIC / blue PM pens and synced pages. ' +
     '<strong>Phase chip</strong> — shows your flight phase, with an ETE countdown after gear-up. On phones, a PIC/PM switcher shows one pane at a time.</p>' +
     '<p class="lobby-h">PAUSING &amp; RESUMING</p>' +
@@ -4210,6 +4211,14 @@ body.light .flight-number .flight-route{color:#15171d}
     title.className = 'section-title';
     title.textContent = sec.title;
     header.appendChild(title);
+    // the Detail toggle lives right in the checklist now — big, impossible to miss
+    const dt = document.createElement('button');
+    dt.type = 'button';
+    dt.className = 'detail-toggle detail-inline' + (compactView ? '' : ' toggled');
+    dt.textContent = compactView ? 'Detail: off' : 'Detail: on';
+    dt.title = 'Compact = one row per task · Detail = every switch';
+    dt.addEventListener('click', (e) => { e.stopPropagation(); toggleDetailView(); });
+    header.appendChild(dt);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'section-mark-done';
@@ -4271,11 +4280,10 @@ body.light .flight-number .flight-route{color:#15171d}
   let compactView = true;
   try { compactView = localStorage.getItem('ck_compact') !== '0'; } catch (e) {}
   function renderCompactButton() {
-    const b = $('btn-compact');
-    if (b) {
+    document.querySelectorAll('.detail-toggle').forEach(b => {
       b.textContent = compactView ? 'Detail: off' : 'Detail: on';
       b.classList.toggle('toggled', !compactView);
-    }
+    });
   }
   // Compact rendering works on the whole section: consecutive groups sharing
   // a compact label ("Overhead panel scan") merge into ONE task row per pilot.
@@ -4879,17 +4887,16 @@ body.light .flight-number .flight-route{color:#15171d}
     });
     $('cards-menu').hidden = false;
   }
-  $('btn-compact').addEventListener('click', () => {
+  function toggleDetailView() {
     compactView = !compactView;
     try { localStorage.setItem('ck_compact', compactView ? '1' : '0'); } catch (e) {}
-    renderCompactButton();
     renderChecklist();
     setViewSection(state.viewSection, true);
     renderPaneHeaders();
     renderPads();
+    renderCompactButton();
     toast(compactView ? 'Compact view — one row per task' : 'Full detail — every switch and step');
-  });
-  renderCompactButton();
+  }
   $('btn-logbook').addEventListener('click', () => {
     $('top-menu').hidden = true;
     const c = myCareer();
