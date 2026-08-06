@@ -1140,10 +1140,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.13</div>
+<div class="ver-float app-version">v1.15</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.13</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.15</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1789,7 +1789,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.13</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.15</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -3314,11 +3314,25 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   function startHostRoom() {
     state.role = 'host';
-    state.code = randomCode();
+    state.code = resumeCode || randomCode(); // revived dual decks keep their code
+    resumeCode = null;
     state.myKey = '__me__';
     state.checklist = CHECKLISTS[state.slug] || CHECKLISTS.b777_2p;
     state.members[state.myKey] = { name: state.myName, role: null };
     state.roles = { PIC: null, PM: null };
+    if (resumeCrewNames) {
+      // hold the other pilot's seat for them — when they come back with the
+      // same initials, claim_role treats it as a rejoin and waves them in
+      for (const r of ['PIC', 'PM']) {
+        const nm = resumeCrewNames[r];
+        if (nm && nm !== state.myName) {
+          const ghost = '__away_' + r;
+          state.members[ghost] = { name: nm, role: r };
+          state.roles[r] = ghost;
+        }
+      }
+      resumeCrewNames = null;
+    }
     state.phaseLog = [];
     lastPhaseLabel = null;
     if (resumeSave) {
@@ -3580,11 +3594,17 @@ body.light .flight-number .flight-route{color:#15171d}
   function createPeerWithRetry(id, isHost, tries=0) {
     const peer = new Peer(id, PEER_OPTS);
     state.peer = peer;
-    peer.on('open', () => { if (isHost) onHostReady(); });
+    peer.on('open', () => { state._reviving = false; if (isHost) onHostReady(); });
     peer.on('connection', (conn) => wireConnection(conn, false));
     if (peer.on) peer.on('call', intercomAnswer);
     peer.on('error', (err) => {
-      if (err && err.type === 'unavailable-id' && tries < 3) {
+      if (err && err.type === 'unavailable-id' && state._reviving && tries < 20) {
+        // reviving a parked dual deck: the code MUST stay the same — the old
+        // host's ghost holds the peer id for a bit, so wait it out and retry
+        $('connect-sub').textContent = 'Reopening the flight deck…';
+        try { peer.destroy(); } catch (e2) {}
+        setTimeout(() => createPeerWithRetry(id, isHost, tries + 1), 1500);
+      } else if (err && err.type === 'unavailable-id' && tries < 3) {
         state.code = randomCode();
         $('connect-code').textContent = state.code;
         peer.destroy();
@@ -3828,6 +3848,13 @@ body.light .flight-number .flight-route{color:#15171d}
         }
         break;
       }
+      case 'kicked':
+        hideDoorLock();
+        rememberDeniedDeck(state.code);
+        teardown();
+        showDecksScreen();
+        toast('The PIC removed you from this flight deck. Plenty of other decks below — this one reopens to you in 20 minutes.');
+        break;
       case 'role_denied':
         hideDoorLock();
         toast(msg.role + ' is held by ' + (initials(msg.holderName) || 'someone'));
@@ -3898,6 +3925,7 @@ body.light .flight-number .flight-route{color:#15171d}
       flight: flightInfo(),
     });
     soloSaveSoon(); // solo flights auto-save on every change
+    dualAnnounceSoon(); // dual decks keep their cloud save fresh the same way
   }
   // claimRole: returns true if granted, false if denied (role taken by someone else)
   function claimRole(peerKey, name, role, hours) {
@@ -3924,6 +3952,28 @@ body.light .flight-number .flight-route{color:#15171d}
     state.roles[role] = peerKey;
     state.members[peerKey].role = role;
     return true;
+  }
+  function kickPM() {
+    // PIC removes the PM: seat opens, they're out, and the 20-minute
+    // cooldown applies exactly like a join denial
+    if (state.role !== 'host' || state.myRole !== 'PIC') return;
+    const pmKey = state.roles.PM;
+    if (!pmKey || pmKey === state.myKey) return;
+    const nm = (state.members[pmKey] && state.members[pmKey].name) || 'the PM';
+    if (!confirm('Kick ' + initials(nm) + ' from the flight deck? Their seat opens up and they cannot rejoin this deck for 20 minutes.')) return;
+    rememberDenied(nm);
+    const conn = state.conns.find(c => c.peer === pmKey);
+    if (conn) {
+      send(conn, { type: 'kicked' });
+      setTimeout(() => { try { conn.close(); } catch (e) {} }, 400);
+    }
+    state.conns = state.conns.filter(c => c.peer !== pmKey);
+    delete state.members[pmKey];
+    state.roles.PM = null;
+    intercomFullStop();
+    broadcastState();
+    lobbyAnnounce();
+    toast(initials(nm) + ' was removed from the flight deck');
   }
   function handleTickRequest(peerKey, itemId, actor) {
     const member = state.members[peerKey];
@@ -4198,6 +4248,18 @@ body.light .flight-number .flight-route{color:#15171d}
     ic.style.cssText = 'display:none;font-size:10px;font-weight:800;letter-spacing:0.08em;padding:4px 10px;border-radius:999px;border:1px solid;cursor:pointer;white-space:nowrap';
     ic.addEventListener('click', () => { if (ic.dataset.icRole === state.myRole) intercomToggle(); });
     tools.appendChild(ic);
+    if (role === 'PM') {
+      // PIC's authority over the flight deck: remove the PM from their seat
+      const kb = document.createElement('button');
+      kb.type = 'button';
+      kb.className = 'pane-pad-btn';
+      kb.dataset.kickPm = '1';
+      kb.style.cssText = 'display:none;color:#e5484d;border-color:#e5484d';
+      kb.textContent = 'KICK';
+      kb.title = 'PIC only — remove the PM from this flight deck (they cannot rejoin for 20 minutes)';
+      kb.addEventListener('click', kickPM);
+      tools.appendChild(kb);
+    }
     header.appendChild(tools);
     pane.appendChild(header);
     const scroll = document.createElement('div');
@@ -5363,6 +5425,10 @@ body.light .flight-number .flight-route{color:#15171d}
         el.classList.add('empty');
       }
     });
+    // the KICK control appears only for a PIC hosting with a seated PM
+    const showKick = state.role === 'host' && state.myRole === 'PIC' &&
+      state.roles.PM && state.roles.PM !== state.myKey;
+    document.querySelectorAll('[data-kick-pm]').forEach(b2 => { b2.style.display = showKick ? '' : 'none'; });
   }
   // ---- flight info (callsign · route · off-block) ----
   function renderFlightNumber() {
@@ -5504,10 +5570,16 @@ body.light .flight-number .flight-route{color:#15171d}
       if (state.solo && !flightCommitted && state.ticked.size) {
         if (!confirm('Pause this solo flight? It is saved — resume it any time from the lobby, on any device. The clock keeps running: pay accrues in real time until you finish the flight.')) return;
         soloSaveNow();
+        lobbyUnannounce();
+      } else if (!state.solo && !flightCommitted && state.ticked.size) {
+        // dual deck with progress: leaving does NOT close it — it parks on the
+        // board and either pilot can rejoin within the hour
+        if (!confirm('Step away from this flight deck? It stays open on Active Flight Decks — you or your co-pilot can rejoin any time in the next hour. After an hour with no crew, it closes.')) return;
+        dualPauseNow();
       } else {
         if (!confirm('Close this flight deck?')) return;
+        lobbyUnannounce();
       }
-      lobbyUnannounce();
       teardown();
       backToBase();
       return;
@@ -5831,9 +5903,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const log = (sv && sv.phaseLog) || [];
     return log.length ? String(log[log.length - 1].phase || '') : '';
   }
-  function soloSaveData() {
-    if (!state.solo || state.role !== 'host' || !state.code || !state.myCode) return null;
-    if (flightCommitted || !state.checklist) return null;
+  function deckSaveCore() {
     const now = Date.now();
     return {
       v: 1, ts: now, slug: state.slug,
@@ -5850,6 +5920,18 @@ body.light .flight-number .flight-route{color:#15171d}
       gearUpElapsed: state.gearUpAt ? (now - state.gearUpAt) : 0,
       engOffElapsed: state.engOffAt ? (now - state.engOffAt) : 0,
     };
+  }
+  function soloSaveData() {
+    if (!state.solo || state.role !== 'host' || !state.code || !state.myCode) return null;
+    if (flightCommitted || !state.checklist) return null;
+    return deckSaveCore();
+  }
+  function dualSaveData() {
+    // dual decks carry their full save INSIDE the lobby entry — that's what
+    // lets either pilot revive the deck after everyone stepped away
+    if (state.solo || state.role !== 'host' || !state.code || !state.myCode) return null;
+    if (flightCommitted || !state.checklist) return null;
+    return deckSaveCore();
   }
   function soloSaveNow() {
     const s = soloSaveData();
@@ -5886,6 +5968,31 @@ body.light .flight-number .flight-route{color:#15171d}
       .catch(() => finish(null));
   }
   let resumeSave = null; // consumed by startHostRoom to restore a paused flight
+  let resumeCode = null; // dual revival keeps the SAME cockpit code, so the other pilot's link still works
+  let resumeCrewNames = null; // prior seat holders — their seats wait for them, rejoin auto-approved
+  function resumeDualFlight(f) {
+    const save = f.save;
+    if (!save) { toast('This deck has no save to revive'); return; }
+    const slug = save.slug || f.slug;
+    if (!CHECKLISTS[slug]) { toast("This save is for an aircraft this file doesn't have"); return; }
+    lobbyGlobal = false;
+    state.solo = false;
+    // sit back down in YOUR old seat
+    desiredRole = (f.roles && f.roles.PM === state.myName && f.roles.PIC !== state.myName) ? 'PM' : 'PIC';
+    state.slug = slug;
+    state.flightNumber = save.flight || '';
+    state.depApt = save.dep || ''; state.arrApt = save.arr || '';
+    state.depGate = save.depGate || ''; state.arrGate = save.arrGate || '';
+    state.offBlock = save.offBlock || '';
+    state.eteMin = save.eteMin || 0; state.depDate = save.depDate || '';
+    state.paFlightTime = save.paFlightTime || '';
+    state.paWx = save.paWx || ''; state.paTemp = save.paTemp || '';
+    resumeSave = save;
+    resumeCode = f.code || null;
+    resumeCrewNames = f.roles || null;
+    state._reviving = true; // keep the same cockpit code even if the old peer id lingers
+    startHostRoom();
+  }
   function resumeSoloFlight(save) {
     const cl = CHECKLISTS[save.slug];
     if (!cl) { toast("This save is for an aircraft this file doesn't have"); return; }
@@ -6551,6 +6658,11 @@ body.light .flight-number .flight-route{color:#15171d}
     if (state.solo && state.role === 'host' && state.code && !flightCommitted) {
       try { soloSaveNow(); } catch (e) {}
     }
+    // dual host: push the freshest save into the lobby entry — the armed
+    // onDisconnect then marks the deck paused instead of deleting it
+    if (!state.solo && state.role === 'host' && state.code && !flightCommitted) {
+      try { lobbyAnnounce(); } catch (e) {}
+    }
   });
   // ---- pilot levels: your logged hours set your pay grade ----
   const LEVELS = [
@@ -6918,7 +7030,19 @@ body.light .flight-number .flight-route{color:#15171d}
     const now = Date.now(), out = {};
     const window_ = fdb ? 90000 : 30000; // firebase presence cleans up on disconnect
     for (const k of Object.keys(lobby.flights)) {
-      if (now - (lobby.flights[k].ts || 0) < window_) out[k] = lobby.flights[k];
+      const f = lobby.flights[k];
+      const fresh = now - (f.ts || 0) < window_;
+      if (fresh && !f.pausedAt) { out[k] = f; continue; }
+      // dual decks don't die because people left: they hold on the board,
+      // rejoinable by their crew, until BOTH pilots have been gone an hour
+      if (!f.solo && f.save && !f._test) {
+        const pausedAt = f.pausedAt || f.ts || 0; // crashed hosts never write pausedAt — their last heartbeat counts
+        if (now - pausedAt < DECK_HOLD_MS) {
+          out[k] = Object.assign({}, f, { _paused: true, pausedAt: pausedAt });
+        } else if (fdb) {
+          try { fdb.ref('lobby/' + k).remove(); } catch (e) {} // hour's up — deck closes for real
+        }
+      }
     }
     if (!fdb) lobby.flights = out;
     return out;
@@ -6950,6 +7074,31 @@ body.light .flight-number .flight-route{color:#15171d}
       })(),
     };
   }
+  const DECK_HOLD_MS = 3600000; // dual decks wait 1 hour for their crew before closing
+  let dualAnnTimer = 0;
+  function dualAnnounceSoon() {
+    if (state.solo || state.role !== 'host' || !state.code) return;
+    clearTimeout(dualAnnTimer);
+    dualAnnTimer = setTimeout(() => {
+      if (!state.solo && state.role === 'host' && state.code) lobbyAnnounce();
+    }, 1500);
+  }
+  function dualPauseNow() {
+    // host steps away with no co-pilot connected: park the deck on the board
+    // (save + pausedAt) instead of killing it — crew has an hour to come back
+    if (!fdb || !state.code || state.solo) return;
+    try {
+      const f = lobbyFlightInfo();
+      f.ts = Date.now();
+      const sv = dualSaveData();
+      if (sv) f.save = sv;
+      f.pausedAt = Date.now();
+      const ref = fdb.ref('lobby/' + state.code);
+      ref.set(f);
+      const od = ref.onDisconnect();
+      if (od && od.cancel) od.cancel(); // pausedAt is already set — don't let a later tab-close overwrite it
+    } catch (e) {}
+  }
   function lobbyAnnounce() {
     if (state.role !== 'host' || !state.code) return;
     if (flightCommitted) { lobbyUnannounce(); return; } // done flying — off the actives list
@@ -6958,8 +7107,15 @@ body.light .flight-number .flight-route{color:#15171d}
       try {
         const ref = fdb.ref('lobby/' + state.code);
         f.ts = Date.now();
+        if (!state.solo) { const sv = dualSaveData(); if (sv) f.save = sv; }
         ref.set(f);
-        ref.onDisconnect().remove(); // vanishes from the lobby if the tab dies
+        if (state.solo) {
+          ref.onDisconnect().remove(); // solo: vanishes from the lobby if the tab dies (own save slot covers resume)
+        } else {
+          // dual: the deck STAYS on the board if the tab dies — marked paused, rejoinable for an hour
+          try { ref.onDisconnect().update({ pausedAt: firebase.database.ServerValue.TIMESTAMP }); }
+          catch (e2) { try { ref.onDisconnect().remove(); } catch (e3) {} }
+        }
       } catch (e) {}
       return;
     }
@@ -7190,6 +7346,52 @@ body.light .flight-number .flight-route{color:#15171d}
       const f = flights[code];
       const row = document.createElement('div');
       row.className = 'lobby-flight deck2';
+      if (f._paused) {
+        // dual deck whose crew stepped away — parked, waiting for either pilot
+        row.classList.add('lobby-paused');
+        const minsLeft = Math.max(1, Math.round((DECK_HOLD_MS - (Date.now() - f.pausedAt)) / 60000));
+        const iAmCrew = f.roles && (f.roles.PIC === state.myName || f.roles.PM === state.myName);
+        let seats = '';
+        for (const r of ['PIC', 'PM']) {
+          const holder = f.roles && f.roles[r];
+          const mine = holder && holder === state.myName;
+          const hrs = (f.hoursBy && f.hoursBy[r]) || 0;
+          seats += '<div class="deck2-seat deck2-' + r.toLowerCase() + (mine ? '' : ' deck2-static') + '"' +
+            (mine ? ' data-rejoin-deck="' + escapeHTML(code) + '" style="cursor:pointer"' : '') + '>' +
+            '<div class="seat-tag">' + (r === 'PIC' ? 'PIC — Pilot in Command' : 'PM — Pilot Monitoring') + '</div>' +
+            (holder
+              ? '<div class="deck2-name">' + wingedHtml(escapeHTML(initials(holder)), hrs) + rankChipHtml(hrs) + '</div>' +
+                (mine
+                  ? '<div class="seat-tag" style="margin-top:6px;color:var(--accent)">CLICK TO REJOIN — DECK REOPENS</div>'
+                  : '<div class="seat-tag" style="margin-top:6px">AWAY — SEAT HELD</div>')
+              : '<div class="deck2-name" style="color:var(--text-muted);font-size:13px">SEAT OPEN</div>') +
+            '</div>';
+        }
+        row.innerHTML =
+          '<div class="deck2-head"><span class="deck2-callsign">' + escapeHTML(f.flight || code) + '</span>' +
+          '<span class="lobby-flight-phase phase-muted">CREW AWAY' + (f.phase ? ' — ' + escapeHTML(f.phase) : '') + '</span></div>' +
+          '<div class="deck2-facts">' +
+          '<div><span class="f-k">DEP:</span><span class="f-v mono">' + escapeHTML(f.dep || '—') + '</span></div>' +
+          '<div><span class="f-k">ARR:</span><span class="f-v mono">' + escapeHTML(f.arr || '—') + '</span></div>' +
+          '<div><span class="f-k">AIRCRAFT:</span><span class="f-v">' + escapeHTML(f.aircraft || '—') + '</span></div>' +
+          '<div><span class="f-k">CLOSES IN:</span><span class="f-v">' + minsLeft + ' min unless crew returns</span></div>' +
+          '</div>' +
+          '<div class="deck2-pilots">' + seats + '</div>' +
+          (iAmCrew ? '' : '<div class="lobby-empty" style="padding:8px 0 0">Waiting for its crew to come back.</div>') +
+          (isAdminView()
+            ? '<button type="button" class="lobby-seat" style="margin-top:12px" data-del-deck="' + escapeHTML(code) + '">' +
+              '<span class="seat-tag">Close deck</span>Remove this parked flight deck now</button>'
+            : '');
+        row.querySelectorAll('[data-rejoin-deck]').forEach(el =>
+          el.addEventListener('click', () => resumeDualFlight(f)));
+        row.querySelectorAll('[data-del-deck]').forEach(el =>
+          el.addEventListener('click', () => {
+            if (!fdb || !confirm('Close this parked flight deck? Its crew loses the saved progress.')) return;
+            fdb.ref('lobby/' + code).remove().then(() => { toast('Deck closed'); renderLobbyList(); });
+          }));
+        list.appendChild(row);
+        return;
+      }
 
       const seatPanel = (r) => {
         const holder = f.roles && f.roles[r];
