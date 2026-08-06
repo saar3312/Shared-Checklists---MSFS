@@ -1133,10 +1133,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.09</div>
+<div class="ver-float app-version">v1.10</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.09</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.10</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1779,7 +1779,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.09</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.10</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2415,6 +2415,7 @@ body.light .flight-number .flight-route{color:#15171d}
       }
     }).catch(() => toast('Could not create your pilot profile — try again'));
   }
+  let authBooted = false; // set once the auth listener has taken its shot at resolving a session
   $('login-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const email = ($('login-email').value || '').trim();
@@ -2427,7 +2428,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const done = () => { btn.disabled = false; btn.textContent = 'Log In'; };
     fauth.signInWithEmailAndPassword(email, pass).then(cred => {
       done(); // the auth listener takes it from here — exactly one resolution path
-      if (booted && !state.myCode) {
+      if (authBooted && !state.myCode) {
         resolvePilotForUser(cred.user, (code, nm) => { if (!state.myCode) finishLogin(code, nm); });
       }
     }).catch(err => {
@@ -2446,11 +2447,10 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   // returning pilots: the auth session persists — straight in, no typing
   if (fauth) {
-    let booted = false;
     fauth.onAuthStateChanged(user => {
       if (!user) { revealLoginForm(); return; } // definitively signed out — show the form
-      if (signupBusy || booted || state.myCode) return; // signup handler owns profile creation
-      booted = true;
+      if (signupBusy || authBooted || state.myCode) return; // signup handler owns profile creation
+      authBooted = true;
       resolvePilotForUser(user, (code, nm) => {
         if (!state.myCode) finishLogin(code, nm);
       });
