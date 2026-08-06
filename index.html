@@ -1140,10 +1140,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.15</div>
+<div class="ver-float app-version">v1.16</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.15</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.16</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1789,7 +1789,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.15</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.16</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -4293,7 +4293,7 @@ body.light .flight-number .flight-route{color:#15171d}
     btn.dataset.secIdx = String(idx);
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      markSectionComplete(idx);
+      markSectionComplete(idx, paneRole);
     });
     header.appendChild(btn);
     secEl.appendChild(header);
@@ -4629,7 +4629,15 @@ body.light .flight-number .flight-route{color:#15171d}
   function attemptTick(row, it) {
     // "Hyperlinked" rows never tick directly — they open their card, and the
     // card's acknowledge button is the only way to complete them.
-    if (it.link) { openCard(it.link, it); return; }
+    if (it.link) {
+      // In dual ops each pilot opens the cards on THEIR side of the checklist.
+      // (The Cards menu stays open-anything for both pilots.)
+      if (!state.solo && !state.observer && state.myRole &&
+          it.actor !== 'CM' && it.actor !== state.myRole) {
+        shake(row); toast(it.actor + ' opens this card — use the Cards menu to read it'); return;
+      }
+      openCard(it.link, it); return;
+    }
     if (state.observer) { toast('View only — you are observing this flight'); return; }
     if (!state.myRole) { shake(row); toast('Log in and pick a role first'); openRoleModal(); return; }
     const secIdx = parseInt(row.dataset.sectionIdx, 10);
@@ -7587,9 +7595,15 @@ body.light .flight-number .flight-route{color:#15171d}
   window.addEventListener('focus', () => setTimeout(tryReconnect, 200));
   window.addEventListener('online', tryReconnect);
   // ---- bulk "mark all done" override per section ----
-  function markSectionComplete(idx) {
+  function markSectionComplete(idx, paneRole) {
     if (state.observer) { toast('View only — you are observing this flight'); return; }
     if (!state.myRole) { toast('Log in and pick a role first'); openRoleModal(); return; }
+    // dual ops: the button only works on YOUR pane — you can't bulk-complete
+    // your co-pilot's side of the checklist
+    if (!state.solo && paneRole && paneRole !== state.myRole) {
+      toast("That's " + paneRole + "'s pane — they mark their own side complete");
+      return;
+    }
     if (isSectionLocked(idx)) {
       const prev = findFirstIncompletePrevTitle(idx);
       toast(prev ? 'Finish "' + prev + '" first' : 'Locked');
@@ -7597,14 +7611,15 @@ body.light .flight-number .flight-route{color:#15171d}
     }
     const sec = state.checklist.sections[idx];
     if (!sec) return;
-    // Full override: every single row on the page — both pilots' items,
-    // briefings, checklists and PAs — is marked complete in one shot.
+    // Solo: every single row on the page is marked complete in one shot.
+    // Dual: only YOUR items (and shared CM items) — the co-pilot's stay theirs.
     const ids = [], actors = [];
     function gather(items) {
       for (const it of (items || [])) {
         if (it.actor === '_NOTE_' || it.actor === '_BULLET_' || it.duty) continue;
         if (!it.id) continue;
         if (state.ticked.has(it.id)) continue;
+        if (!state.solo && it.actor !== state.myRole && it.actor !== 'CM') continue;
         ids.push(it.id);
         actors.push(it.actor);
       }
