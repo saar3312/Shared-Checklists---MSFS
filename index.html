@@ -284,9 +284,11 @@ html.booting #home-auth-wait{display:block !important}
 .stripes i{display:block;width:3px;height:12px;border-radius:1px;background:currentColor;
   box-shadow:0 0 5px currentColor}
 body.light .stripes{background:#2c313c}
-/* ---------- Career Roadmap: snaking flowchart (3 across, S-turn, 3 back) ---------- */
-.rm-flow{display:grid;grid-template-columns:1fr 46px 1fr 46px 1fr;grid-template-rows:auto 52px auto;
-  grid-template-areas:"c0 s0 c1 s1 c2" ". . . . s2" "c5 s4 c4 s3 c3";margin-top:10px}
+/* ---------- Career Roadmap: 3 across the top, long L down-left, 3 across the bottom ---------- */
+/* JFO → FO → SFO, then the line drops from SFO and sweeps left to Junior
+   Captain (bottom-left), continuing rightward to Platinum Captain (bottom-right) */
+.rm-flow{display:grid;grid-template-columns:1fr 46px 1fr 46px 1fr;grid-template-rows:auto 26px 26px auto;
+  grid-template-areas:"c0 s0 c1 s1 c2" ". . . . s2v" "s2h s2h s2h s2h s2h" "c3 s3 c4 s4 c5";margin-top:10px}
 .rm-card{border:1px solid var(--border);border-radius:14px;padding:16px 14px;
   display:flex;flex-direction:column;gap:7px;align-items:center;text-align:center;
   transition:border-color .3s,box-shadow .3s}
@@ -1140,10 +1142,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.17</div>
+<div class="ver-float app-version">v1.18</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.17</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.18</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1789,7 +1791,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.17</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.18</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2805,9 +2807,11 @@ body.light .flight-number .flight-route{color:#15171d}
     // count ONLY pilots that exist on the roster right now — orphaned careers don't hold a rank
     const counted = livePilotCodes || Object.keys(localPilotsMap()).filter(pc => pc in hoursCache);
     for (const pc of counted) holders[levelFor(hoursCache[pc] || 0).idx]++;
-    // flowchart snake: JFO → FO → SFO across the top, glowing line turns DOWN, then JC → SC → PC back
-    // seg i sits between rank i and i+1; class picks its direction on the board
-    const SEG_CLS = ['rm-h', 'rm-h', 'rm-v', 'rm-h rm-rev', 'rm-h rm-rev'];
+    // flowchart: JFO → FO → SFO across the top, then the line drops from SFO
+    // and sweeps LEFT to Junior Captain (bottom-left), continuing rightward
+    // to Senior Captain and Platinum Captain (bottom-right).
+    // seg i sits between rank i and i+1; seg 2 is the two-part L (down + left)
+    const SEG_CLS = ['rm-h', 'rm-h', null, 'rm-h', 'rm-h'];
     let html = '<p style="font-size:13px">Every hour you log moves you along the line — your rank multiplies every paycheck.</p>' +
       '<div class="rm-flow">';
     LEVELS.forEach((L, i) => {
@@ -2849,9 +2853,22 @@ body.light .flight-number .flight-route{color:#15171d}
         (me ? '<span class="rm-you">YOU ARE HERE</span><div class="rm-prog">' + prog + '</div>' : '') +
         '</div>';
       if (i < LEVELS.length - 1) {
-        html += '<div class="rm-link ' + SEG_CLS[i] + (me ? ' rm-seg-live' : '') + '" style="grid-area:s' + i +
-          ';--sc:' + RANK_COLORS[i] + ';--sp:' + segPct + '%' +
-          (segPct ? ';box-shadow:0 0 10px ' + RANK_COLORS[i] : '') + '"></div>';
+        if (i === 2) {
+          // the long L from SFO down to Junior Captain: vertical drop fills
+          // first, then the leftward sweep across the board
+          const vPct = Math.min(100, segPct * 2);
+          const hPct = Math.max(0, (segPct - 50) * 2);
+          html += '<div class="rm-link rm-v' + (me ? ' rm-seg-live' : '') + '" style="grid-area:s2v' +
+            ';--sc:' + RANK_COLORS[i] + ';--sp:' + vPct + '%' +
+            (vPct ? ';box-shadow:0 0 10px ' + RANK_COLORS[i] : '') + '"></div>';
+          html += '<div class="rm-link rm-h rm-rev' + (me ? ' rm-seg-live' : '') + '" style="grid-area:s2h' +
+            ';--sc:' + RANK_COLORS[i] + ';--sp:' + hPct + '%' +
+            (hPct ? ';box-shadow:0 0 10px ' + RANK_COLORS[i] : '') + '"></div>';
+        } else {
+          html += '<div class="rm-link ' + SEG_CLS[i] + (me ? ' rm-seg-live' : '') + '" style="grid-area:s' + i +
+            ';--sc:' + RANK_COLORS[i] + ';--sp:' + segPct + '%' +
+            (segPct ? ';box-shadow:0 0 10px ' + RANK_COLORS[i] : '') + '"></div>';
+        }
       }
     });
     return html + '</div>';
