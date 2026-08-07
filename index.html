@@ -1163,10 +1163,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.28</div>
+<div class="ver-float app-version">v1.29</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.28</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.29</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1813,7 +1813,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.28</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.29</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -3365,11 +3365,13 @@ body.light .flight-number .flight-route{color:#15171d}
         const nm = resumeCrewNames[r];
         if (nm && nm !== state.myName) {
           const ghost = '__away_' + r;
-          state.members[ghost] = { name: nm, role: r };
+          state.members[ghost] = { name: nm, role: r,
+            code: (resumeCrewCodes && resumeCrewCodes[r]) || '' };
           state.roles[r] = ghost;
         }
       }
       resumeCrewNames = null;
+      resumeCrewCodes = null;
     }
     state.phaseLog = [];
     lastPhaseLabel = null;
@@ -3771,7 +3773,7 @@ body.light .flight-number .flight-route{color:#15171d}
             // seat — when the same pilot comes back, they're waved straight
             // in with no PIC approval and no door lock. If you're in, you're in.
             const ghost = '__away_' + m.role;
-            state.members[ghost] = { name: m.name, role: m.role, hours: m.hours };
+            state.members[ghost] = { name: m.name, role: m.role, hours: m.hours, code: m.code || '' };
             state.roles[m.role] = ghost;
           }
           byePeers.delete(k);
@@ -3848,7 +3850,7 @@ body.light .flight-number .flight-route{color:#15171d}
     state.roles[otherRole] = null;
     if (other && other.name) {
       const ghost = '__away_' + otherRole;
-      state.members[ghost] = { name: other.name, role: otherRole, hours: other.hours || 0 };
+      state.members[ghost] = { name: other.name, role: otherRole, hours: other.hours || 0, code: other.code || '' };
       state.roles[otherRole] = ghost;
     }
     recomputeMyRole();
@@ -3983,7 +3985,8 @@ body.light .flight-number .flight-route{color:#15171d}
             break;
           }
           const proceed = () => {
-            const ok = claimRole(conn.peer, msg.name, msg.role, msg.hours);
+            const ok = claimRole(conn.peer, msg.name, msg.role, msg.hours,
+              msg.code || (conn.metadata && conn.metadata.code) || '');
             if (!ok) {
               const holder = state.roles[msg.role];
               const holderName = (holder && state.members[holder] && state.members[holder].name) || 'someone';
@@ -4109,12 +4112,13 @@ body.light .flight-number .flight-route{color:#15171d}
     dualAnnounceSoon(); // dual decks keep their cloud save fresh the same way
   }
   // claimRole: returns true if granted, false if denied (role taken by someone else)
-  function claimRole(peerKey, name, role, hours) {
+  function claimRole(peerKey, name, role, hours, code) {
     if (!state.checklist) return false;
     if (!(role in state.roles)) return false;
     if (!state.members[peerKey]) state.members[peerKey] = { name: name || 'Pilot', role: null };
     else state.members[peerKey].name = name || state.members[peerKey].name;
     if (typeof hours === 'number') state.members[peerKey].hours = hours;
+    if (code) state.members[peerKey].code = code; // pilot ID — needed to credit them if they're away at completion
     const prev = state.roles[role];
     if (prev && prev !== peerKey) {
       const prevName = state.members[prev] && state.members[prev].name;
@@ -4240,7 +4244,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const dHolderName = dHolder && state.members[dHolder] && state.members[dHolder].name;
     if (!state.myRole && desiredRole && state.myName && (!dHolder || dHolderName === state.myName)) {
       if (state.role === 'host') {
-        claimRole(state.myKey, state.myName, desiredRole, myCareer().hours);
+        claimRole(state.myKey, state.myName, desiredRole, myCareer().hours, state.myCode);
         broadcastState();
         recomputeMyRole();
         renderRoleBadge();
@@ -4248,7 +4252,7 @@ body.light .flight-number .flight-route{color:#15171d}
       } else {
         const conn = state.conns[0];
         if (conn) {
-          send(conn, { type: 'claim_role', name: state.myName, role: desiredRole, hours: myCareer().hours });
+          send(conn, { type: 'claim_role', name: state.myName, role: desiredRole, hours: myCareer().hours, code: state.myCode });
           if (!state.observer) showDoorLock();
         }
       }
@@ -5198,6 +5202,34 @@ body.light .flight-number .flight-route{color:#15171d}
   function wireRosterMessageButtons(container) {
     container.querySelectorAll('[data-msg-code]').forEach(b2 =>
       b2.addEventListener('click', () => { chatWith = b2.dataset.msgCode; showChatScreen(); }));
+    container.querySelectorAll('[data-credit-pilot]').forEach(b2 =>
+      b2.addEventListener('click', () => {
+        const code = b2.dataset.creditPilot;
+        if (!fdb) { toast('Crediting needs internet'); return; }
+        const minsRaw = prompt('Retroactive flight credit for pilot ' + code + '\n\nFlight time in MINUTES:');
+        if (minsRaw === null) return;
+        const mins = parseInt(minsRaw, 10);
+        if (!mins || mins <= 0) { toast('Enter the minutes flown'); return; }
+        const payRaw = prompt('Pay to credit in $ (from their seat panel on the deck, or the review card):');
+        if (payRaw === null) return;
+        const pay2 = Math.round(parseFloat(payRaw) * 100) / 100;
+        if (!(pay2 >= 0)) { toast('Enter a dollar amount'); return; }
+        const fno = prompt('Flight number for their logbook (optional):') || 'RETRO CREDIT';
+        fdb.ref('careers/' + code).get().then(snap => {
+          const c = (snap && snap.val()) || { hours: 0, money: 0, flights: 0, log: [] };
+          c.hours = Math.round(((c.hours || 0) + mins / 60) * 100) / 100;
+          c.money = Math.round(((c.money || 0) + pay2) * 100) / 100;
+          c.flights = (c.flights || 0) + 1;
+          c.log = (c.log || []).slice(-49);
+          c.log.push({ date: new Date().toISOString().slice(0, 10), aircraft: '—', flight: fno,
+            dep: '', arr: '', role: 'PIC', crew: 'DUAL', copilot: '', minutes: mins, pay: pay2 });
+          const ref = fdb.ref('careers/' + code);
+          const fields = { hours: c.hours, money: c.money, flights: c.flights, log: c.log };
+          if (ref.update) ref.update(fields); else ref.set(c);
+          toast('Credited ' + mins + ' min · ' + fmtMoney(pay2) + ' to pilot ' + code);
+          setTimeout(loadRosterData, 800);
+        }).catch(() => toast("Could not load that pilot's career — try again"));
+      }));
     container.querySelectorAll('[data-del-pilot]').forEach(b2 =>
       b2.addEventListener('click', () => {
         const code = b2.dataset.delPilot;
@@ -5265,7 +5297,9 @@ body.light .flight-number .flight-route{color:#15171d}
           (r.code !== state.myCode
             ? ' <button type="button" class="btn link" data-msg-code="' + escapeHTML(r.code) + '" style="font-size:11px;padding:0 4px">✉</button>' +
               '<button type="button" class="btn link" data-del-pilot="' + escapeHTML(r.code) + '" title="Delete this pilot" style="font-size:11px;padding:0 4px;color:#e5484d">✕</button>'
-            : '') + '</td>' : '') +
+            : '') +
+          ' <button type="button" class="btn link" data-credit-pilot="' + escapeHTML(r.code) + '" title="Retroactively credit a flight (e.g. they missed credit on a dual flight)" style="font-size:11px;padding:0 4px;color:var(--good)">+$</button>' +
+          '</td>' : '') +
         '<td><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span></td>' +
         '<td>' + r.hours.toFixed(1) + '</td>' +
         '<td><span class="money">' + fmtMoney(r.money) + '</span></td>' +
@@ -5635,13 +5669,13 @@ body.light .flight-number .flight-route{color:#15171d}
           state.myCode = code;
           state.myName = nm;
           if (state.role === 'host') {
-            const ok = claimRole(state.myKey, state.myName, role, myCareer().hours);
+            const ok = claimRole(state.myKey, state.myName, role, myCareer().hours, state.myCode);
             if (!ok) { toast(role + ' is taken'); return; }
             broadcastState();
           } else {
             const conn = state.conns[0];
             if (conn) {
-              send(conn, { type: 'claim_role', name: state.myName, role, hours: myCareer().hours });
+              send(conn, { type: 'claim_role', name: state.myName, role, hours: myCareer().hours, code: state.myCode });
               if (!state.observer) showDoorLock();
             }
           }
@@ -6255,6 +6289,7 @@ body.light .flight-number .flight-route{color:#15171d}
   let resumeSave = null; // consumed by startHostRoom to restore a paused flight
   let resumeCode = null; // dual revival keeps the SAME cockpit code, so the other pilot's link still works
   let resumeCrewNames = null; // prior seat holders — their seats wait for them, rejoin auto-approved
+  let resumeCrewCodes = null; // their pilot IDs, so an away pilot can still be credited
   function resumeDualFlight(f) {
     const save = f.save;
     if (!save) { toast('This deck has no save to revive'); return; }
@@ -6275,6 +6310,7 @@ body.light .flight-number .flight-route{color:#15171d}
     resumeSave = save;
     resumeCode = f.code || null;
     resumeCrewNames = f.roles || null;
+    resumeCrewCodes = f.codesBy || null;
     state._reviving = true; // keep the same cockpit code even if the old peer id lingers
     startHostRoom();
   }
@@ -6347,7 +6383,10 @@ body.light .flight-number .flight-route{color:#15171d}
   let viewAsPilot = false; // SM testing mode: browse the app exactly as a regular pilot sees it
   function isAdminView() { return state.myCode === ADMIN_CODE && !viewAsPilot; }
   function submitForReview(entry, reason) {
-    const rev = { code: state.myCode, name: state.myName || '', status: 'pending',
+    submitForReviewFor(state.myCode, state.myName || '', entry, reason);
+  }
+  function submitForReviewFor(code, name, entry, reason) {
+    const rev = { code: code || '', name: name || '', status: 'pending',
                   reason: reason, ete: state.eteMin || 0, ts: Date.now(), entry: entry };
     const id = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     if (fdb) {
@@ -6399,6 +6438,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function acceptReview(id, rev) {
     if (!fdb || !rev || !rev.entry) return;
+    if (!rev.code) { toast('This entry has no pilot ID — credit them with the roster + Credit button, then discard this.'); return; }
     const e = rev.entry;
     scrubFlightRemnants(rev);
     fdb.ref('careers/' + rev.code).get().then(snap => {
@@ -7299,6 +7339,23 @@ body.light .flight-number .flight-route{color:#15171d}
           checkFirstAwards();
           toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
         }
+        // DUAL SAFETY NET: every pilot's browser logs its OWN seat — so a
+        // pilot who is away at completion logs nothing and gets nothing.
+        // The host files their share with SM so they're never shorted.
+        if (!state.solo && state.role === 'host' && state.myRole) {
+          const oR = state.myRole === 'PIC' ? 'PM' : 'PIC';
+          const oKey = state.roles[oR];
+          const om = oKey && state.members[oKey];
+          const absent = om && String(oKey).indexOf('__away_') === 0;
+          if (absent && om.name) {
+            const oPay = Math.round(earningsFor(oR, om.hours || 0) * 100) / 100;
+            const oEntry = Object.assign({}, entry, { role: oR, copilot: state.myName || '', pay: oPay });
+            submitForReviewFor(om.code || '', om.name, oEntry,
+              'Crew credit — the ' + oR + ' was away when the flight was completed' +
+              (om.code ? '' : ' (pilot ID unknown — use the roster + Credit button)'));
+            toast('Your co-pilot ' + initials(om.name) + ' was away — their share went to SM (7789) for crediting.');
+          }
+        }
       }
     }
   }
@@ -7397,6 +7454,10 @@ body.light .flight-number .flight-route{color:#15171d}
       const k = state.roles[r];
       return (k && state.members[k] && state.members[k].hours) || 0;
     };
+    const codeOf = (r) => {
+      const k = state.roles[r];
+      return (k && state.members[k] && state.members[k].code) || '';
+    };
     return {
       code: state.code, slug: state.slug,
       aircraft: state.checklist ? state.checklist.aircraft : '',
@@ -7405,6 +7466,7 @@ body.light .flight-number .flight-route{color:#15171d}
       eteMin: state.eteMin || 0,
       roles: { PIC: nameOf('PIC'), PM: nameOf('PM') },
       hoursBy: { PIC: hoursOf('PIC'), PM: hoursOf('PM') },
+      codesBy: { PIC: codeOf('PIC'), PM: codeOf('PM') },
       pushAt: state.pushAt || 0,
       engOffAt: state.engOffAt || 0,
       phase: (currentPhase().label || 'PREFLIGHT'),
@@ -7931,6 +7993,8 @@ body.light .flight-number .flight-route{color:#15171d}
     state.peer = peer;
     if (peer.on) peer.on('call', intercomAnswer);
     peer.on('open', () => {
+      // a straggler dial must never clobber a takeover that happened meanwhile
+      if (state.role !== 'guest' || state.code !== code) { try { peer.destroy(); } catch (e) {} return; }
       state.myKey = peer.id;
       const conn = peer.connect(peerIdFor(code),
         { reliable: true, metadata: { observer: !!state.observer, code: state.myCode || '' } });
