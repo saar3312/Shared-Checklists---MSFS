@@ -1163,10 +1163,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.24</div>
+<div class="ver-float app-version">v1.27</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.24</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.27</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1813,7 +1813,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.24</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.27</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -3423,6 +3423,7 @@ body.light .flight-number .flight-route{color:#15171d}
     state.role = 'guest';
     state.code = code;
     state.myKey = null;
+    lastHostMsg = Date.now(); // fresh join — liveness clock restarts
     $('connect-eyebrow').textContent = 'Joining';
     $('connect-code').textContent = code;
     $('connect-sub').textContent = 'Reaching out to the host browser…';
@@ -3651,6 +3652,18 @@ body.light .flight-number .flight-route{color:#15171d}
         try { peer.destroy(); } catch (e2) {}
         setTimeout(() => createPeerWithRetry(id, isHost, tries + 1), 1500);
       } else if (err && err.type === 'unavailable-id' && tries < 3) {
+        // is my co-pilot hosting my old deck? (they took the aircraft while
+        // I was away) — then my seat is held there: rejoin it, don't fork a copy
+        const lf = lobby.flights && lobby.flights[state.code];
+        if (isHost && lf && !lf.pausedAt && Date.now() - (lf.ts || 0) < 90000) {
+          try { peer.destroy(); } catch (e2) {}
+          state.role = 'guest';
+          state.myKey = null;
+          desiredRole = state.myRole || desiredRole;
+          joinRoomSilent(state.code);
+          toast('Your co-pilot kept the deck flying — rejoining your held seat.');
+          return;
+        }
         state.code = randomCode();
         $('connect-code').textContent = state.code;
         peer.destroy();
@@ -3768,16 +3781,121 @@ body.light .flight-number .flight-route{color:#15171d}
       }
       if (state.conns.length === 0) setConn('disconnected', 'Peer disconnected');
       renderRoleBadge(); renderPaneHeaders();
+      // guest left hanging mid-flight — start redialing right away
+      if (state.role === 'guest' && !state.conns.length && state.code &&
+          !screens.room.classList.contains('hidden')) {
+        scheduleGuestReconnect();
+      }
     });
     conn.on('error', (e) => console.error('conn error', e));
   }
   const byePeers = new Set(); // peers that said a deliberate goodbye — their seat frees on close
+  let lastHostMsg = 0; // guest: when the host last said ANYTHING (heartbeats count)
+  function guestConnAlive() {
+    const c = state.conns[0];
+    if (!c || c.open === false) return false;
+    // a zombie line LOOKS open when the host's machine sleeps or drops off —
+    // no heartbeat for 12s means the connection is dead no matter what it claims
+    return !lastHostMsg || (Date.now() - lastHostMsg < 12000);
+  }
+  // guest lost the host mid-flight: redial automatically, don't wait for a tab focus
+  let guestRetryTimer = 0, guestRetryCount = 0;
+  function scheduleGuestReconnect() {
+    clearTimeout(guestRetryTimer);
+    if (guestRetryCount >= 3) {
+      guestRetryCount = 0;
+      // the host is really gone. A seated pilot doesn't sit and wait —
+      // they TAKE THE AIRCRAFT and the checklist continues.
+      if (state.myRole && !state.observer && state.code) {
+        becomeDualHost();
+      } else {
+        setConn('disconnected', 'Host offline');
+        toast('The host is offline — the deck is parked on Active Flight Decks. It can be revived from there.');
+      }
+      return;
+    }
+    guestRetryCount++;
+    guestRetryTimer = setTimeout(() => {
+      // healthy = actual host traffic within the heartbeat window — a conn
+      // OBJECT proves nothing, pending dials and zombies both look like conns
+      const healthy = lastHostMsg && Date.now() - lastHostMsg < 12000;
+      if (state.role !== 'guest' || !state.code || healthy) { guestRetryCount = 0; return; }
+      state.conns.forEach(c => { try { c.close(); } catch (e) {} }); // drop dangling dials
+      state.conns = [];
+      try { if (state.peer && !state.peer.destroyed) state.peer.destroy(); } catch (e) {}
+      joinRoomSilent(state.code);
+      scheduleGuestReconnect(); // keep trying until traffic flows again
+    }, 5000);
+  }
+  // The host vanished mid-flight but I'M still here: take over hosting the
+  // SAME deck — same code, every tick and pad intact, the away pilot's seat
+  // held under their name. When they return, they're waved straight back in.
+  function becomeDualHost() {
+    clearTimeout(guestRetryTimer);
+    guestRetryCount = 0;
+    try { state.peer && state.peer.destroy(); } catch (e) {}
+    state.conns = [];
+    const myRole = state.myRole || 'PM';
+    const otherRole = myRole === 'PIC' ? 'PM' : 'PIC';
+    const otherKey = state.roles[otherRole];
+    const other = otherKey && state.members[otherKey];
+    state.role = 'host';
+    state.myKey = '__me__';
+    state.members = {};
+    state.members['__me__'] = { name: state.myName, role: myRole, hours: myCareer().hours };
+    state.roles = {};
+    state.roles[myRole] = '__me__';
+    state.roles[otherRole] = null;
+    if (other && other.name) {
+      const ghost = '__away_' + otherRole;
+      state.members[ghost] = { name: other.name, role: otherRole, hours: other.hours || 0 };
+      state.roles[otherRole] = ghost;
+    }
+    recomputeMyRole();
+    const tryClaim = (n) => {
+      if (state.role !== 'host' || !state.code) return; // torn down meanwhile
+      const p = new Peer(peerIdFor(state.code), PEER_OPTS);
+      state.peer = p;
+      let ok = false;
+      p.on('open', () => { ok = true; setConn('connected', 'You have the aircraft'); lobbyStart(); lobbyAnnounce(); });
+      p.on('connection', (c) => wireConnection(c, false));
+      p.on('call', intercomAnswer);
+      p.on('error', (err) => {
+        if (ok || !err) return;
+        if (err.type === 'unavailable-id') {
+          if (n < 40) { // the broker can hold a dead host's line for up to a minute
+            try { p.destroy(); } catch (e) {}
+            setTimeout(() => tryClaim(n + 1), 1500);
+          } else {
+            // still held after a minute — the old host is actually alive
+            // (my own network must have dropped). Go back as their guest.
+            try { p.destroy(); } catch (e) {}
+            state.role = 'guest';
+            state.myKey = null;
+            desiredRole = myRole;
+            joinRoomSilent(state.code);
+          }
+        }
+      });
+    };
+    setTimeout(() => tryClaim(0), 600);
+    renderChecklist();
+    setViewSection(state.viewSection, true);
+    renderPaneHeaders();
+    renderRoleBadge();
+    renderPads();
+    setConn('reconnecting', 'Taking the aircraft…');
+    toast('The ' + otherRole + ' is away — you have the aircraft. Their seat is held and the checklist continues.');
+  }
   function send(conn, obj) { try { conn.send(obj); } catch (e) { console.error(e); } }
   function broadcast(obj) { state.conns.forEach(c => send(c, obj)); }
   // ---- messaging ----
   function onMessage(conn, msg) {
     if (!msg || !msg.type) return;
+    if (state.role === 'guest') lastHostMsg = Date.now(); // any traffic proves the host lives
     switch (msg.type) {
+      case 'hb': // host heartbeat — liveness only, stamped above
+        return;
       case 'hello': // host gets it from guest
         if (state.role === 'host') {
           state.members[conn.peer] = { name: '(joining)', role: null };
@@ -3798,6 +3916,7 @@ body.light .flight-number .flight-route{color:#15171d}
         enterRoomUI();
         break;
       case 'state':
+        guestRetryCount = 0; // live traffic from the host — connection is healthy
         state.ticked = new Set(msg.ticked || []);
         state.acks = msg.acks || {};
         state.roles = msg.roles || {};
@@ -4517,8 +4636,8 @@ body.light .flight-number .flight-route{color:#15171d}
       else ids.forEach(id => state.ticked.delete(id)); // second click unticks the whole task
       broadcastState();
     } else {
+      if (!guestConnAlive()) { shake(row); toast('No connection to the host — reconnecting…'); scheduleGuestReconnect(); return; }
       const conn = state.conns[0];
-      if (!conn) return;
       if (missing.length) {
         send(conn, { type: 'tick_batch', ids: missing, actors: missing.map(() => actor) });
       } else {
@@ -5690,7 +5809,17 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // ---- topbar buttons ----
   function lobbyUnannounce() {
-    if (fdb) { try { fdb.ref('lobby/' + state.code).remove(); } catch (e) {} return; }
+    if (fdb) {
+      try {
+        const ref = fdb.ref('lobby/' + state.code);
+        // disarm the pause-on-disconnect FIRST — otherwise closing the tab
+        // later resurrects a zombie stub of an already-removed deck
+        const od = ref.onDisconnect();
+        if (od && od.cancel) od.cancel();
+        ref.remove();
+      } catch (e) {}
+      return;
+    }
     if (lobby.isServer) delete lobby.flights[state.code];
     else if (lobby.conn) { try { lobby.conn.send({ t: 'unannounce', code: state.code }); } catch (e) {} }
   }
@@ -5779,6 +5908,9 @@ body.light .flight-number .flight-route{color:#15171d}
   function teardown() {
     hideDoorLock();
     intercomFullStop();
+    lastHostMsg = 0;
+    clearTimeout(guestRetryTimer);
+    guestRetryCount = 0;
     state.conns.forEach(c => { try { c.close(); } catch(e){} });
     if (state.peer) { try { state.peer.destroy(); } catch(e){} }
     state.peer = null;
@@ -7225,6 +7357,10 @@ body.light .flight-number .flight-route{color:#15171d}
         } else if (fdb) {
           try { fdb.ref('lobby/' + k).remove(); } catch (e) {} // hour's up — deck closes for real
         }
+      } else if (fdb && now - (f.ts || 0) > 600000) {
+        // junk: saveless leftovers (zombie stubs, dead solo entries) sweep
+        // themselves out of the database once they're clearly abandoned
+        try { fdb.ref('lobby/' + k).remove(); } catch (e) {}
       }
     }
     if (!fdb) lobby.flights = out;
@@ -7647,11 +7783,30 @@ body.light .flight-number .flight-route{color:#15171d}
     });
   }
   let lobbyBeat = 0;
+  let staleWarned = false;
   function lobbyTick() {
     lobbyBeat++;
     refreshLiveComp();
     const beatEvery = fdb ? 20 : 8;
     if (state.role === 'host' && state.code && lobbyBeat % beatEvery === 0) lobbyAnnounce();
+    // host: prove liveness to the crew every 5s (guests detect zombie lines by its absence)
+    if (state.role === 'host' && state.conns.length && lobbyBeat % 5 === 0) broadcast({ type: 'hb' });
+    // guest: a silent host means the line is dead even if it claims to be open
+    if (state.role === 'guest' && state.code && !screens.room.classList.contains('hidden') &&
+        lastHostMsg && Date.now() - lastHostMsg > 12000) {
+      if (!staleWarned) {
+        staleWarned = true;
+        // purge the zombie line — it LOOKS open but nothing flows through it,
+        // and leaving it around blocks the redial/takeover machinery
+        state.conns.forEach(c => { try { c.close(); } catch (e) {} });
+        state.conns = [];
+        setConn('reconnecting', 'Lost the host — reconnecting…');
+        toast('Lost the connection to the host — reconnecting. Ticks made while disconnected are NOT saved.');
+        scheduleGuestReconnect();
+      }
+    } else {
+      staleWarned = false;
+    }
     if (!screens.decks.classList.contains('hidden')) {
       if (fdb) {
         if (lobbyBeat % 30 === 0) lobbyFetchPaused();
@@ -7748,6 +7903,8 @@ body.light .flight-number .flight-route{color:#15171d}
   // screen — used by the auto-reconnect path.
   function joinRoomSilent(code) {
     setConn('reconnecting', 'Reconnecting…');
+    // NOTE: lastHostMsg is deliberately NOT stamped here — only real host
+    // traffic proves the line; a dial attempt proves nothing
     const peer = new Peer(undefined, PEER_OPTS);
     state.peer = peer;
     if (peer.on) peer.on('call', intercomAnswer);
@@ -7808,8 +7965,8 @@ body.light .flight-number .flight-route{color:#15171d}
       ids.forEach(id => state.ticked.add(id));
       broadcastState();
     } else {
-      const conn = state.conns[0];
-      if (conn) send(conn, { type: 'tick_batch', ids, actors, all: true });
+      if (!guestConnAlive()) { toast('No connection to the host — nothing was ticked. Reconnecting…'); scheduleGuestReconnect(); return; }
+      send(state.conns[0], { type: 'tick_batch', ids, actors, all: true });
     }
   }
   function markSectionBoth(idx) {
@@ -7843,8 +8000,9 @@ body.light .flight-number .flight-route{color:#15171d}
       ids.forEach(id => state.ticked.add(id));
       broadcastState();
     } else {
-      const conn = state.conns[0];
-      if (conn) send(conn, { type: 'tick_batch', ids, actors, all: true });
+      // honesty first: a dead line means NOTHING was ticked — say so
+      if (!guestConnAlive()) { toast('No connection to the host — nothing was ticked. Reconnecting…'); scheduleGuestReconnect(); return; }
+      send(state.conns[0], { type: 'tick_batch', ids, actors, all: true });
     }
     toast('Both sides marked complete');
   }
