@@ -741,6 +741,7 @@ body.light .app-icon{box-shadow:0 6px 14px rgba(40,50,70,0.28), inset 0 1px 0 rg
   transition:border-color .12s, color .12s, background .12s;
 }
 .section-mark-done:hover{border-color:var(--accent);color:var(--accent)}
+.section-mark-both{color:var(--accent);border-color:rgba(201,148,46,0.55)}
 .section-mark-done.complete{
   color:var(--good);border-color:rgba(46,194,126,0.55);
   background:rgba(46,194,126,0.08);
@@ -1162,10 +1163,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.22</div>
+<div class="ver-float app-version">v1.24</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.22</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.24</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1812,7 +1813,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.22</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.24</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -3746,9 +3747,21 @@ body.light .flight-number .flight-route{color:#15171d}
       if (state.role === 'host') {
         const k = conn.peer;
         if (state.members[k]) {
-          for (const r of Object.keys(state.roles)) {
-            if (state.roles[r] === k) state.roles[r] = null;
+          const m = state.members[k];
+          if (byePeers.has(k) || !m.role) {
+            // deliberate leave (or never seated): the seat opens up
+            for (const r of Object.keys(state.roles)) {
+              if (state.roles[r] === k) state.roles[r] = null;
+            }
+          } else {
+            // dropped connection (refresh, crash, network blip): HOLD their
+            // seat — when the same pilot comes back, they're waved straight
+            // in with no PIC approval and no door lock. If you're in, you're in.
+            const ghost = '__away_' + m.role;
+            state.members[ghost] = { name: m.name, role: m.role, hours: m.hours };
+            state.roles[m.role] = ghost;
           }
+          byePeers.delete(k);
           delete state.members[k];
         }
         broadcastState();
@@ -3758,6 +3771,7 @@ body.light .flight-number .flight-route{color:#15171d}
     });
     conn.on('error', (e) => console.error('conn error', e));
   }
+  const byePeers = new Set(); // peers that said a deliberate goodbye — their seat frees on close
   function send(conn, obj) { try { conn.send(obj); } catch (e) { console.error(e); } }
   function broadcast(obj) { state.conns.forEach(c => send(c, obj)); }
   // ---- messaging ----
@@ -3929,6 +3943,9 @@ body.light .flight-number .flight-route{color:#15171d}
         break;
       case 'handover':
         becomeSoloHost();
+        break;
+      case 'bye': // guest leaves on purpose — the seat opens instead of being held
+        if (state.role === 'host') byePeers.add(conn.peer);
         break;
       case 'intercom':
         intercomRemote(msg.on);
@@ -4331,6 +4348,8 @@ body.light .flight-number .flight-route{color:#15171d}
     dt.title = 'Compact = one row per task · Detail = every switch';
     dt.addEventListener('click', (e) => { e.stopPropagation(); toggleDetailView(); });
     header.appendChild(dt);
+    const btnWrap = document.createElement('span');
+    btnWrap.style.cssText = 'display:inline-flex;flex-direction:column;gap:4px;align-items:stretch';
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'section-mark-done';
@@ -4340,7 +4359,21 @@ body.light .flight-number .flight-route{color:#15171d}
       e.stopPropagation();
       markSectionComplete(idx, paneRole);
     });
-    header.appendChild(btn);
+    btnWrap.appendChild(btn);
+    if (!state.solo) {
+      // dual ops: the explicit cross-side override — either pilot may
+      // complete the WHOLE page, both seats' items included
+      const btnBoth = document.createElement('button');
+      btnBoth.type = 'button';
+      btnBoth.className = 'section-mark-done section-mark-both';
+      btnBoth.textContent = 'Mark BOTH sides complete';
+      btnBoth.addEventListener('click', (e) => {
+        e.stopPropagation();
+        markSectionBoth(idx);
+      });
+      btnWrap.appendChild(btnBoth);
+    }
+    header.appendChild(btnWrap);
     secEl.appendChild(header);
     if (sectionVisibleInPane(sec, paneRole)) {
       if (compactView) renderSectionCompact(secEl, sec, paneRole);
@@ -4467,6 +4500,7 @@ body.light .flight-number .flight-route{color:#15171d}
     }
   }
   function attemptTickSummary(row, actor, ids) {
+    if (state.observer) { toast('View only — you are observing this flight'); return; }
     if (!state.myRole) { shake(row); toast('Log in and pick a role first'); openRoleModal(); return; }
     const secIdx = parseInt(row.dataset.sectionIdx, 10);
     if (!isNaN(secIdx) && isSectionLocked(secIdx)) {
@@ -4675,9 +4709,11 @@ body.light .flight-number .flight-route{color:#15171d}
     // "Hyperlinked" rows never tick directly — they open their card, and the
     // card's acknowledge button is the only way to complete them.
     if (it.link) {
+      // observers watch — they don't open or close anything
+      if (state.observer) { toast('View only — you are observing this flight'); return; }
       // In dual ops each pilot opens the cards on THEIR side of the checklist.
       // (The Cards menu stays open-anything for both pilots.)
-      if (!state.solo && !state.observer && state.myRole &&
+      if (!state.solo && state.myRole &&
           it.actor !== 'CM' && it.actor !== state.myRole) {
         shake(row); toast(it.actor + ' opens this card — use the Cards menu to read it'); return;
       }
@@ -4985,6 +5021,7 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   // ---- cards menu (open-if-needed browser) ----
   function openCardsMenu() {
+    if (state.observer) { toast('View only — you are observing this flight'); return; }
     const list = $('cards-menu-list');
     list.innerHTML = '';
     CARD_MENU.forEach(([groupName, ids]) => {
@@ -5687,6 +5724,8 @@ body.light .flight-number .flight-route{color:#15171d}
       return;
     }
     if (!confirm('Leave this flight deck?')) return;
+    const c0 = state.conns[0];
+    if (c0) send(c0, { type: 'bye' }); // deliberate exit — my seat opens up
     teardown();
     backToBase();
   });
@@ -7773,6 +7812,42 @@ body.light .flight-number .flight-route{color:#15171d}
       if (conn) send(conn, { type: 'tick_batch', ids, actors, all: true });
     }
   }
+  function markSectionBoth(idx) {
+    // the explicit override in dual ops: EITHER pilot completes the whole
+    // page — PIC's items, PM's items, shared items, everything
+    if (state.observer) { toast('View only — you are observing this flight'); return; }
+    if (!state.myRole) { toast('Log in and pick a role first'); openRoleModal(); return; }
+    if (isSectionLocked(idx)) {
+      const prev = findFirstIncompletePrevTitle(idx);
+      toast(prev ? 'Finish "' + prev + '" first' : 'Locked');
+      return;
+    }
+    const sec = state.checklist.sections[idx];
+    if (!sec) return;
+    const ids = [], actors = [];
+    function gatherAll(items) {
+      for (const it of (items || [])) {
+        if (it.actor === '_NOTE_' || it.actor === '_BULLET_' || it.duty) continue;
+        if (!it.id) continue;
+        if (state.ticked.has(it.id)) continue;
+        ids.push(it.id);
+        actors.push(it.actor);
+      }
+    }
+    for (const g of (sec.groups || [])) {
+      gatherAll(g.items);
+      for (const sg of (g.subgroups || [])) gatherAll(sg.items);
+    }
+    if (!ids.length) { toast('Nothing left to tick'); return; }
+    if (state.role === 'host') {
+      ids.forEach(id => state.ticked.add(id));
+      broadcastState();
+    } else {
+      const conn = state.conns[0];
+      if (conn) send(conn, { type: 'tick_batch', ids, actors, all: true });
+    }
+    toast('Both sides marked complete');
+  }
   // ---- OFP viewers (one per pilot's half) ----
   // The document, the page number, and the ink are SHARED between pilots.
   // But each pilot opens/closes the viewer on their OWN half of the screen,
@@ -8462,6 +8537,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // padOp: apply a pad operation. Owner-only ops are validated host-side too.
   function padOp(role, op) {
+    if (state.observer) { toast('View only — you are observing this flight'); return; }
     if ((op.op === 'stroke' || op.op === 'text' || op.op === 'clear' || op.op === 'undo') && !padOwner(role)) {
       toast(role + "'s pad — view only");
       return;
@@ -8484,6 +8560,7 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!state.pads[role]) return;
     const member = state.members[peerKey];
     const theirRole = (peerKey === state.myKey) ? state.myRole : (member && member.role);
+    if (peerKey !== state.myKey && !theirRole) return; // role-less peers (observers) touch nothing
     const isOwner = theirRole === role;
     switch (op.op) {
       case 'open': state.pads[role].open = true; break;    // anyone
