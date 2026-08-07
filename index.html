@@ -330,6 +330,12 @@ body.light .stripes{background:#2c313c}
     background:linear-gradient(to bottom,var(--sc) var(--sp),var(--border) var(--sp))}
   .rm-L>div{display:none}
 }
+/* the cockpit door switch — bottom-right, impossible to miss */
+#btn-cockpit-door{position:fixed;right:14px;bottom:34px;z-index:60;border:none;border-radius:10px;
+  background:#ffd60a;color:#151515;font-weight:800;letter-spacing:0.08em;font-size:12px;
+  padding:11px 16px;cursor:pointer;box-shadow:0 4px 18px rgba(255,214,10,0.45);font-family:inherit}
+#btn-cockpit-door:hover{filter:brightness(1.08)}
+#btn-cockpit-door.door-locked{background:#3a3325;color:#c9942e;cursor:not-allowed;box-shadow:none}
 .stat-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--border)}
 .stat-row:last-child{border-bottom:none}
 .stat-k{color:var(--text-muted)}
@@ -1156,10 +1162,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.20</div>
+<div class="ver-float app-version">v1.22</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.20</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.22</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1799,15 +1805,15 @@ body.light .flight-number .flight-route{color:#15171d}
       <button class="btn link" id="btn-intercom" style="display:none" title="COCKPIT INTERCOM SYSTEM — voice goes live only when BOTH pilots switch it on">INTERCOM OFF</button>
       <button class="btn link" id="btn-intercom-mute" style="display:none;color:#e5484d" title="Mute / unmute your mic — you stay connected">MUTE</button>
       <button class="btn link" id="btn-tabs-out" title="Browse the app — your flight stays active">Tabs</button>
+      <button type="button" id="btn-cockpit-door" style="display:none"></button>
       <span class="role-badge" id="role-badge">No role</span>
       <span id="rank-top" style="display:inline-flex;align-items:center"></span>
       <div class="menu-wrap">
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.20</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.22</span></div>
           <hr />
-          <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
           <button class="btn link" id="btn-theme-room">Theme</button>
@@ -3380,6 +3386,14 @@ body.light .flight-number .flight-route{color:#15171d}
         (resumeSave.gearUpElapsed ? now - resumeSave.gearUpElapsed : 0);
       state.engOffAt = resumeSave.engOffAt ||
         (resumeSave.engOffElapsed ? now - resumeSave.engOffElapsed : 0);
+      if (resumeSave.pads) {
+        // scratchpad notes come back exactly as they were left
+        const rp = resumeSave.pads;
+        state.pads = {
+          PIC: { strokes: (rp.PIC && rp.PIC.strokes) || [], text: (rp.PIC && rp.PIC.text) || '', open: false },
+          PM: { strokes: (rp.PM && rp.PM.strokes) || [], text: (rp.PM && rp.PM.text) || '', open: false },
+        };
+      }
       resumeSave = null;
     }
     $('connect-eyebrow').textContent = 'Cockpit code';
@@ -5275,21 +5289,69 @@ body.light .flight-number .flight-route{color:#15171d}
     e.stopPropagation();
     const menu = $('top-menu');
     menu.hidden = !menu.hidden;
-    // "Allow co-pilot" only makes sense on a single-pilot deck you host
-    $('btn-crew-open').style.display = (state.solo && state.role === 'host') ? '' : 'none';
   });
-  $('btn-crew-open').addEventListener('click', () => {
-    if (!(state.solo && state.role === 'host')) return;
-    state.solo = false;
-    $('top-menu').hidden = true;
+  // ---- the cockpit door switch: bottom-right, bright yellow, PIC only ----
+  // Open and close the PM seat as the PIC pleases. The one hard rule: once
+  // push has begun the door stays LOCKED — nobody joins, no matter what
+  // (claim_role enforces it host-side too).
+  function updateCockpitDoorBtn() {
+    const b2 = $('btn-cockpit-door');
+    if (!b2) return;
+    const can = state.role === 'host' && state.checklist && state.myRole === 'PIC' &&
+      !state.observer && !flightCommitted;
+    if (!can) { b2.style.display = 'none'; return; }
+    b2.style.display = '';
+    b2.classList.remove('door-locked');
+    if (state.solo) {
+      if (state.pushAt) { b2.textContent = 'DOOR LOCKED — PUSH BEGUN'; b2.classList.add('door-locked'); }
+      else b2.textContent = 'OPEN COCKPIT — ALLOW CO-PILOT';
+    } else {
+      b2.textContent = 'CLOSE COCKPIT — SINGLE PILOT';
+    }
+  }
+  function refreshRoomAfterDoorChange() {
     renderChecklist();
     setViewSection(state.viewSection, true);
     renderPaneHeaders();
     renderPads();
-    $('aircraft-tag').textContent = state.checklist.aircraft + ' · Dual crew';
-    setConn(state.conns.length ? 'connected' : 'reconnecting', state.conns.length ? 'Connected' : 'Waiting for co-pilot…');
     lobbyAnnounce();
-    toast('Flight deck opened — the PM seat now shows in the lobby.');
+    updateCockpitDoorBtn();
+  }
+  $('btn-cockpit-door').addEventListener('click', () => {
+    if (!(state.role === 'host' && state.myRole === 'PIC') || flightCommitted) return;
+    if (state.solo) {
+      if (state.pushAt) { toast('Push has begun — the flight deck door stays locked for this flight.'); return; }
+      state.solo = false;
+      soloSaveClear(); // progress now rides in the deck's own cloud save
+      $('aircraft-tag').textContent = state.checklist.aircraft + ' · Dual crew';
+      setConn(state.conns.length ? 'connected' : 'reconnecting', state.conns.length ? 'Connected' : 'Waiting for co-pilot…');
+      refreshRoomAfterDoorChange();
+      toast('Cockpit open — the PM seat now shows on Active Flight Decks.');
+      return;
+    }
+    // closing the door: back to single pilot
+    const pmKey = state.roles.PM;
+    if (pmKey && pmKey !== state.myKey) {
+      const nm = (state.members[pmKey] && state.members[pmKey].name) || 'the PM';
+      if (!confirm('Close the cockpit? ' + initials(nm) + ' will be removed from the flight deck.')) return;
+      const conn = state.conns.find(c => c.peer === pmKey);
+      if (conn) {
+        send(conn, { type: 'kicked' });
+        setTimeout(() => { try { conn.close(); } catch (e) {} }, 400);
+      }
+      state.conns = state.conns.filter(c => c.peer !== pmKey);
+      delete state.members[pmKey];
+      intercomFullStop();
+    } else if (!confirm('Close the cockpit? The PM seat disappears from the board and this becomes a single-pilot flight.')) return;
+    state.roles.PM = null;
+    state.solo = true;
+    desiredRole = 'PIC';
+    recomputeMyRole();
+    $('aircraft-tag').textContent = state.checklist.aircraft + ' · Single pilot';
+    setConn('connected', 'Single pilot');
+    refreshRoomAfterDoorChange();
+    soloSaveSoon(); // progress moves back to the pilot's own save slot
+    toast('Cockpit closed — single pilot. Open it again any time before push.');
   });
   document.addEventListener('click', (e) => {
     const menu = $('top-menu');
@@ -5468,6 +5530,7 @@ body.light .flight-number .flight-route{color:#15171d}
     const showKick = state.role === 'host' && state.myRole === 'PIC' &&
       state.roles.PM && state.roles.PM !== state.myKey;
     document.querySelectorAll('[data-kick-pm]').forEach(b2 => { b2.style.display = showKick ? '' : 'none'; });
+    updateCockpitDoorBtn(); // door switch tracks role/push/solo state
   }
   // ---- flight info (callsign · route · off-block) ----
   function renderFlightNumber() {
@@ -5958,6 +6021,11 @@ body.light .flight-number .flight-route{color:#15171d}
       pushElapsed: state.pushAt ? (now - state.pushAt) : 0,
       gearUpElapsed: state.gearUpAt ? (now - state.gearUpAt) : 0,
       engOffElapsed: state.engOffAt ? (now - state.engOffAt) : 0,
+      // scratchpads ride along — pausing or parking a deck never wipes them
+      pads: {
+        PIC: { strokes: (state.pads.PIC && state.pads.PIC.strokes) || [], text: (state.pads.PIC && state.pads.PIC.text) || '' },
+        PM: { strokes: (state.pads.PM && state.pads.PM.strokes) || [], text: (state.pads.PM && state.pads.PM.text) || '' },
+      },
     };
   }
   function soloSaveData() {
