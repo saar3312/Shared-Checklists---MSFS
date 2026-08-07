@@ -1115,6 +1115,32 @@ body.light .flight-number .flight-route{color:#15171d}
   font-size:11px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;
 }
 .section-nav .btn[disabled]{opacity:0.45;cursor:not-allowed}
+/* ---------- career strip: the profile banner as a proper stat row ---------- */
+.career-strip{
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+  padding:14px 18px;margin:2px 0 4px;
+  background:linear-gradient(135deg,rgba(201,148,46,0.07),rgba(201,148,46,0.015) 55%,transparent);
+  border:1px solid var(--border-strong);border-radius:14px;
+}
+.cs-rank{display:inline-flex;align-items:center;gap:8px}
+.cs-rank .lvl{font-size:14px;padding:5px 13px}
+.cs-stat{display:inline-flex;flex-direction:column;gap:2px;line-height:1.15;
+  padding-left:20px;border-left:1px solid var(--border)}
+.cs-v{font-size:17px;font-weight:800;letter-spacing:0.01em}
+.cs-k{font-size:9px;font-weight:700;letter-spacing:0.16em;color:var(--text-muted);text-transform:uppercase}
+.cs-next{display:inline-flex;flex-direction:column;gap:5px;flex:1 1 170px;min-width:160px;
+  padding-left:20px;border-left:1px solid var(--border)}
+.cs-bar{height:7px;border-radius:99px;background:var(--border);overflow:hidden}
+.cs-bar span{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--accent),#e8c063);
+  box-shadow:0 0 8px rgba(201,148,46,0.5)}
+.cs-k2{letter-spacing:0.06em;text-transform:none;font-size:11px;font-weight:600}
+@media (max-width:640px){
+  .career-strip{gap:14px;padding:13px 14px}
+  .cs-stat,.cs-next{padding-left:14px}
+  .cs-rank{flex-basis:100%}
+  .cs-v{font-size:16px}
+}
 /* ================================================================
    MOBILE & TABLET POLISH — phones and iPads get room to breathe.
    Nothing here touches desktop (>1000px stays exactly as it was).
@@ -1230,10 +1256,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.32</div>
+<div class="ver-float app-version">v1.33</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.32</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.33</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1880,7 +1906,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.32</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.33</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -7172,17 +7198,30 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function careerSummaryHtml(c) {
     const lv = levelFor(c.hours);
-    let html = '<span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span>' + stripesHtml(lv.idx) + ' · Career: <strong>' +
-      c.hours.toFixed(1) + ' h</strong> · <span class="money">' + fmtMoney(c.money) + '</span> · ' +
-      c.flights + (c.flights === 1 ? ' flight' : ' flights');
+    const lo = lv.idx === 0 ? 0 : LEVELS[lv.idx - 1].max;
+    let nextBlock;
     if (isFinite(lv.max)) {
-      html += lv.max === 0
-        ? ' · your first flight makes you ' + LEVELS[lv.idx + 1].name
-        : ' · ' + (lv.max - c.hours).toFixed(1) + ' h to ' + LEVELS[lv.idx + 1].name;
+      const pct = lv.max === 0 ? 0
+        : Math.min(100, Math.max(2, Math.round(((c.hours - lo) / (lv.max - lo)) * 100)));
+      const label = lv.max === 0
+        ? 'Your first flight makes you ' + LEVELS[lv.idx + 1].name
+        : (lv.max - c.hours).toFixed(1) + ' h to go';
+      nextBlock = '<span class="cs-next">' +
+        '<span class="cs-k">NEXT RANK — ' + LEVELS[lv.idx + 1].name.toUpperCase() + '</span>' +
+        '<span class="cs-bar"><span style="width:' + pct + '%"></span></span>' +
+        '<span class="cs-k cs-k2">' + label + '</span></span>';
     } else {
-      html += ' · x' + lv.mult.toFixed(1) + ' pay · +0.1x at ' + lv.nextAt + ' h';
+      nextBlock = '<span class="cs-next">' +
+        '<span class="cs-k">TOP OF THE LADDER</span>' +
+        '<span class="cs-v" style="font-size:15px">×' + lv.mult.toFixed(1) + ' pay</span>' +
+        '<span class="cs-k cs-k2">+0.1× at ' + lv.nextAt + ' h</span></span>';
     }
-    return html;
+    return '<span class="career-strip">' +
+      '<span class="cs-rank"><span class="lvl lvl-' + lv.idx + '">' + lv.name + '</span>' + stripesHtml(lv.idx) + '</span>' +
+      '<span class="cs-stat"><span class="cs-v">' + c.hours.toFixed(1) + ' h</span><span class="cs-k">logged</span></span>' +
+      '<span class="cs-stat"><span class="cs-v money">' + fmtMoney(c.money) + '</span><span class="cs-k">earned</span></span>' +
+      '<span class="cs-stat"><span class="cs-v">' + c.flights + '</span><span class="cs-k">' + (c.flights === 1 ? 'flight' : 'flights') + '</span></span>' +
+      nextBlock + '</span>';
   }
   function renderCareerLine() {
     const el = $('career-line');
