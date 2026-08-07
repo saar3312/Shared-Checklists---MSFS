@@ -336,6 +336,10 @@ body.light .stripes{background:#2c313c}
   padding:11px 16px;cursor:pointer;box-shadow:0 4px 18px rgba(255,214,10,0.45);font-family:inherit}
 #btn-cockpit-door:hover{filter:brightness(1.08)}
 #btn-cockpit-door.door-locked{background:#3a3325;color:#c9942e;cursor:not-allowed;box-shadow:none}
+/* the door switch steps aside whenever a card or the cards menu is open —
+   it must never sit on top of an Acknowledge button */
+body:has(#card-modal:not([hidden])) #btn-cockpit-door,
+body:has(#cards-menu:not([hidden])) #btn-cockpit-door{display:none !important}
 .stat-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--border)}
 .stat-row:last-child{border-bottom:none}
 .stat-k{color:var(--text-muted)}
@@ -1256,10 +1260,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.33</div>
+<div class="ver-float app-version">v1.34</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.33</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.34</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1906,7 +1910,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.33</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.34</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -5174,6 +5178,7 @@ body.light .flight-number .flight-route{color:#15171d}
     refreshOpenCard();
     dockCardModal();
     $('card-modal').hidden = false;
+    updateCockpitDoorBtn(); // never cover the Acknowledge button
   }
   function refreshOpenCard() {
     if (!openCardState) return;
@@ -5230,6 +5235,7 @@ body.light .flight-number .flight-route{color:#15171d}
     back.classList.remove('dock-pane');
     if (back.parentElement !== document.body) document.body.appendChild(back);
     openCardState = null;
+    updateCockpitDoorBtn(); // the door switch comes back once the card is away
   }
   $('card-close').addEventListener('click', closeCard);
   $('card-modal').addEventListener('click', (e) => {
@@ -5259,6 +5265,7 @@ body.light .flight-number .flight-route{color:#15171d}
       });
     });
     $('cards-menu').hidden = false;
+    updateCockpitDoorBtn();
   }
   function toggleDetailView() {
     compactView = !compactView;
@@ -5589,8 +5596,9 @@ body.light .flight-number .flight-route{color:#15171d}
   function updateCockpitDoorBtn() {
     const b2 = $('btn-cockpit-door');
     if (!b2) return;
+    const cardOpen = !$('card-modal').hidden || !$('cards-menu').hidden;
     const can = state.role === 'host' && state.checklist && state.myRole === 'PIC' &&
-      !state.observer && !flightCommitted;
+      !state.observer && !flightCommitted && !cardOpen;
     if (!can) { b2.style.display = 'none'; return; }
     b2.style.display = '';
     b2.classList.remove('door-locked');
@@ -5651,7 +5659,7 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!menu.hidden && !menu.contains(e.target) && e.target !== $('btn-menu')) menu.hidden = true;
   });
   { const bc = $('btn-cards'); if (bc) bc.addEventListener('click', openCardsMenu); }
-  $('cards-menu-close').addEventListener('click', () => { $('cards-menu').hidden = true; });
+  $('cards-menu-close').addEventListener('click', () => { $('cards-menu').hidden = true; updateCockpitDoorBtn(); });
   $('cards-menu').addEventListener('click', (e) => {
     if (e.target === $('cards-menu')) $('cards-menu').hidden = true;
   });
