@@ -1163,10 +1163,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.27</div>
+<div class="ver-float app-version">v1.28</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.27</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.28</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1813,7 +1813,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.27</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.28</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -6562,9 +6562,31 @@ body.light .flight-number .flight-route{color:#15171d}
   function crewRequest(code) {
     if (!fdb) { toast('Needs internet'); return; }
     const id = crewPairId(state.myCode, code);
-    fdb.ref('careers/_crew/' + id).set({ a: state.myCode, b: code, by: state.myCode, status: 'pending', ts: Date.now() })
-      .then(() => { crewCache[id] = { a: state.myCode, b: code, by: state.myCode, status: 'pending', ts: Date.now() };
-        toast('Crew request sent'); if (lbData) renderLeaderboard(lbData[0], lbData[1]); });
+    // NEVER blind-write: crew is like a friendship — once made, only an
+    // explicit removal may break it. A stale roster button must not be able
+    // to downgrade an existing pair back to 'pending'.
+    fdb.ref('careers/_crew/' + id).get().then(sn => {
+      const ex = sn && sn.val();
+      if (ex && ex.status === 'crew') {
+        crewCache[id] = ex;
+        toast('Already crew — you can chat any time');
+        if (lbData) renderLeaderboard(lbData[0], lbData[1]);
+        return;
+      }
+      if (ex && ex.status === 'pending') {
+        crewCache[id] = ex;
+        if (ex.by !== state.myCode) { crewAccept(id); return; } // they asked first — this click is the acceptance
+        toast('Request already sent — waiting for them to accept');
+        if (lbData) renderLeaderboard(lbData[0], lbData[1]);
+        return;
+      }
+      const rec = { a: state.myCode, b: code, by: state.myCode, status: 'pending', ts: Date.now() };
+      fdb.ref('careers/_crew/' + id).set(rec).then(() => {
+        crewCache[id] = rec;
+        toast('Crew request sent');
+        if (lbData) renderLeaderboard(lbData[0], lbData[1]);
+      });
+    }).catch(() => toast('Could not reach the roster — try again'));
   }
   function crewAccept(id) {
     fdb.ref('careers/_crew/' + id + '/status').set('crew').then(() => {
