@@ -287,8 +287,19 @@ body.light .stripes{background:#2c313c}
 /* ---------- Career Roadmap: three rows of two, every row reading left → right ---------- */
 /* JFO → FO / SFO → JC / SC → PC. After each row the line drops from the
    right card and sweeps left into the next row's first card. */
-.rm-flow{display:grid;grid-template-columns:1fr 46px 1fr;grid-template-rows:auto 26px 26px auto 26px 26px auto;
-  grid-template-areas:"c0 s0 c1" ". . s1v" "s1h s1h s1h" "c2 s2 c3" ". . s3v" "s3h s3h s3h" "c4 s4 c5";margin-top:10px}
+.rm-flow{display:grid;grid-template-columns:1fr 46px 1fr;grid-template-rows:auto 52px auto 52px auto;
+  grid-template-areas:"c0 s0 c1" "L1 L1 L1" "c2 s2 c3" "L3 L3 L3" "c4 s4 c5";margin-top:10px}
+/* row-to-row connector: ONE continuous path — straight down from the right
+   card, across to the left, straight down into the next row's first card.
+   The three bars share their corner pixels so the line never breaks. */
+.rm-L{position:relative}
+.rm-L>div{position:absolute;border-radius:4px}
+.rm-L .rm-lv1{top:0;height:calc(50% + 3px);width:6px;right:calc((100% - 46px)/4 - 3px);
+  background:linear-gradient(to bottom,var(--sc) var(--sp),var(--border) var(--sp))}
+.rm-L .rm-lh{top:calc(50% - 3px);height:6px;left:calc((100% - 46px)/4 - 3px);right:calc((100% - 46px)/4 - 3px);
+  background:linear-gradient(to left,var(--sc) var(--sp),var(--border) var(--sp))}
+.rm-L .rm-lv2{bottom:0;height:calc(50% - 3px);width:6px;left:calc((100% - 46px)/4 - 3px);
+  background:linear-gradient(to bottom,var(--sc) var(--sp),var(--border) var(--sp))}
 .rm-card{border:1px solid var(--border);border-radius:14px;padding:16px 14px;
   display:flex;flex-direction:column;gap:7px;align-items:center;text-align:center;
   transition:border-color .3s,box-shadow .3s}
@@ -315,6 +326,9 @@ body.light .stripes{background:#2c313c}
   .rm-flow{display:flex;flex-direction:column}
   .rm-link{width:6px !important;height:38px;align-self:center;
     background:linear-gradient(to bottom,var(--sc) var(--sp),var(--border) var(--sp)) !important}
+  .rm-L{position:static;width:6px;height:38px;align-self:center;border-radius:4px;
+    background:linear-gradient(to bottom,var(--sc) var(--sp),var(--border) var(--sp))}
+  .rm-L>div{display:none}
 }
 .stat-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--border)}
 .stat-row:last-child{border-bottom:none}
@@ -1142,10 +1156,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.19</div>
+<div class="ver-float app-version">v1.20</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.19</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.20</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1791,7 +1805,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.19</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.20</span></div>
           <hr />
           <button class="btn link" id="btn-crew-open" style="display:none">Allow co-pilot (make dual)</button>
           <button class="btn link" id="btn-logbook">Logbook</button>
@@ -2853,16 +2867,17 @@ body.light .flight-number .flight-route{color:#15171d}
         '</div>';
       if (i < LEVELS.length - 1) {
         if (L_SEGS[i]) {
-          // row-to-row L: vertical drop from the right card fills first,
-          // then the leftward sweep into the next row's first card
-          const vPct = Math.min(100, segPct * 2);
-          const hPct = Math.max(0, (segPct - 50) * 2);
-          html += '<div class="rm-link rm-v' + (me ? ' rm-seg-live' : '') + '" style="grid-area:s' + i + 'v' +
-            ';--sc:' + RANK_COLORS[i] + ';--sp:' + vPct + '%' +
-            (vPct ? ';box-shadow:0 0 10px ' + RANK_COLORS[i] : '') + '"></div>';
-          html += '<div class="rm-link rm-h rm-rev' + (me ? ' rm-seg-live' : '') + '" style="grid-area:s' + i + 'h' +
-            ';--sc:' + RANK_COLORS[i] + ';--sp:' + hPct + '%' +
-            (hPct ? ';box-shadow:0 0 10px ' + RANK_COLORS[i] : '') + '"></div>';
+          // row-to-row connector — one continuous path: down out of the
+          // right card, across to the left, down into the next row's card.
+          // The glow travels it in order: drop, sweep, entry.
+          const third = (lo) => Math.max(0, Math.min(100, Math.round((segPct - lo) * 3)));
+          const glow = (p2) => p2 ? ';box-shadow:0 0 10px ' + RANK_COLORS[i] : '';
+          html += '<div class="rm-L' + (me ? ' rm-seg-live' : '') + '" style="grid-area:L' + i +
+            ';--sc:' + RANK_COLORS[i] + ';--sp:' + segPct + '%">' +
+            '<div class="rm-lv1" style="--sp:' + third(0) + '%' + glow(third(0)) + '"></div>' +
+            '<div class="rm-lh" style="--sp:' + third(33.4) + '%' + glow(third(33.4)) + '"></div>' +
+            '<div class="rm-lv2" style="--sp:' + third(66.7) + '%' + glow(third(66.7)) + '"></div>' +
+            '</div>';
         } else {
           html += '<div class="rm-link rm-h' + (me ? ' rm-seg-live' : '') + '" style="grid-area:s' + i +
             ';--sc:' + RANK_COLORS[i] + ';--sp:' + segPct + '%' +
