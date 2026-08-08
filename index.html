@@ -1269,10 +1269,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.36</div>
+<div class="ver-float app-version">v1.37</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.36</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.37</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1951,7 +1951,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.36</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.37</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -5578,6 +5578,8 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // ---- Updates tab: the changelog, newest first ----
   const CHANGELOG = [
+    { v: '1.37', items: [
+      'FIXED: a closed deck could come back if an old browser tab somewhere was still hosting it — closed decks are now blocklisted and stay gone no matter what.'] },
     { v: '1.36', items: [
       'NEW: this Updates tab — every version’s fixes and features, right here.',
       'The new-version banner now points you at what changed.'] },
@@ -7635,6 +7637,8 @@ body.light .flight-number .flight-route{color:#15171d}
     if (fdb) {
       if (!lobby.fsub) {
         lobby.fsub = true;
+        deckKillFetch();
+        setInterval(deckKillFetch, 60000); // stays fresh on every device
         fdb.ref('lobby').on('value', snap => {
           lobby.flights = snap.val() || {};
           updateDecksBadge();
@@ -7690,6 +7694,10 @@ body.light .flight-number .flight-route{color:#15171d}
     const window_ = fdb ? 90000 : 30000; // firebase presence cleans up on disconnect
     for (const k of Object.keys(lobby.flights)) {
       const f = lobby.flights[k];
+      if (deckKill[k]) { // SM shut this code down — invisible no matter who re-announces it
+        if (fdb) { try { fdb.ref('lobby/' + k).remove(); } catch (e) {} }
+        continue;
+      }
       if (f && f.killed) { // shut down — never shown, swept after a minute
         if (fdb && now - f.killed > 60000) { try { fdb.ref('lobby/' + k).remove(); } catch (e) {} }
         continue;
@@ -7747,6 +7755,23 @@ body.light .flight-number .flight-route{color:#15171d}
     };
   }
   const DECK_HOLD_MS = 3600000; // dual decks wait 1 hour for their crew before closing
+  // deck blocklist: codes SM has shut down. Lives OUTSIDE the lobby entry so
+  // even an old-version zombie host that keeps re-announcing can't resurrect
+  // the deck — every current client hides it and sweeps its entry.
+  let deckKill = {};
+  function deckKillFetch() {
+    if (!fdb) return;
+    fdb.ref('careers/_deckkill').get().then(sn => {
+      deckKill = (sn && sn.val()) || {};
+      const now = Date.now();
+      for (const k of Object.keys(deckKill)) {
+        if (now - (deckKill[k] || 0) > 7 * 86400000) { // week-old blocks expire
+          try { fdb.ref('careers/_deckkill/' + k).remove(); } catch (e) {}
+          delete deckKill[k];
+        }
+      }
+    }).catch(() => {});
+  }
   let dualAnnTimer = 0;
   function dualAnnounceSoon() {
     if (state.solo || state.role !== 'host' || !state.code) return;
@@ -8095,6 +8120,8 @@ body.light .flight-number .flight-route{color:#15171d}
         row.querySelectorAll('[data-del-deck]').forEach(el =>
           el.addEventListener('click', () => {
             if (!fdb || !confirm('Close this parked flight deck? Its crew loses the saved progress.')) return;
+            fdb.ref('careers/_deckkill/' + code).set(Date.now()); // even a waking zombie host can't bring it back
+            deckKill[code] = Date.now();
             fdb.ref('lobby/' + code).remove().then(() => { toast('Deck closed'); renderLobbyList(); });
           }));
         list.appendChild(row);
@@ -8175,10 +8202,14 @@ body.light .flight-number .flight-route{color:#15171d}
         kb.addEventListener('click', () => {
           if (!fdb) return;
           if (!confirm('Close flight deck ' + (f.flight || code) + '? The crew aboard is dropped back to Active Flight Decks and this deck disappears for everyone. Logged careers are untouched.')) return;
-          // kill marker first — a live host obeys it within a second — then sweep
-          fdb.ref('lobby/' + code + '/killed').set(Date.now());
+          // blocklist the CODE itself — outlives any zombie host that keeps
+          // re-announcing (even one running an old version of the app)
+          fdb.ref('careers/_deckkill/' + code).set(Date.now());
+          deckKill[code] = Date.now();
+          fdb.ref('lobby/' + code + '/killed').set(Date.now()); // current-version hosts obey this within a second
           setTimeout(() => { try { fdb.ref('lobby/' + code).remove(); } catch (e) {} renderLobbyList(); }, 4000);
-          toast('Deck ' + (f.flight || code) + ' is being closed');
+          renderLobbyList();
+          toast('Deck ' + (f.flight || code) + ' is closed — it cannot come back');
         });
         row.appendChild(kb);
       }
@@ -8196,7 +8227,7 @@ body.light .flight-number .flight-route{color:#15171d}
     // fresher iteration of this same flight won the dedup
     if (state.role === 'host' && state.code && fdb) {
       const mine = lobby.flights && lobby.flights[state.code];
-      if (mine && mine.killed) { closeDeckKilled(); return; }
+      if ((mine && mine.killed) || deckKill[state.code]) { closeDeckKilled(); return; }
     }
     // host: prove liveness to the crew every 5s (guests detect zombie lines by its absence)
     if (state.role === 'host' && state.conns.length && lobbyBeat % 5 === 0) broadcast({ type: 'hb' });
