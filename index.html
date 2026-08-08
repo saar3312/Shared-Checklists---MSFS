@@ -1269,10 +1269,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.37</div>
+<div class="ver-float app-version">v1.38</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.37</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.38</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1951,7 +1951,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.37</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.38</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -5578,6 +5578,8 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // ---- Updates tab: the changelog, newest first ----
   const CHANGELOG = [
+    { v: '1.38', items: [
+      'Parked decks now wait a full 24 HOURS for their crew (was 1 hour) — step away and rejoin whenever you like.'] },
     { v: '1.37', items: [
       'FIXED: a closed deck could come back if an old browser tab somewhere was still hosting it — closed decks are now blocklisted and stay gone no matter what.'] },
     { v: '1.36', items: [
@@ -5613,7 +5615,7 @@ body.light .flight-number .flight-route{color:#15171d}
     { v: '1.18–1.20', items: [
       'Career Roadmap redrawn: three rows of two, one continuous glowing path from JFO to Platinum Captain.'] },
     { v: '1.14–1.17', items: [
-      'Dual cockpits no longer close when people leave — they park on the board for 1 hour, rejoinable by their crew with everything intact.',
+      'Dual cockpits no longer close when people leave — they park on the board, rejoinable by their crew with everything intact.',
       'PIC can kick the PM (20-minute cooldown).',
       'Mark-all-done and checklist cards are per-side in dual ops; the Cards menu stays open to both.',
       'Accepted flights scrub their paused copies everywhere.'] },
@@ -6126,8 +6128,8 @@ body.light .flight-number .flight-route{color:#15171d}
         lobbyUnannounce();
       } else if (!state.solo && !flightCommitted && state.ticked.size) {
         // dual deck with progress: leaving does NOT close it — it parks on the
-        // board and either pilot can rejoin within the hour
-        if (!confirm('Step away from this flight deck? It stays open on Active Flight Decks — you or your co-pilot can rejoin any time in the next hour. After an hour with no crew, it closes.')) return;
+        // board and either pilot can rejoin whenever they like
+        if (!confirm('Step away from this flight deck? It stays open on Active Flight Decks — you or your co-pilot can rejoin whenever. After 24 hours with no crew, it closes.')) return;
         dualPauseNow();
       } else {
         if (!confirm('Close this flight deck?')) return;
@@ -7705,7 +7707,7 @@ body.light .flight-number .flight-route{color:#15171d}
       const fresh = now - (f.ts || 0) < window_;
       if (fresh && !f.pausedAt) { out[k] = f; continue; }
       // dual decks don't die because people left: they hold on the board,
-      // rejoinable by their crew, until BOTH pilots have been gone an hour
+      // rejoinable by their crew whenever — only a full DAY of absence closes them
       if (!f.solo && f.save && !f._test) {
         const pausedAt = f.pausedAt || f.ts || 0; // crashed hosts never write pausedAt — their last heartbeat counts
         if (now - pausedAt < DECK_HOLD_MS) {
@@ -7754,7 +7756,7 @@ body.light .flight-number .flight-route{color:#15171d}
       })(),
     };
   }
-  const DECK_HOLD_MS = 3600000; // dual decks wait 1 hour for their crew before closing
+  const DECK_HOLD_MS = 86400000; // parked decks wait a full DAY for their crew — rejoin whenever
   // deck blocklist: codes SM has shut down. Lives OUTSIDE the lobby entry so
   // even an old-version zombie host that keeps re-announcing can't resurrect
   // the deck — every current client hides it and sweeps its entry.
@@ -7782,7 +7784,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   function dualPauseNow() {
     // host steps away with no co-pilot connected: park the deck on the board
-    // (save + pausedAt) instead of killing it — crew has an hour to come back
+    // (save + pausedAt) instead of killing it — crew can come back any time within 24 h
     if (!fdb || !state.code || state.solo) return;
     try {
       const f = lobbyFlightInfo();
@@ -7845,7 +7847,7 @@ body.light .flight-number .flight-route{color:#15171d}
         if (state.solo) {
           ref.onDisconnect().remove(); // solo: vanishes from the lobby if the tab dies (own save slot covers resume)
         } else {
-          // dual: the deck STAYS on the board if the tab dies — marked paused, rejoinable for an hour
+          // dual: the deck STAYS on the board if the tab dies — marked paused, rejoinable for a day
           try { ref.onDisconnect().update({ pausedAt: firebase.database.ServerValue.TIMESTAMP }); }
           catch (e2) { try { ref.onDisconnect().remove(); } catch (e3) {} }
         }
@@ -8083,6 +8085,7 @@ body.light .flight-number .flight-route{color:#15171d}
         // dual deck whose crew stepped away — parked, waiting for either pilot
         row.classList.add('lobby-paused');
         const minsLeft = Math.max(1, Math.round((DECK_HOLD_MS - (Date.now() - f.pausedAt)) / 60000));
+        const leftStr = minsLeft >= 90 ? (Math.round(minsLeft / 6) / 10 + ' h') : (minsLeft + ' min');
         const iAmCrew = f.roles && (f.roles.PIC === state.myName || f.roles.PM === state.myName);
         let seats = '';
         for (const r of ['PIC', 'PM']) {
@@ -8107,7 +8110,7 @@ body.light .flight-number .flight-route{color:#15171d}
           '<div><span class="f-k">DEP:</span><span class="f-v mono">' + escapeHTML(f.dep || '—') + '</span></div>' +
           '<div><span class="f-k">ARR:</span><span class="f-v mono">' + escapeHTML(f.arr || '—') + '</span></div>' +
           '<div><span class="f-k">AIRCRAFT:</span><span class="f-v">' + escapeHTML(f.aircraft || '—') + '</span></div>' +
-          '<div><span class="f-k">CLOSES IN:</span><span class="f-v">' + minsLeft + ' min unless crew returns</span></div>' +
+          '<div><span class="f-k">CLOSES IN:</span><span class="f-v">' + leftStr + ' unless crew returns</span></div>' +
           '</div>' +
           '<div class="deck2-pilots">' + seats + '</div>' +
           (iAmCrew ? '' : '<div class="lobby-empty" style="padding:8px 0 0">Waiting for its crew to come back.</div>') +
