@@ -1283,10 +1283,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.42</div>
+<div class="ver-float app-version">v1.45</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.42</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.45</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1952,7 +1952,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.42</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.45</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -3062,27 +3062,60 @@ body.light .flight-number .flight-route{color:#15171d}
   function checkFirstAwards() {
     if (!fdb || !state.myCode) return;
     const myIdx = levelFor(myCareer().hours).idx;
-    if (myIdx < 1) return;
     Promise.all([
       fdb.ref('careers/_awards').get().then(x => (x && x.val()) || {}).catch(() => ({})),
       fdb.ref('careers/_rankjoin').get().then(x => (x && x.val()) || {}).catch(() => ({})),
-    ]).then(([firsts, joins]) => {
+      fdb.ref('careers').get().then(x => (x && x.val()) || {}).catch(() => ({})),
+    ]).then(([firsts, joins, allC]) => {
+      // TRUE ORDER: numbers come from flight HISTORY — the date each pilot's
+      // logbook actually crossed the rank threshold — never from who happened
+      // to sign in first after an update.
+      const crossDate = (c, thresholdH) => {
+        let cum = 0;
+        for (const e of (c.log || [])) {
+          cum += (e.minutes || 0) / 60;
+          if (cum > thresholdH) return e.date || '9998-01-01';
+        }
+        return '9998-01-01'; // hours known but log too thin — sorts last
+      };
       const won = [];
-      for (let i = 1; i <= myIdx; i++) {
+      for (let i = 1; i < LEVELS.length; i++) {
+        const lo = LEVELS[i - 1].max;
         const lvJoins = joins[i] || {};
-        if (lvJoins[state.myCode]) continue; // number already earned — forever
-        // pilots who claimed a legacy gold first keep their #1 without a re-popup
-        if (firsts[i] && firsts[i].code === state.myCode) {
-          try { fdb.ref('careers/_rankjoin/' + i + '/' + state.myCode).set({ n: 1, name: state.myName || '', ts: firsts[i].ts || Date.now() }); } catch (e) {}
-          continue;
+        joins[i] = lvJoins;
+        // the legacy gold holder always owns #1
+        if (firsts[i] && firsts[i].code && !lvJoins[firsts[i].code]) {
+          const mig = { n: 1, name: firsts[i].name || '', ts: firsts[i].ts || Date.now(), seen: true };
+          try { fdb.ref('careers/_rankjoin/' + i + '/' + firsts[i].code).set(mig); } catch (e) {}
+          lvJoins[firsts[i].code] = mig;
         }
+        // every qualified pilot without a number yet, ordered by real crossing date
+        const pending = Object.keys(allC)
+          .filter(code => code.charAt(0) !== '_' && !lvJoins[code] &&
+            levelFor((allC[code] && allC[code].hours) || 0).idx >= i)
+          .map(code => ({ code, d: crossDate(allC[code], lo), h: (allC[code].hours || 0) }))
+          .sort((a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : b.h - a.h);
+        if (!pending.length) continue;
         const taken = Object.keys(lvJoins).map(k => (lvJoins[k] && lvJoins[k].n) || 0);
-        const n = Math.max(taken.length, taken.reduce((a, b) => Math.max(a, b), 0)) + 1;
-        try { fdb.ref('careers/_rankjoin/' + i + '/' + state.myCode).set({ n, name: state.myName || '', ts: Date.now() }); } catch (e) {}
-        if (n === 1 && !firsts[i]) { // keep the legacy gold node in step
-          try { fdb.ref('careers/_awards/' + i).set({ code: state.myCode, name: state.myName || '', ts: Date.now() }); } catch (e) {}
+        let next = Math.max(taken.length, taken.reduce((a, b) => Math.max(a, b), 0)) + 1;
+        for (const p of pending) {
+          const nm = (localPilotsMap()[p.code] || {}).name || (p.code === state.myCode ? state.myName : '') || p.code;
+          const rec = { n: next, name: nm, ts: Date.now(), seen: false };
+          try { fdb.ref('careers/_rankjoin/' + i + '/' + p.code).set(rec); } catch (e) {}
+          lvJoins[p.code] = rec;
+          if (next === 1 && !firsts[i]) {
+            try { fdb.ref('careers/_awards/' + i).set({ code: p.code, name: nm, ts: Date.now() }); } catch (e) {}
+          }
+          next++;
         }
-        won.push({ i, n });
+      }
+      // my unseen honors (just earned, or backfilled earlier) → CONGRATS now
+      for (let i = 1; i <= myIdx; i++) {
+        const mine = joins[i] && joins[i][state.myCode];
+        if (mine && !mine.seen) {
+          won.push({ i, n: mine.n });
+          try { fdb.ref('careers/_rankjoin/' + i + '/' + state.myCode + '/seen').set(true); } catch (e) {}
+        }
       }
       if (won.length) showAwardPopup(won);
     }).catch(() => {});
@@ -5659,6 +5692,14 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // ---- Updates tab: the changelog, newest first ----
   const CHANGELOG = [
+    { v: '1.45', items: [
+      'FIXED: "View the full Career Roadmap" on the profile did nothing after the merge.',
+      'Viewing another pilot\u2019s profile now highlights the Roster tab, not My Profile.',
+      'FIXED: a logbook entry with a missing pay or minutes field crashed the profile page mid-render, breaking navigation.'] },
+    { v: '1.44', items: [
+      'Join numbers are now TRUE history: computed from every logbook\u2019s actual rank-crossing date, so the order reflects who really got there first — not who signed in first.'] },
+    { v: '1.43', items: [
+      'FIXED: the join-number counter could hand out a second "1st pilot to reach" if the original gold holder had not signed in since the honors update — gold holders now always count as #1.'] },
     { v: '1.42', items: [
       'Logbook and My Career merged into ONE Pilot Profile tab — rank strip, honors, roadmap, superlatives and logbook together, same layout as a roster profile.'] },
     { v: '1.41', items: [
@@ -7428,7 +7469,7 @@ body.light .flight-number .flight-route{color:#15171d}
   function earningsFor(role, hours) {
     return estPay(state.slug, role, hours, salaryMinutes());
   }
-  function fmtMoney(v) { return '$' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function fmtMoney(v) { return '$' + (Number(v) || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
   function brandLineHtml() {
     if (!state.myName) return '<strong>CrewDeck EFB</strong>';
     const lv = levelFor(myCareer().hours);
@@ -7485,10 +7526,10 @@ body.light .flight-number .flight-route{color:#15171d}
       (delCode ? '<th></th>' : '') + '</tr>';
     log.forEach((e, di) => {
       const orig = (c.log || []).length - 1 - di; // display is reversed
-      h += '<tr><td>' + e.date + '</td><td>' + escapeHTML(e.aircraft || '') + '</td><td>' +
+      h += '<tr><td>' + (e.date || '—') + '</td><td>' + escapeHTML(e.aircraft || '') + '</td><td>' +
         escapeHTML(e.flight || '—') + '</td><td>' + escapeHTML((e.dep || '') + '→' + (e.arr || '')) + '</td><td>' +
-        e.role + (e.crew ? '/' + e.crew : '') + '</td><td>' + escapeHTML(e.copilot ? initials(e.copilot) : '—') + '</td><td>' +
-        e.minutes + '</td><td><span class="money">' + fmtMoney(e.pay) + '</span></td>' +
+        (e.role || '—') + (e.crew ? '/' + e.crew : '') + '</td><td>' + escapeHTML(e.copilot ? initials(e.copilot) : '—') + '</td><td>' +
+        (e.minutes || 0) + '</td><td><span class="money">' + fmtMoney(e.pay) + '</span></td>' +
         (delCode ? '<td><button type="button" class="btn link" data-dellog="' + orig + '" title="Remove — goes to the discarded pile" style="color:#e5484d;font-size:12px;padding:0 6px">✕</button></td>' : '') +
         '</tr>';
     });
@@ -7552,7 +7593,7 @@ body.light .flight-number .flight-route{color:#15171d}
     if (!state.myCode) return;
     if (code === state.myCode) { showLogbookScreen(); return; }
     if (!fdb) { toast('Viewing another logbook needs internet'); return; }
-    setActiveTab('logbook');
+    setActiveTab('roster'); // browsing someone else = still the roster, not My Profile
     show('logbook');
     updateInboxTab();
     $('logbook-title').innerHTML = 'Pilot Profile — ' + wingedByCode(code) +
@@ -7599,6 +7640,7 @@ body.light .flight-number .flight-route{color:#15171d}
     wireLogDeletes(state.myCode);
     toggleLogbookOwnButtons(true);
     const mr = $('mini-rm'); if (mr) mr.addEventListener('click', showRoadmapScreen);
+    const lr = $('link-roadmap'); if (lr) lr.addEventListener('click', showRoadmapScreen);
     const ci = $('btn-change-initials'); if (ci) ci.addEventListener('click', changeMyInitials);
     if (fdb && state.myCode) {
       Promise.all([
