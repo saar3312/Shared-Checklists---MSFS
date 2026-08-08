@@ -1119,6 +1119,15 @@ body.light .flight-number .flight-route{color:#15171d}
   font-size:11px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;
 }
 .section-nav .btn[disabled]{opacity:0.45;cursor:not-allowed}
+/* ---------- Updates tab: the changelog ---------- */
+.upd-ver{border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin:0 0 12px;
+  background:var(--surface)}
+.upd-ver.current{border-color:var(--accent);box-shadow:0 0 10px rgba(201,148,46,0.25)}
+.upd-head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
+.upd-v{font-size:16px;font-weight:800;letter-spacing:0.04em;color:var(--accent)}
+.upd-tag{font-size:10px;font-weight:700;letter-spacing:0.14em;color:var(--text-muted);text-transform:uppercase}
+.upd-ver ul{margin:0;padding-left:20px}
+.upd-ver li{font-size:13px;line-height:1.65;color:var(--text);margin:3px 0}
 /* ---------- career strip: the profile banner as a proper stat row ---------- */
 .career-strip{
   display:flex;align-items:center;gap:20px;flex-wrap:wrap;
@@ -1260,10 +1269,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.34</div>
+<div class="ver-float app-version">v1.36</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.34</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.36</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1572,6 +1581,38 @@ body.light .flight-number .flight-route{color:#15171d}
     <div class="setup-card lobby-card">
       <h2>Career Roadmap</h2>
       <div id="roadmap-body"></div>
+    </div>
+  </div>
+</div>
+<!-- Updates tab: the changelog — what each version fixed and added -->
+<div id="screen-updates" class="hidden">
+  <div class="subnav">
+    <button class="btn link" id="btn-updates-back">&larr; Back</button>
+    <span class="subnav-title brand-line"><strong>CrewDeck EFB</strong></span>
+    <span></span>
+  </div>
+  <nav class="app-tabs">
+    <button type="button" data-tab="flight" style="display:none;color:var(--good)">My Flight</button>
+    <button type="button" data-tab="newflight">New Flight</button>
+    <button type="button" data-tab="decks">Active Flight Decks</button>
+    <button type="button" data-tab="chat">Messages</button>
+    <button type="button" data-tab="roster">Roster</button>
+    <button type="button" data-tab="crew">Crew</button>
+    <button type="button" data-tab="logbook">Logbook</button>
+    <button type="button" data-tab="stats">My Career</button>
+    <button type="button" data-tab="roadmap">Roadmap</button>
+    <button type="button" data-tab="guide">Guide</button>
+    <button type="button" data-tab="inbox" style="display:none">Inbox</button>
+    <button type="button" class="tab-mini" data-tab="theme" title="Toggle light / dark">Light Mode</button>
+    <button type="button" class="tab-mini" data-tab="viewas" style="display:none" title="Preview the app as a regular pilot">View As Pilot</button>
+    <button type="button" class="tab-mini" data-tab="support">Support</button>
+    <button type="button" class="tab-mini" data-tab="account">Account ▾</button>
+  </nav>
+  <div class="center-stack">
+    <div class="setup-card lobby-card">
+      <h2>Updates</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin:4px 0 18px">What each version fixed and added. You're on <strong id="upd-current"></strong>.</p>
+      <div id="updates-body"></div>
     </div>
   </div>
 </div>
@@ -1910,7 +1951,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.34</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.36</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -2365,6 +2406,7 @@ body.light .flight-number .flight-route{color:#15171d}
     support: $('screen-support'),
     logbook: $('screen-logbook'),
     roster: $('screen-roster'),
+    updates: $('screen-updates'),
     join: $('screen-join'),
     "host-setup": $('screen-host-setup'),
     connect: $('screen-connect'),
@@ -2400,9 +2442,12 @@ body.light .flight-number .flight-route{color:#15171d}
         const bar = document.createElement('div');
         bar.id = 'ver-banner';
         bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:500;background:var(--accent);color:#14161c;font-size:13px;font-weight:700;padding:9px 16px;text-align:center;letter-spacing:0.04em';
-        bar.innerHTML = 'A new version of CrewDeck EFB (' + escapeHTML(remote) + ') is out — <button id="ver-reload" style="all:unset;text-decoration:underline;cursor:pointer;font-weight:800">refresh to update</button>';
+        bar.innerHTML = 'A new version of CrewDeck EFB (' + escapeHTML(remote) + ') is out — ' +
+          '<button id="ver-reload" style="all:unset;text-decoration:underline;cursor:pointer;font-weight:800">refresh to update</button>' +
+          ' · check out the new stuff in the <button id="ver-whatsnew" style="all:unset;text-decoration:underline;cursor:pointer;font-weight:800">Updates tab</button>';
         document.body.appendChild(bar);
         document.getElementById('ver-reload').addEventListener('click', () => location.reload());
+        document.getElementById('ver-whatsnew').addEventListener('click', () => { gotoTab('updates'); });
       }
     }).catch(() => {});
   }
@@ -3746,10 +3791,30 @@ body.light .flight-number .flight-route{color:#15171d}
     peer.on('error', (err) => {
       if (err && err.type === 'unavailable-id' && state._reviving && tries < 20) {
         // reviving a parked dual deck: the code MUST stay the same — the old
-        // host's ghost holds the peer id for a bit, so wait it out and retry
+        // host's ghost holds the peer id for a bit, so wait it out and retry.
+        // But if the deck shows LIVE meanwhile, my co-pilot beat me to the
+        // revival — stop fighting for the host id and take my held seat.
+        const lf = lobby.flights && lobby.flights[state.code];
+        if (lf && !lf.pausedAt && !lf.killed && Date.now() - (lf.ts || 0) < 90000) {
+          state._reviving = false;
+          try { peer.destroy(); } catch (e2) {}
+          state.role = 'guest';
+          state.myKey = null;
+          desiredRole = state.myRole || desiredRole;
+          toast('Your co-pilot already reopened this deck — joining your held seat.');
+          joinRoom(state.code);
+          return;
+        }
         $('connect-sub').textContent = 'Reopening the flight deck…';
         try { peer.destroy(); } catch (e2) {}
         setTimeout(() => createPeerWithRetry(id, isHost, tries + 1), 1500);
+      } else if (err && err.type === 'unavailable-id' && state._reviving) {
+        state._reviving = false;
+        $('connect-eyebrow').textContent = 'Could not reopen the deck';
+        $('connect-sub').textContent = 'The previous host\u2019s connection is still registered with the broker \u2014 ' +
+          'this clears by itself. Go back and hit REJOIN again in about a minute.';
+        $('connect-spinner').classList.add('hidden');
+        $('btn-retry').classList.remove('hidden');
       } else if (err && err.type === 'unavailable-id' && tries < 3) {
         // is my co-pilot hosting my old deck? (they took the aircraft while
         // I was away) — then my seat is held there: rejoin it, don't fork a copy
@@ -5490,7 +5555,7 @@ body.light .flight-number .flight-route{color:#15171d}
     updateInboxTab();
     updateMyFlightTab();
   }
-  const RESTORABLE_TABS = ['newflight', 'decks', 'chat', 'crew', 'roster', 'logbook', 'stats', 'roadmap', 'guide', 'inbox', 'support'];
+  const RESTORABLE_TABS = ['newflight', 'decks', 'chat', 'crew', 'roster', 'logbook', 'stats', 'roadmap', 'guide', 'inbox', 'support', 'updates'];
   function rememberTab(t) { try { if (RESTORABLE_TABS.includes(t)) localStorage.setItem('fdeck-last-tab', t); } catch (e) {} }
   function gotoTab(t) {
     if (t === 'support') { showSupportScreen(); return; }
@@ -5509,7 +5574,80 @@ body.light .flight-number .flight-route{color:#15171d}
     else if (t === 'stats') showStatsScreen();
     else if (t === 'roster') showRosterScreen();
     else if (t === 'logbook') showLogbookScreen();
+    else if (t === 'updates') showUpdatesScreen();
   }
+  // ---- Updates tab: the changelog, newest first ----
+  const CHANGELOG = [
+    { v: '1.36', items: [
+      'NEW: this Updates tab — every version’s fixes and features, right here.',
+      'The new-version banner now points you at what changed.'] },
+    { v: '1.35', items: [
+      'ONE FLIGHT, ONE DECK: duplicate iterations of the same flight (same callsign, same crew) now purge themselves — no more three copies of one flight on the board.',
+      'Completing or approving a flight shuts down every leftover copy of it, including live stragglers.',
+      'SM can close ANY flight deck from the board (with confirmation).',
+      'Both pilots hitting REJOIN no longer fight — the second one is routed into their held seat.'] },
+    { v: '1.33–1.34', items: [
+      'Career banner redesigned into a proper stat strip with a rank progress bar.',
+      'Mobile: the cockpit door button no longer covers a card’s Acknowledge button.'] },
+    { v: '1.32', items: [
+      'Big mobile & iPad pass: roomier checklist rows, swipeable nav, two-column aircraft grid, stacked deck cards, side-scrolling tables.',
+      'Fixed the PIC|PM switch appearing on single-pilot flights.'] },
+    { v: '1.29–1.31', items: [
+      'FIXED: a pilot who was away when a dual flight completed got no credit — their share now goes to SM for one-click crediting.',
+      'SM can retroactively assign a full flight (hours, pay, logbook entry with route and co-pilot).'] },
+    { v: '1.27–1.28', items: [
+      'The PM keeps flying when the PIC disappears — automatic takeover of the same deck, all progress intact, the PIC’s seat held.',
+      'FIXED: crew links could silently reset to a pending request — crew now only ends by explicit removal.'] },
+    { v: '1.26', items: [
+      'FIXED: ticks silently lost when the host’s connection died quietly — a 5-second heartbeat now detects it, warns you honestly, and reconnects automatically.'] },
+    { v: '1.24–1.25', items: [
+      'If you’re in, you’re in: rejoining after a refresh or crash needs NO new PIC approval — your seat is held for you.',
+      '"Mark BOTH sides complete" button for dual ops.',
+      'Observers can no longer open or tick anything.',
+      'Finished flights fully disappear, including stale paused copies on other devices.'] },
+    { v: '1.21–1.23', items: [
+      'The cockpit door is a bright yellow switch, bottom-right — open and close the PM seat as the PIC pleases; locked once push begins.',
+      'Scratchpads survive pausing and parking — they never reset.'] },
+    { v: '1.18–1.20', items: [
+      'Career Roadmap redrawn: three rows of two, one continuous glowing path from JFO to Platinum Captain.'] },
+    { v: '1.14–1.17', items: [
+      'Dual cockpits no longer close when people leave — they park on the board for 1 hour, rejoinable by their crew with everything intact.',
+      'PIC can kick the PM (20-minute cooldown).',
+      'Mark-all-done and checklist cards are per-side in dual ops; the Cards menu stays open to both.',
+      'Accepted flights scrub their paused copies everywhere.'] },
+    { v: '1.12–1.13', items: [
+      'Airbus A340 added (4-engine flows).',
+      'In-checklist Detail toggle in every section header.',
+      'Live deck counter on the Active Flight Decks tab.'] },
+    { v: '1.0–1.11', items: [
+      'The foundation: dual-crew checklists with live sync, careers & pay, the roster, crew & messaging, intercom, shared OFP with ink, scratchpads, awards, flight reviews, and the pilot guide.'] },
+  ];
+  function showUpdatesScreen() {
+    if (!state.myName) { show('home'); return; }
+    setActiveTab('updates');
+    show('updates');
+    const cur = (document.querySelector('.app-version') || {}).textContent || '';
+    const curEl = $('upd-current'); if (curEl) curEl.textContent = cur;
+    $('updates-body').innerHTML = CHANGELOG.map((r, i) =>
+      '<div class="upd-ver' + (i === 0 ? ' current' : '') + '">' +
+      '<div class="upd-head"><span class="upd-v">v' + r.v + '</span>' +
+      (i === 0 ? '<span class="upd-tag">Latest</span>' : '') + '</div>' +
+      '<ul>' + r.items.map(it => '<li>' + it + '</li>').join('') + '</ul></div>'
+    ).join('');
+  }
+  { const ub = $('btn-updates-back'); if (ub) ub.addEventListener('click', () => gotoTab('newflight')); }
+  // every screen's tab bar gets the Updates tab, injected on the right
+  document.querySelectorAll('.app-tabs').forEach(bar => {
+    const support = bar.querySelector('[data-tab="support"]');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'tab-mini';
+    b.dataset.tab = 'updates';
+    b.textContent = 'Updates';
+    b.title = 'What’s new in each version';
+    if (support) bar.insertBefore(b, support);
+    else bar.appendChild(b);
+  });
   document.querySelectorAll('.app-tabs button').forEach(b => {
     b.addEventListener('click', () => {
       const t = b.dataset.tab;
@@ -6538,11 +6676,14 @@ body.light .flight-number .flight-route{color:#15171d}
         for (const k of Object.keys(all)) {
           const f = all[k];
           if (!f) continue;
-          const parked = f.pausedAt || (Date.now() - (f.ts || 0) > 90000);
+          const parked = f.pausedAt || f.killed || (Date.now() - (f.ts || 0) > 90000);
           const aboard = f.roles && (f.roles.PIC === rev.name || f.roles.PM === rev.name);
           const sameFlight = same(f.save) ||
             ((f.flight || '') === (e.flight || '') && (f.dep || '') === (e.dep || '') && (f.arr || '') === (e.arr || ''));
-          if (parked && aboard && sameFlight) fdb.ref('lobby/' + k).remove();
+          if (aboard && sameFlight) {
+            if (parked) fdb.ref('lobby/' + k).remove();
+            else fdb.ref('lobby/' + k + '/killed').set(Date.now()); // live straggler of an accepted flight: stop it
+          }
         }
       }).catch(() => {});
     } catch (ex) {}
@@ -7444,7 +7585,7 @@ body.light .flight-number .flight-route{color:#15171d}
             : minutes + ' min flown vs ' + state.eteMin + ' min ETE (+' + TAXI_ALLOWANCE + ' min taxi allowance)';
           submitForReview(entry, reason);
           if (state.solo) soloSaveClear();
-          if (state.role === 'host') lobbyUnannounce();
+          if (state.role === 'host') { purgeDuplicateDecks(true); lobbyUnannounce(); }
           toast('Flight flagged: ' + reason + '. Sent to SM (7789) for approval — it is credited once accepted.');
         } else {
           const careers = loadCareers();
@@ -7458,7 +7599,7 @@ body.light .flight-number .flight-route{color:#15171d}
           saveCareers(careers);
           cloudPushCareer();
           if (state.solo) soloSaveClear(); // flight is banked — the save is done
-          if (state.role === 'host') lobbyUnannounce(); // completed flights leave Active Decks
+          if (state.role === 'host') { purgeDuplicateDecks(true); lobbyUnannounce(); } // completed flights leave Active Decks — ALL iterations
           updateBrandLines();
           checkFirstAwards();
           toast('Flight logged: ' + minutes + ' min · ' + fmtMoney(pay) + ' — checklist complete, credited to your logbook');
@@ -7549,6 +7690,10 @@ body.light .flight-number .flight-route{color:#15171d}
     const window_ = fdb ? 90000 : 30000; // firebase presence cleans up on disconnect
     for (const k of Object.keys(lobby.flights)) {
       const f = lobby.flights[k];
+      if (f && f.killed) { // shut down — never shown, swept after a minute
+        if (fdb && now - f.killed > 60000) { try { fdb.ref('lobby/' + k).remove(); } catch (e) {} }
+        continue;
+      }
       const fresh = now - (f.ts || 0) < window_;
       if (fresh && !f.pausedAt) { out[k] = f; continue; }
       // dual decks don't die because people left: they hold on the board,
@@ -7626,12 +7771,48 @@ body.light .flight-number .flight-route{color:#15171d}
       if (od && od.cancel) od.cancel(); // pausedAt is already set — don't let a later tab-close overwrite it
     } catch (e) {}
   }
+  // ONE FLIGHT, ONE DECK: the same callsign with any of the same pilots must
+  // never exist twice on the board. Whenever I announce, every OTHER iteration
+  // of my flight dies — parked/stale copies are removed outright; a live copy
+  // that has stopped heartbeating gets a kill marker its host obeys.
+  function purgeDuplicateDecks(flightDone) {
+    if (!fdb || !state.code) return;
+    const myFlight = (state.flightNumber || '').trim().toUpperCase();
+    if (!myFlight) return;
+    const info = lobbyFlightInfo();
+    const myNames = [info.roles && info.roles.PIC, info.roles && info.roles.PM, state.myName].filter(Boolean);
+    const now = Date.now();
+    for (const k of Object.keys(lobby.flights || {})) {
+      if (k === state.code) continue;
+      const f = lobby.flights[k];
+      if (!f || (f.flight || '').trim().toUpperCase() !== myFlight) continue;
+      const names = f.roles ? [f.roles.PIC, f.roles.PM].filter(Boolean) : [];
+      if (!names.some(n => myNames.indexOf(n) >= 0)) continue; // different crew — not my flight
+      const live = !f.killed && !f.pausedAt && now - (f.ts || 0) < 90000;
+      try {
+        if (!live || flightDone) {
+          if (live) fdb.ref('lobby/' + k + '/killed').set(now); // completed flight: live stragglers must stop
+          else fdb.ref('lobby/' + k).remove();
+        } else if (now - (f.ts || 0) > 45000) {
+          fdb.ref('lobby/' + k + '/killed').set(now); // heartbeat limping — it lost
+        }
+      } catch (e) {}
+    }
+  }
+  function closeDeckKilled() {
+    // my deck was closed remotely (SM, or a fresher iteration of this flight won)
+    toast('This flight deck was closed — it was a duplicate or SM shut it down.');
+    try { fdb.ref('lobby/' + state.code).remove(); } catch (e) {}
+    teardown();
+    backToBase();
+  }
   function lobbyAnnounce() {
     if (state.role !== 'host' || !state.code) return;
     if (flightCommitted) { lobbyUnannounce(); return; } // done flying — off the actives list
     const f = lobbyFlightInfo();
     if (fdb) {
       try {
+        purgeDuplicateDecks(false);
         const ref = fdb.ref('lobby/' + state.code);
         f.ts = Date.now();
         if (!state.solo) { const sv = dualSaveData(); if (sv) f.save = sv; }
@@ -7986,6 +8167,20 @@ body.light .flight-number .flight-route{color:#15171d}
           joinRoom(code);
         });
         row.appendChild(vb);
+        const kb = document.createElement('button');
+        kb.type = 'button';
+        kb.className = 'lobby-seat';
+        kb.style.cssText = 'margin-top:8px;border-color:#e5484d';
+        kb.innerHTML = '<span class="seat-tag" style="color:#e5484d">Close deck</span>Shut this flight deck down for everyone (e.g. a stray duplicate)';
+        kb.addEventListener('click', () => {
+          if (!fdb) return;
+          if (!confirm('Close flight deck ' + (f.flight || code) + '? The crew aboard is dropped back to Active Flight Decks and this deck disappears for everyone. Logged careers are untouched.')) return;
+          // kill marker first — a live host obeys it within a second — then sweep
+          fdb.ref('lobby/' + code + '/killed').set(Date.now());
+          setTimeout(() => { try { fdb.ref('lobby/' + code).remove(); } catch (e) {} renderLobbyList(); }, 4000);
+          toast('Deck ' + (f.flight || code) + ' is being closed');
+        });
+        row.appendChild(kb);
       }
       list.appendChild(row);
     });
@@ -7997,6 +8192,12 @@ body.light .flight-number .flight-route{color:#15171d}
     refreshLiveComp();
     const beatEvery = fdb ? 20 : 8;
     if (state.role === 'host' && state.code && lobbyBeat % beatEvery === 0) lobbyAnnounce();
+    // host: obey a remote kill within a second — SM closed the deck, or a
+    // fresher iteration of this same flight won the dedup
+    if (state.role === 'host' && state.code && fdb) {
+      const mine = lobby.flights && lobby.flights[state.code];
+      if (mine && mine.killed) { closeDeckKilled(); return; }
+    }
     // host: prove liveness to the crew every 5s (guests detect zombie lines by its absence)
     if (state.role === 'host' && state.conns.length && lobbyBeat % 5 === 0) broadcast({ type: 'hb' });
     // guest: a silent host means the line is dead even if it claims to be open
