@@ -1172,6 +1172,18 @@ body.light .flight-number .flight-route{color:#15171d}
    MOBILE & TABLET POLISH — phones and iPads get room to breathe.
    Nothing here touches desktop (>1000px stays exactly as it was).
    ================================================================ */
+/* --- nothing may push the page wider than the phone: the header brand line
+   (initials + rank chip) shrinks and wraps instead of overflowing --- */
+@media (max-width:900px){
+  html,body{overflow-x:hidden;max-width:100vw}
+  .subnav{flex-wrap:wrap;row-gap:4px;padding:9px 10px}
+  .subnav > .subnav-title{flex:1 1 auto;min-width:0}
+  .subnav-title{font-size:11px;display:flex;flex-wrap:wrap;align-items:center;
+    justify-content:center;column-gap:5px;row-gap:2px;text-align:center;letter-spacing:0.05em}
+  .subnav-title .lvl{font-size:9px;padding:3px 8px;letter-spacing:0.08em;white-space:nowrap}
+  .subnav-title strong{font-size:11px}
+  .subnav .btn{font-size:12px;padding:6px 8px}
+}
 /* --- main navigation: one smooth swipeable strip, big tap targets --- */
 @media (max-width:900px){
   .app-tabs{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
@@ -1283,10 +1295,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.45</div>
+<div class="ver-float app-version">v1.46</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.45</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.46</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1952,7 +1964,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.45</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.46</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -5692,6 +5704,8 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // ---- Updates tab: the changelog, newest first ----
   const CHANGELOG = [
+    { v: '1.46', items: [
+      'FIXED (iPhone): the rank badge in the header pushed the whole page wider than the screen — the header now shrinks and wraps, and nothing can overflow sideways.'] },
     { v: '1.45', items: [
       'FIXED: "View the full Career Roadmap" on the profile did nothing after the merge.',
       'Viewing another pilot\u2019s profile now highlights the Roster tab, not My Profile.',
