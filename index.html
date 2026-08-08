@@ -1119,6 +1119,20 @@ body.light .flight-number .flight-route{color:#15171d}
   font-size:11px;color:var(--text-muted);letter-spacing:0.08em;text-transform:uppercase;
 }
 .section-nav .btn[disabled]{opacity:0.45;cursor:not-allowed}
+/* ---------- seniority board: six rank columns, pilots under their badge ---------- */
+.sen-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:4px 0 24px}
+.sen-grid{display:grid;grid-template-columns:repeat(6,minmax(128px,1fr));gap:10px;min-width:820px}
+.sen-col{border:1px solid var(--border);border-radius:12px;padding:12px 8px;background:var(--surface);
+  display:flex;flex-direction:column;gap:7px;align-items:center;align-content:start}
+.sen-col>.lvl{font-size:10px;text-align:center;line-height:1.3}
+.sen-cnt{font-size:9px;font-weight:700;letter-spacing:0.14em;color:var(--text-muted);text-transform:uppercase;
+  padding-bottom:6px;border-bottom:1px solid var(--border);width:100%;text-align:center}
+.sen-p{cursor:pointer;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:7px 4px;border-radius:8px;width:100%;text-align:center;transition:background .12s}
+.sen-p:hover{background:var(--surface-2)}
+.sen-p.sen-me{outline:1px solid var(--accent);outline-offset:-1px}
+.sen-h{font-size:10px;color:var(--text-muted)}
+.sen-empty{font-size:10px;color:var(--text-muted);opacity:0.6;padding:10px 0}
 /* ---------- Updates tab: the changelog ---------- */
 .upd-ver{border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin:0 0 12px;
   background:var(--surface)}
@@ -1269,10 +1283,10 @@ body.light .flight-number .flight-route{color:#15171d}
   <button type="button" class="btn" id="am-password" style="width:100%;margin:3px 0;font-size:13px">Change Password</button>
   <button type="button" class="btn" id="am-signout" style="width:100%;margin:3px 0;font-size:13px;color:#e5484d">Sign Out</button>
 </div>
-<div class="ver-float app-version">v1.38</div>
+<div class="ver-float app-version">v1.40</div>
 <div id="screen-home">
   <div class="home-brand">
-    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.38</span></span>
+    <span class="home-brand-name">CrewDeck EFB <span class="app-version">v1.40</span></span>
     <div style="display:flex;align-items:center;gap:12px">
       <span class="home-brand-tag">Shared cockpit · peer-to-peer</span>
       <span class="zulu-clock" id="clock-home">----Z</span>
@@ -1951,7 +1965,7 @@ body.light .flight-number .flight-route{color:#15171d}
         <button class="btn link" id="btn-menu" title="More">&#8943;</button>
         <div class="top-menu" id="top-menu" hidden>
           <div class="menu-row"><span>Cockpit</span><span class="room-code" id="room-code"></span></div>
-          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.38</span></div>
+          <div class="menu-row"><span class="aircraft-tag" id="aircraft-tag"></span><span class="app-version">v1.40</span></div>
           <hr />
           <button class="btn link" id="btn-logbook">Logbook</button>
           <button class="btn link" id="btn-leaderboard2">Roster</button>
@@ -2120,7 +2134,7 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   const RANK_COLORS = ['#8a94a3', '#5b9fc4', '#2fa170', '#c9942e', '#8d6cc9', '#40cfd4'];
   function stripesHtml(idx) {
-    const bars = idx === 0 ? 2 : (idx <= 2 ? 3 : 4); // FO family 3 stripes, Captains 4 (fresh JFO 2)
+    const bars = idx === 0 ? 2 : (idx <= 2 ? 3 : 4); // FO family 3 stripes, Captains 4 (fresh Trainee 2)
     let s2 = '<span class="stripes" title="rank stripes" style="color:' + RANK_COLORS[idx] + '">';
     for (let i = 0; i < bars; i++) s2 += '<i></i>';
     return s2 + '</span>';
@@ -2890,8 +2904,8 @@ body.light .flight-number .flight-route{color:#15171d}
     'see the same flows live — every tick syncs between your browsers — and finishing a full flight pays into your career.</p>' +
     '<p class="lobby-h">THE RATING SYSTEM — READ THIS FIRST</p>' +
     '<p><strong>Your rank is your pay grade.</strong> Hours you log promote you, and every rank multiplies every future paycheck:</p>' +
-    '<p><span class="lvl lvl-0">Junior First Officer</span>' + stripesHtml(0) + ' never flown · ×1.0<br>' +
-    '<span class="lvl lvl-1">First Officer</span>' + stripesHtml(1) + ' your first flight → 40 h · ×1.1<br>' +
+    '<p><span class="lvl lvl-0">Trainee First Officer</span>' + stripesHtml(0) + ' never flown · ×1.0<br>' +
+    '<span class="lvl lvl-1">Junior First Officer</span>' + stripesHtml(1) + ' your first flight → 40 h · ×1.1<br>' +
     '<span class="lvl lvl-2">Senior First Officer</span>' + stripesHtml(2) + ' 40–100 h · ×1.2<br>' +
     '<span class="lvl lvl-3">Junior Captain</span>' + stripesHtml(3) + ' 100–200 h · ×1.5<br>' +
     '<span class="lvl lvl-4">Senior Captain</span>' + stripesHtml(4) + ' 200–500 h · ×1.8<br>' +
@@ -5450,8 +5464,28 @@ body.light .flight-number .flight-route{color:#15171d}
       }
     } catch (e) {}
     const admin = isAdminView(); // SM sees everyone's pilot IDs
+    // seniority BY RANK: six columns side by side, every pilot under their badge,
+    // ordered by hours within the rank (top rank on the left)
+    const byRank = [[], [], [], [], [], []];
+    rows.slice().sort((a, b) => b.hours - a.hours || b.money - a.money)
+      .forEach(r => byRank[levelFor(r.hours).idx].push(r));
+    let sen = '<div class="sen-wrap"><div class="sen-grid">';
+    for (let li = LEVELS.length - 1; li >= 0; li--) {
+      const list = byRank[li];
+      sen += '<div class="sen-col"><span class="lvl lvl-' + li + '">' + LEVELS[li].name + '</span>' +
+        '<span class="sen-cnt">' + list.length + (list.length === 1 ? ' pilot' : ' pilots') + '</span>' +
+        (list.length
+          ? list.map((r, i) =>
+              '<div class="sen-p' + (r.code === state.myCode ? ' sen-me' : '') + '" data-viewlog="' + escapeHTML(r.code) + '" title="Open logbook">' +
+              '<span>' + (i + 1) + '. ' + (online.has(r.name) ? '<span class="dot-on"></span>' : '') +
+                wingedHtml(escapeHTML(initials(r.name)), r.hours) + '</span>' +
+              '<span class="sen-h">' + r.hours.toFixed(1) + ' h</span></div>').join('')
+          : '<div class="sen-empty">— none yet —</div>') +
+        '</div>';
+    }
+    sen += '</div></div>';
     const th = (k, label) => '<th class="rs' + (lbSort === k ? ' on' : '') + '" data-rs="' + k + '">' + label + '</th>';
-    let html = '<table class="lb-table"><tr><th>Seniority</th><th style="text-align:center">Pilot</th><th>Crew</th>' +
+    let html = sen + '<table class="lb-table"><tr><th>Seniority</th><th style="text-align:center">Pilot</th><th>Crew</th>' +
       (admin ? '<th>ID</th>' : '') +
       th('level', 'Level') + th('hours', 'Hours') + th('money', 'Earnings') + th('flights', 'Flights') + '</tr>';
     rows.forEach((r, i) => {
@@ -5486,7 +5520,7 @@ body.light .flight-number .flight-route{color:#15171d}
       if (admin) wireRosterMessageButtons(target);
       target.querySelectorAll('th[data-rs]').forEach(h2 =>
         h2.addEventListener('click', () => { lbSort = h2.dataset.rs; if (lbData) renderLeaderboard(lbData[0], lbData[1]); }));
-      target.querySelectorAll('td[data-viewlog]').forEach(td2 =>
+      target.querySelectorAll('[data-viewlog]').forEach(td2 =>
         td2.addEventListener('click', () => showPilotLogbook(td2.dataset.viewlog)));
       target.querySelectorAll('[data-crew-add]').forEach(b3 =>
         b3.addEventListener('click', (ev) => { ev.stopPropagation(); crewRequest(b3.dataset.crewAdd); }));
@@ -5578,6 +5612,9 @@ body.light .flight-number .flight-route{color:#15171d}
   }
   // ---- Updates tab: the changelog, newest first ----
   const CHANGELOG = [
+    { v: '1.39', items: [
+      'Roster: new seniority board — six rank columns side by side, every pilot listed under their badge.',
+      'Rank renames: Junior First Officer is now TRAINEE FIRST OFFICER (TFO), First Officer is now JUNIOR FIRST OFFICER (JFO). Same colors, same stripes, same pay.'] },
     { v: '1.38', items: [
       'Parked decks now wait a full 24 HOURS for their crew (was 1 hour) — step away and rejoin whenever you like.'] },
     { v: '1.37', items: [
@@ -7299,8 +7336,8 @@ body.light .flight-number .flight-route{color:#15171d}
   });
   // ---- pilot levels: your logged hours set your pay grade ----
   const LEVELS = [
-    { name: 'Junior First Officer', max: 0,        mult: 1.0 }, // brand new — no time logged yet
-    { name: 'First Officer',        max: 40,       mult: 1.1 }, // first flight under the belt
+    { name: 'Trainee First Officer', max: 0,       mult: 1.0 }, // brand new — no time logged yet
+    { name: 'Junior First Officer', max: 40,       mult: 1.1 }, // first flight under the belt
     { name: 'Senior First Officer', max: 100,      mult: 1.2 },
     { name: 'Junior Captain',       max: 200,      mult: 1.5 },
     { name: 'Senior Captain',       max: 500,      mult: 1.8 },
@@ -7880,7 +7917,7 @@ body.light .flight-number .flight-route{color:#15171d}
       renderLobbyList();
     }).catch(() => {});
   }
-  const RANK_ABBR = ['JFO', 'FO', 'SFO', 'JC', 'SC', 'PC'];
+  const RANK_ABBR = ['TFO', 'JFO', 'SFO', 'JC', 'SC', 'PC'];
   let emailByCode = {}; // admin only: code -> account email
   function fetchEmails(cb) {
     if (!fdb || state.myCode !== ADMIN_CODE) { cb && cb(); return; }
